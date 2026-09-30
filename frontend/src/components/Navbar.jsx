@@ -37,274 +37,289 @@ export default function Navbar() {
 
   const currentThemeObj = THEMES.find(t => t.id === currentTheme) || THEMES[0];
 
+  const navLinks = [
+    { path: '/', label: 'Overview' },
+    { path: '/code-analyzer', label: 'DSA Analyzer' },
+    { path: '/project-generator', label: 'Project Generator' },
+    { path: '/analyzer', label: 'Project Scan' },
+    { path: '/dashboard', label: 'Dashboard' },
+  ];
+
   return (
     <>
       <header style={{
         borderBottom: '1px solid var(--border-subtle)',
         background: 'var(--header-bg)',
-        backdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(24px)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
         transition: 'background-color 0.25s ease'
       }}>
-        <div className="container" style={{
+        {/* Spacious, wide navbar wrapper */}
+        <div style={{
+          width: '100%',
+          maxWidth: '1680px',
+          margin: '0 auto',
+          padding: '0 clamp(24px, 4vw, 56px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: '74px'
+          height: '80px'
         }}>
-          {/* Brand Logo */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* 1. Brand Logo */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '14px', textDecoration: 'none' }}>
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'var(--primary)',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: 'var(--primary-glow)',
               color: '#ffffff'
             }}>
-              <Terminal size={20} strokeWidth={2.5} />
+              <Terminal size={22} strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
-                  fontSize: '19px',
+                  fontSize: '20px',
                   fontWeight: 900,
                   letterSpacing: '-0.03em',
                   color: 'var(--text-main)'
                 }}>
                   CodeLens<span style={{ color: 'var(--primary)' }}>.AI</span>
                 </span>
-                <span className="badge badge-medium" style={{ fontSize: '10px' }}>
+                <span className="badge badge-medium" style={{ fontSize: '10px', padding: '2px 7px' }}>
                   v1.2
                 </span>
               </div>
-              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', letterSpacing: '0.02em', fontWeight: 500 }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.02em', fontWeight: 500 }}>
                 Your code. Understood.
               </div>
             </div>
           </Link>
 
-          {/* Navigation Links */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Link
-              to="/"
-              style={{
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                color: isActive('/') ? 'var(--text-main)' : 'var(--text-muted)',
-                background: isActive('/') ? 'var(--bg-surface)' : 'transparent',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Overview
-            </Link>
-
-            <Link
-              to="/code-analyzer"
-              style={{
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '13.5px',
-                fontWeight: 700,
-                color: isActive('/code-analyzer') ? '#ffffff' : 'var(--primary)',
-                background: isActive('/code-analyzer') ? 'var(--primary)' : 'rgba(99, 102, 241, 0.12)',
-                border: '1px solid ' + (isActive('/code-analyzer') ? 'transparent' : 'var(--border-accent)'),
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Code2 size={15} />
-              <span>DSA Analyzer</span>
-            </Link>
-
-            <Link
-              to="/project-generator"
-              style={{
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                color: isActive('/project-generator') ? 'var(--text-main)' : 'var(--text-muted)',
-                background: isActive('/project-generator') ? 'var(--bg-surface)' : 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Box size={15} color="var(--primary)" />
-              <span>Project Generator</span>
-            </Link>
-
-            <Link
-              to="/analyzer"
-              style={{
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                color: isActive('/analyzer') ? 'var(--text-main)' : 'var(--text-muted)',
-                background: isActive('/analyzer') ? 'var(--bg-surface)' : 'transparent',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Project Scan
-            </Link>
-
-            <Link
-              to="/dashboard"
-              style={{
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                color: isActive('/dashboard') ? 'var(--text-main)' : 'var(--text-muted)',
-                background: isActive('/dashboard') ? 'var(--bg-surface)' : 'transparent',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Dashboard
-            </Link>
+          {/* 2. Spacious Center Navigation (Clean text links with indicator bar) */}
+          <nav style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '36px'
+          }}>
+            {navLinks.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  style={{
+                    position: 'relative',
+                    padding: '8px 2px',
+                    fontSize: '14.5px',
+                    fontWeight: active ? 600 : 500,
+                    color: active ? 'var(--text-main)' : 'var(--text-muted)',
+                    textDecoration: 'none',
+                    transition: 'color 0.15s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.color = 'var(--text-main)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.color = 'var(--text-muted)';
+                  }}
+                >
+                  <span>{item.label}</span>
+                  {active && (
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '-6px',
+                      left: 0,
+                      right: 0,
+                      height: '2px',
+                      borderRadius: '2px',
+                      background: 'var(--primary)',
+                      boxShadow: '0 0 10px var(--primary)'
+                    }} />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Right Controls: Theme, Settings, Auth */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Quick Theme Cycle Button */}
+          {/* 3. Spacious Right Controls (Theme, Settings, Auth) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Minimal Ghost Theme Switcher */}
             <button
               type="button"
               onClick={handleCycleTheme}
-              title={`Active Theme: ${currentThemeObj.name}. Click to switch.`}
+              title={`Active Theme: ${currentThemeObj.name} (Click to switch)`}
               style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-main)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '7px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-light)',
-                color: 'var(--text-main)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-light)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              <Palette size={14} color="var(--primary)" />
-              <span>{currentThemeObj.name.split(' ')[0]}</span>
+              <Palette size={18} color="var(--primary)" />
             </button>
 
-            {/* Settings Gear Modal */}
+            {/* Minimal Ghost Settings Gear */}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              title="Settings & Preferences"
+              title="Preferences & Settings"
               style={{
-                padding: '8px',
-                borderRadius: 'var(--radius-sm)',
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
                 background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-light)',
+                border: '1px solid var(--border-subtle)',
                 color: 'var(--text-main)',
-                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-light)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              <SettingsIcon size={16} />
+              <SettingsIcon size={18} />
             </button>
 
-            {/* Authentication Controls: Sign In & Log Out always accessible */}
+            {/* Subtle Vertical Divider */}
+            <div style={{
+              width: '1px',
+              height: '24px',
+              background: 'var(--border-subtle)',
+              margin: '0 4px'
+            }} />
+
+            {/* Authentication Controls: Spacious & Balanced */}
             {currentUser ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
+                  gap: '8px',
+                  padding: '6px 14px',
                   borderRadius: '9999px',
                   background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)'
+                  border: '1px solid var(--border-subtle)'
                 }}>
                   <div style={{
-                    width: '20px',
-                    height: '20px',
+                    width: '24px',
+                    height: '24px',
                     borderRadius: '50%',
                     background: 'var(--primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '10px',
+                    fontSize: '11px',
                     fontWeight: 800,
                     color: '#ffffff'
                   }}>
                     {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)' }}>
                     {currentUser.name}
                   </span>
                 </div>
 
                 <Link
                   to="/logout"
-                  title="Log Out of CodeLens"
+                  title="Sign out of CodeLens"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    padding: '7px 14px',
+                    gap: '6px',
+                    padding: '8px 14px',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(244, 63, 94, 0.12)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
-                    color: 'var(--accent-pink)',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
                     textDecoration: 'none',
                     transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--accent-pink)';
+                    e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.background = 'transparent';
+                  }}
                 >
-                  <LogOut size={14} />
+                  <LogOut size={16} />
                   <span>Log Out</span>
                 </Link>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Link
                   to="/login"
                   className="btn-primary"
-                  style={{ padding: '7px 14px', fontSize: '13px' }}
+                  style={{
+                    padding: '9px 22px',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-sm)'
+                  }}
                 >
                   <span>Sign In</span>
                 </Link>
 
                 <Link
                   to="/logout"
-                  title="Log Out / End Session"
+                  title="Go to Log Out Page"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    padding: '7px 14px',
+                    gap: '6px',
+                    padding: '8px 14px',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(244, 63, 94, 0.12)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
-                    color: 'var(--accent-pink)',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
                     textDecoration: 'none',
                     transition: 'all 0.15s ease'
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--accent-pink)';
+                    e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.background = 'transparent';
+                  }}
                 >
-                  <LogOut size={14} />
+                  <LogOut size={16} />
                   <span>Log Out</span>
                 </Link>
               </div>
