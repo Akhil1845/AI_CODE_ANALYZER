@@ -231,17 +231,33 @@ export default function SettingsModal({ isOpen, onClose }) {
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-subtle)'
             }}>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                You are currently browsing as a guest.
-              </span>
-              <a
-                href="/login"
-                className="btn-primary"
-                style={{ padding: '6px 14px', fontSize: '12.5px' }}
-                onClick={() => onClose()}
-              >
-                Sign In
-              </a>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Guest Session Active
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  Not currently signed in
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a
+                  href="/login"
+                  className="btn-primary"
+                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  onClick={() => onClose()}
+                >
+                  Sign In
+                </a>
+                <a
+                  href="/logout"
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--accent-pink)', borderColor: 'rgba(244, 63, 94, 0.4)', textDecoration: 'none' }}
+                  onClick={() => onClose()}
+                >
+                  <LogOut size={13} />
+                  <span>Log Out</span>
+                </a>
+              </div>
             </div>
           )}
         </div>

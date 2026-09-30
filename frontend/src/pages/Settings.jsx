@@ -481,7 +481,13 @@ export default function Settings() {
                   ) : (
                     <div style={{ padding: '24px', textAlign: 'center' }}>
                       <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>You are currently browsing as a guest.</p>
-                      <a href="/login" className="btn-primary" style={{ padding: '10px 20px' }}>Sign In</a>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                        <a href="/login" className="btn-primary" style={{ padding: '10px 20px' }}>Sign In</a>
+                        <a href="/logout" className="btn-secondary" style={{ padding: '10px 20px', color: 'var(--accent-pink)', borderColor: 'rgba(244, 63, 94, 0.4)', textDecoration: 'none' }}>
+                          <LogOut size={15} style={{ marginRight: '6px' }} />
+                          <span>Log Out Page</span>
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>

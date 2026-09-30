@@ -221,7 +221,7 @@ export default function Navbar() {
               <SettingsIcon size={16} />
             </button>
 
-            {/* Authentication (Single Sign In button, NO separate Sign Up button!) */}
+            {/* Authentication Controls: Sign In & Log Out always accessible */}
             {currentUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{
@@ -258,29 +258,56 @@ export default function Navbar() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '7px 12px',
+                    gap: '5px',
+                    padding: '7px 14px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(244, 63, 94, 0.12)',
                     border: '1px solid rgba(244, 63, 94, 0.35)',
                     color: 'var(--accent-pink)',
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: 700,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <LogOut size={13} />
+                  <LogOut size={14} />
                   <span>Log Out</span>
                 </Link>
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="btn-primary"
-                style={{ padding: '7px 16px', fontSize: '13px' }}
-              >
-                <span>Sign In</span>
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Link
+                  to="/login"
+                  className="btn-primary"
+                  style={{ padding: '7px 14px', fontSize: '13px' }}
+                >
+                  <span>Sign In</span>
+                </Link>
+
+                <Link
+                  to="/logout"
+                  title="Log Out / End Session"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '7px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(244, 63, 94, 0.12)',
+                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    color: 'var(--accent-pink)',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <LogOut size={14} />
+                  <span>Log Out</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>
