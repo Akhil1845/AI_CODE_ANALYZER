@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Terminal, Code2, LogOut, Settings as SettingsIcon, Palette, ArrowUpRight, History, Box } from 'lucide-react';
+import { Terminal, Code2, LogOut, Settings as SettingsIcon, Palette, Box } from 'lucide-react';
 import { auth } from '../services/auth';
 import { themeService, THEMES } from '../services/theme';
-import { storage } from '../services/storage';
 import SettingsModal from './SettingsModal';
 import HistoryDrawer from './HistoryDrawer';
 
@@ -12,25 +11,16 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [historyCount, setHistoryCount] = useState(0);
   const [currentTheme, setCurrentTheme] = useState('dark-pro');
 
   useEffect(() => {
     setCurrentTheme(themeService.init());
     setCurrentUser(auth.getCurrentUser());
-    setHistoryCount(storage.getAnalyses().length);
 
     const handleThemeChange = (e) => setCurrentTheme(e.detail);
     window.addEventListener('codelens-theme-change', handleThemeChange);
     return () => window.removeEventListener('codelens-theme-change', handleThemeChange);
   }, [location.pathname]);
-
-  const handleLogout = () => {
-    auth.logout();
-    setCurrentUser(null);
-    navigate('/');
-  };
 
   const handleCycleTheme = () => {
     const currentIndex = THEMES.findIndex(t => t.id === currentTheme);
@@ -64,85 +54,49 @@ export default function Navbar() {
           justifyContent: 'space-between',
           height: '74px'
         }}>
-          {/* Brand & Left Drawer Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* Sliding History Drawer Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsHistoryOpen(true)}
-              title="Open Analysis History Drawer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-light)',
-                color: 'var(--text-main)',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <History size={16} color="var(--primary)" />
-              <span>History</span>
-              {historyCount > 0 && (
+          {/* Brand Logo */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'var(--primary-glow)',
+              color: '#ffffff'
+            }}>
+              <Terminal size={20} strokeWidth={2.5} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{
-                  padding: '1px 6px',
-                  borderRadius: '9999px',
-                  background: 'var(--primary)',
-                  color: '#ffffff',
-                  fontSize: '10px',
-                  fontWeight: 800
+                  fontSize: '19px',
+                  fontWeight: 900,
+                  letterSpacing: '-0.03em',
+                  color: 'var(--text-main)'
                 }}>
-                  {historyCount}
+                  CodeLens<span style={{ color: 'var(--primary)' }}>.AI</span>
                 </span>
-              )}
-            </button>
-
-            {/* Brand Logo */}
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                background: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: 'var(--primary-glow)',
-                color: '#ffffff'
-              }}>
-                <Terminal size={20} strokeWidth={2.5} />
+                <span className="badge badge-medium" style={{ fontSize: '10px' }}>
+                  v1.2
+                </span>
               </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{
-                    fontSize: '19px',
-                    fontWeight: 900,
-                    letterSpacing: '-0.03em',
-                    color: 'var(--text-main)'
-                  }}>
-                    CodeLens<span style={{ color: 'var(--primary)' }}>.AI</span>
-                  </span>
-                </div>
-                <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', letterSpacing: '0.02em', fontWeight: 500 }}>
-                  Your code. Understood.
-                </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', letterSpacing: '0.02em', fontWeight: 500 }}>
+                Your code. Understood.
               </div>
-            </Link>
-          </div>
+            </div>
+          </Link>
 
           {/* Navigation Links */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Link
               to="/"
               style={{
-                padding: '8px 12px',
+                padding: '8px 14px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: isActive('/') ? 'var(--text-main)' : 'var(--text-muted)',
                 background: isActive('/') ? 'var(--bg-surface)' : 'transparent',
@@ -155,9 +109,9 @@ export default function Navbar() {
             <Link
               to="/code-analyzer"
               style={{
-                padding: '8px 12px',
+                padding: '8px 14px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 700,
                 color: isActive('/code-analyzer') ? '#ffffff' : 'var(--primary)',
                 background: isActive('/code-analyzer') ? 'var(--primary)' : 'rgba(99, 102, 241, 0.12)',
@@ -168,35 +122,35 @@ export default function Navbar() {
                 transition: 'all 0.15s ease'
               }}
             >
-              <Code2 size={14} />
+              <Code2 size={15} />
               <span>DSA Analyzer</span>
             </Link>
 
             <Link
               to="/project-generator"
               style={{
-                padding: '8px 12px',
+                padding: '8px 14px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: isActive('/project-generator') ? 'var(--text-main)' : 'var(--text-muted)',
                 background: isActive('/project-generator') ? 'var(--bg-surface)' : 'transparent',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '6px',
                 transition: 'all 0.15s ease'
               }}
             >
-              <Box size={14} color="var(--primary)" />
+              <Box size={15} color="var(--primary)" />
               <span>Project Generator</span>
             </Link>
 
             <Link
               to="/analyzer"
               style={{
-                padding: '8px 12px',
+                padding: '8px 14px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: isActive('/analyzer') ? 'var(--text-main)' : 'var(--text-muted)',
                 background: isActive('/analyzer') ? 'var(--bg-surface)' : 'transparent',
@@ -209,9 +163,9 @@ export default function Navbar() {
             <Link
               to="/dashboard"
               style={{
-                padding: '8px 12px',
+                padding: '8px 14px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: isActive('/dashboard') ? 'var(--text-main)' : 'var(--text-muted)',
                 background: isActive('/dashboard') ? 'var(--bg-surface)' : 'transparent',
@@ -222,18 +176,18 @@ export default function Navbar() {
             </Link>
           </nav>
 
-          {/* Right Toolbar: Theme Toggle, Settings, User Profile / Auth */}
+          {/* Right Controls: Theme, Settings, Auth */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Quick Theme Cycle Button */}
             <button
               type="button"
               onClick={handleCycleTheme}
-              title={`Active Theme: ${currentThemeObj.name}. Click to switch theme.`}
+              title={`Active Theme: ${currentThemeObj.name}. Click to switch.`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 10px',
+                padding: '7px 12px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-light)',
@@ -247,13 +201,13 @@ export default function Navbar() {
               <span>{currentThemeObj.name.split(' ')[0]}</span>
             </button>
 
-            {/* Settings Gear Modal Launcher */}
+            {/* Settings Gear Modal */}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              title="Settings & Appearance"
+              title="Settings & Preferences"
               style={{
-                padding: '7px',
+                padding: '8px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-light)',
@@ -267,14 +221,14 @@ export default function Navbar() {
               <SettingsIcon size={16} />
             </button>
 
-            {/* Auth State */}
+            {/* Authentication (Single Sign In button, NO separate Sign Up button!) */}
             {currentUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '5px 10px',
+                  padding: '6px 12px',
                   borderRadius: '9999px',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-light)'
@@ -293,20 +247,19 @@ export default function Navbar() {
                   }}>
                     {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
                   </div>
-                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                     {currentUser.name}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleLogout}
+                <Link
+                  to="/logout"
                   title="Log Out of CodeLens"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '6px 10px',
+                    padding: '7px 12px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(244, 63, 94, 0.12)',
                     border: '1px solid rgba(244, 63, 94, 0.35)',
@@ -318,34 +271,16 @@ export default function Navbar() {
                 >
                   <LogOut size={13} />
                   <span>Log Out</span>
-                </button>
+                </Link>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Link
-                  to="/login"
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '12.5px',
-                    fontWeight: 600,
-                    color: 'var(--text-main)',
-                    background: 'transparent',
-                    border: '1px solid var(--border-light)'
-                  }}
-                >
-                  Sign In
-                </Link>
-
-                <Link
-                  to="/signup"
-                  className="btn-primary"
-                  style={{ padding: '6px 12px', fontSize: '12.5px' }}
-                >
-                  <span>Sign Up</span>
-                  <ArrowUpRight size={13} />
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className="btn-primary"
+                style={{ padding: '7px 16px', fontSize: '13px' }}
+              >
+                <span>Sign In</span>
+              </Link>
             )}
           </div>
         </div>
@@ -354,8 +289,8 @@ export default function Navbar() {
       {/* Settings Modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
-      {/* Left Sliding History Drawer */}
-      <HistoryDrawer isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+      {/* Left Edge Cursor Hover Activated History Drawer */}
+      <HistoryDrawer />
     </>
   );
 }

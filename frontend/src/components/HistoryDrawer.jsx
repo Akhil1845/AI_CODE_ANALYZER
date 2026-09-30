@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   History, 
@@ -6,25 +6,58 @@ import {
   Trash2, 
   ArrowUpRight, 
   Search, 
-  Code2, 
   Bug, 
   Clock, 
-  ChevronRight,
-  Sparkles,
-  FileCode
+  ChevronRight
 } from 'lucide-react';
 import { storage } from '../services/storage';
 
-export default function HistoryDrawer({ isOpen, onClose }) {
+export default function HistoryDrawer() {
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
   const [analyses, setAnalyses] = useState([]);
   const [search, setSearch] = useState('');
+  const [isNearEdge, setIsNearEdge] = useState(false);
+  const closeTimeoutRef = useRef(null);
 
+  // Load history whenever opened
   useEffect(() => {
     if (isOpen) {
       setAnalyses(storage.getAnalyses());
     }
   }, [isOpen]);
+
+  // Global mouse move listener for edge detection:
+  // When cursor moves within 18px of the screen's left edge, immediately slide open!
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      // If mouse is within 18px of the left edge and drawer is not open
+      if (e.clientX <= 18) {
+        setIsNearEdge(true);
+        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+        setIsOpen(true);
+      } else if (e.clientX > 420 && isOpen) {
+        // If mouse moved far away from open drawer
+        handleMouseLeave();
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [isOpen]);
+
+  const handleMouseEnter = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+      setIsNearEdge(false);
+    }, 250);
+  };
 
   const handleDelete = (id, e) => {
     e.stopPropagation();
@@ -40,8 +73,7 @@ export default function HistoryDrawer({ isOpen, onClose }) {
   };
 
   const handleItemClick = (analysis) => {
-    onClose();
-    // navigate to code-analyzer or dashboard
+    setIsOpen(false);
     navigate('/code-analyzer');
   };
 
@@ -53,33 +85,91 @@ export default function HistoryDrawer({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Invisible Left Edge Hover Detection Zone (Activates when cursor moves to the edge) */}
+      <div
+        onMouseEnter={handleMouseEnter}
+        style={{
+          position: 'fixed',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: '20px',
+          zIndex: 996,
+          cursor: 'pointer'
+        }}
+      />
+
+      {/* Subtle Glowing Left Edge Indicator Tab */}
+      {!isOpen && (
+        <div
+          onMouseEnter={handleMouseEnter}
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-light)',
+            borderLeft: 'none',
+            padding: '10px 6px',
+            borderTopRightRadius: '10px',
+            borderBottomRightRadius: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 995,
+            cursor: 'pointer',
+            boxShadow: '4px 0 16px rgba(0, 0, 0, 0.4)',
+            transition: 'all 0.2s ease',
+            opacity: isNearEdge ? 1 : 0.75
+          }}
+          title="Move cursor to edge to view Analysis History"
+        >
+          <History size={16} color="var(--primary)" />
+          <span style={{
+            writingMode: 'vertical-rl',
+            transform: 'rotate(180deg)',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+            color: 'var(--text-muted)'
+          }}>
+            HISTORY
+          </span>
+        </div>
+      )}
+
+      {/* Backdrop overlay */}
       {isOpen && (
         <div
-          onClick={onClose}
+          onClick={() => setIsOpen(false)}
+          onMouseEnter={handleMouseLeave}
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(6px)',
+            background: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(5px)',
             zIndex: 998,
             transition: 'opacity 0.25s ease'
           }}
         />
       )}
 
-      {/* Left Sliding Drawer */}
+      {/* Left Sliding Menu Window */}
       <aside
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{
           position: 'fixed',
           top: 0,
           bottom: 0,
           left: 0,
-          width: '390px',
+          width: '400px',
           maxWidth: '85vw',
           background: 'var(--bg-secondary)',
           borderRight: '1px solid var(--border-light)',
-          boxShadow: '10px 0 40px rgba(0, 0, 0, 0.6)',
+          boxShadow: '10px 0 45px rgba(0, 0, 0, 0.65)',
           zIndex: 999,
           display: 'flex',
           flexDirection: 'column',
@@ -115,14 +205,14 @@ export default function HistoryDrawer({ isOpen, onClose }) {
                 Analysis History
               </h3>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                {analyses.length} real submissions recorded
+                Auto-slides when cursor moves to the left edge
               </div>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => setIsOpen(false)}
             style={{
               padding: '6px',
               borderRadius: '6px',
@@ -280,7 +370,7 @@ export default function HistoryDrawer({ isOpen, onClose }) {
 
             <button
               type="button"
-              onClick={() => { onClose(); navigate('/dashboard'); }}
+              onClick={() => { setIsOpen(false); navigate('/dashboard'); }}
               className="btn-secondary"
               style={{ padding: '6px 12px', fontSize: '12px' }}
             >

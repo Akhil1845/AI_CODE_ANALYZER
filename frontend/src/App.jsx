@@ -8,6 +8,7 @@ import ProjectGenerator from "./pages/ProjectGenerator";
 import AnalysisResult from "./pages/AnalysisResult";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Logout from "./pages/Logout";
 import Settings from "./pages/Settings";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/analysis/:id" element={<AnalysisResult />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/logout" element={<Logout />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>
