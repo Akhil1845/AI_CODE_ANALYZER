@@ -12,6 +12,9 @@ build/
 target/
 *.jar
 *.war
+__pycache__/
+*.pyc
+*.pyo
 
 # Environment & Local Secrets
 .env
