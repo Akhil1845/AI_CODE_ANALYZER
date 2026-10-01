@@ -353,12 +353,16 @@ export const api = {
     };
   },
 
-  // Scan GitHub Repository directly via backend & GitHub API
-  async scanGitHubRepo(repoUrl) {
+  // Scan GitHub Repository directly via backend & resilient multi-engine scanner
+  async scanGitHubRepo(repoUrl, githubToken = null) {
+    const payload = { repo_url: repoUrl };
+    if (githubToken && githubToken.trim()) {
+      payload.github_token = githubToken.trim();
+    }
     const res = await fetch(`${API_BASE_URL}/analyze/github`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ repo_url: repoUrl })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json();

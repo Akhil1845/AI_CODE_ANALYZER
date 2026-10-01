@@ -54,11 +54,12 @@ def health_check():
 # -------------------------------------------------------------
 class GitHubScanRequest(BaseModel):
     repo_url: str
+    github_token: Optional[str] = None
 
 @app.post("/api/analyze/github")
 def analyze_github_repo(req: GitHubScanRequest):
     try:
-        scan_result = github_service.fetch_and_scan(req.repo_url)
+        scan_result = github_service.fetch_and_scan(req.repo_url, token=req.github_token)
 
         # Persist project in MySQL
         project_id = f"proj-{uuid.uuid4().hex[:8]}"

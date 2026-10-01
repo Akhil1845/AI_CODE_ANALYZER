@@ -11,7 +11,8 @@ import {
   ArrowRight, 
   Sparkles,
   Database,
-  Cpu
+  Cpu,
+  Key
 } from 'lucide-react';
 import { api } from '../services/api';
 import { storage } from '../services/storage';
@@ -27,6 +28,8 @@ export default function Analyzer() {
   const navigate = useNavigate();
   const [scanMode, setScanMode] = useState('github'); // 'github' or 'upload'
   const [githubUrl, setGithubUrl] = useState('https://github.com/Akhil1845/AI_CODE_ANALYZER');
+  const [customGithubToken, setCustomGithubToken] = useState(() => localStorage.getItem('codelens_github_pat') || '');
+  const [showTokenInput, setShowTokenInput] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [logs, setLogs] = useState([]);
@@ -34,7 +37,7 @@ export default function Analyzer() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const steps = [
-    { title: 'Project Tree & File Indexing', desc: 'Fetching blobs via GitHub REST API / Unpacking ZIP archive...' },
+    { title: 'Project Tree & File Indexing', desc: 'Streaming source files via Multi-Engine Scanner / Unpacking archive...' },
     { title: 'Tech Stack & Dependency Detection', desc: 'Detecting languages, build manifests, framework configurations...' },
     { title: 'Static AST & Heuristic Rule Analysis', desc: 'Executing Bug Detection, Security Audits, and Complexity metrics...' },
     { title: 'MySQL Persistence & Telemetry Sync', desc: 'Storing project scans, issue locations, and severity metrics in MySQL...' },
@@ -50,15 +53,19 @@ export default function Analyzer() {
     setCurrentStep(0);
     setLogs([
       `[INFO] Target repository: ${githubUrl}`,
-      `[INFO] Connecting to GitHub REST API...`
+      `[INFO] Connecting via Resilient Multi-Engine Code Streamer...`
     ]);
 
     try {
-      // Step 1: Connecting to GitHub
-      setCurrentStep(0);
-      setLogs((prev) => [...prev, `[GITHUB] Fetching commit tree and blob references...`]);
+      if (customGithubToken.trim()) {
+        localStorage.setItem('codelens_github_pat', customGithubToken.trim());
+      }
 
-      const result = await api.scanGitHubRepo(githubUrl.trim());
+      // Step 1: Connecting to GitHub & fetching files
+      setCurrentStep(0);
+      setLogs((prev) => [...prev, `[ENGINE] Streaming file tree and AST source buffers...`]);
+
+      const result = await api.scanGitHubRepo(githubUrl.trim(), customGithubToken.trim() || null);
 
       // Step 2: Stack Detection
       setCurrentStep(1);
@@ -309,7 +316,7 @@ export default function Analyzer() {
                     </div>
 
                     {/* Quick Presets */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Try sample:</span>
                       <button
                         type="button"
@@ -343,6 +350,53 @@ export default function Analyzer() {
                       >
                         spring-petclinic
                       </button>
+                    </div>
+
+                    {/* Optional Token Accordion */}
+                    <div style={{ marginBottom: '22px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowTokenInput(!showTokenInput)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: 0
+                        }}
+                      >
+                        <Key size={14} />
+                        <span>{showTokenInput ? 'Hide GitHub Token Field' : 'Have a GitHub Personal Access Token? (Optional)'}</span>
+                      </button>
+
+                      {showTokenInput && (
+                        <div style={{ marginTop: '10px' }}>
+                          <input
+                            type="password"
+                            value={customGithubToken}
+                            onChange={(e) => setCustomGithubToken(e.target.value)}
+                            placeholder="ghp_•••••••••••••••••••••••••••••••••••• (Optional for private repos)"
+                            style={{
+                              width: '100%',
+                              padding: '11px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: '#04060f',
+                              border: '1px solid var(--border-light)',
+                              color: 'var(--text-main)',
+                              fontSize: '13.5px',
+                              fontFamily: 'var(--font-mono)'
+                            }}
+                          />
+                          <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '5px 0 0' }}>
+                            Optional. CodeLens automatically streams public repositories without rate limits.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {errorMessage && (
