@@ -451,11 +451,15 @@ Refer to the manifest files to install dependencies and run locally.
         sections: optionsOrPrompt.sections || [],
         brand_name: optionsOrPrompt.brand_name || optionsOrPrompt.brandName || '',
         color_accent: optionsOrPrompt.color_accent || optionsOrPrompt.colorAccent || 'pink-indigo',
+        custom_color: optionsOrPrompt.custom_color || optionsOrPrompt.customColor || null,
         navbar_style: optionsOrPrompt.navbar_style || optionsOrPrompt.navbarStyle || 'sticky-glass',
         sidebar_style: optionsOrPrompt.sidebar_style || optionsOrPrompt.sidebarStyle || 'none',
         animation_style: optionsOrPrompt.animation_style || optionsOrPrompt.animationStyle || 'ambient-glow',
+        hover_fx: optionsOrPrompt.hover_fx || optionsOrPrompt.hoverFx || 'neon-pulse',
         bg_tone: optionsOrPrompt.bg_tone || optionsOrPrompt.bgTone || 'cosmic-dark',
-        typography: optionsOrPrompt.typography || 'modern-sans'
+        typography: optionsOrPrompt.typography || 'modern-sans',
+        button_shape: optionsOrPrompt.button_shape || optionsOrPrompt.buttonShape || 'rounded-xl',
+        glass_intensity: optionsOrPrompt.glass_intensity || optionsOrPrompt.glassIntensity || 'deep-frosted'
       };
     } else {
       payload = { prompt: optionsOrPrompt, framework, style };

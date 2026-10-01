@@ -516,11 +516,15 @@ class GenerateSinglePageRequest(BaseModel):
     sections: Optional[List[str]] = None
     brand_name: Optional[str] = None
     color_accent: Optional[str] = "pink-indigo"
+    custom_color: Optional[str] = None
     navbar_style: Optional[str] = "sticky-glass"
     sidebar_style: Optional[str] = "none"
     animation_style: Optional[str] = "ambient-glow"
+    hover_fx: Optional[str] = "neon-pulse"
     bg_tone: Optional[str] = "cosmic-dark"
     typography: Optional[str] = "modern-sans"
+    button_shape: Optional[str] = "rounded-xl"
+    glass_intensity: Optional[str] = "deep-frosted"
 
 @app.post("/api/generate/single-page")
 def generate_single_page(req: GenerateSinglePageRequest):
@@ -533,12 +537,16 @@ def generate_single_page(req: GenerateSinglePageRequest):
         page_type=req.page_type or "auto",
         sections=req.sections,
         color_accent=req.color_accent or "pink-indigo",
+        custom_color=req.custom_color,
         brand_name=req.brand_name,
         navbar_style=req.navbar_style or "sticky-glass",
         sidebar_style=req.sidebar_style or "none",
         animation_style=req.animation_style or "ambient-glow",
+        hover_fx=req.hover_fx or "neon-pulse",
         bg_tone=req.bg_tone or "cosmic-dark",
-        typography=req.typography or "modern-sans"
+        typography=req.typography or "modern-sans",
+        button_shape=req.button_shape or "rounded-xl",
+        glass_intensity=req.glass_intensity or "deep-frosted"
     )
     return {"success": True, "data": result}
 

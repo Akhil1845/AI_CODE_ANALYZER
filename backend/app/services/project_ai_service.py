@@ -109,12 +109,16 @@ class ProjectAIService:
         page_type: str = "auto",
         sections: Optional[List[str]] = None,
         color_accent: str = "pink-indigo",
+        custom_color: Optional[str] = None,
         brand_name: Optional[str] = None,
         navbar_style: str = "sticky-glass",
         sidebar_style: str = "none",
         animation_style: str = "ambient-glow",
+        hover_fx: str = "neon-pulse",
         bg_tone: str = "cosmic-dark",
-        typography: str = "modern-sans"
+        typography: str = "modern-sans",
+        button_shape: str = "rounded-xl",
+        glass_intensity: str = "deep-frosted"
     ) -> Dict[str, Any]:
         """
         Generates a standalone, beautifully designed single-page application or component.
@@ -124,18 +128,19 @@ class ProjectAIService:
         brand = brand_name.strip() if brand_name and brand_name.strip() else self._extract_brand_name(prompt, archetype)
 
         sections_desc = f"Include these sections: {', '.join(sections)}." if sections else "Include modern intuitive sections appropriate for this archetype."
+        effective_color = f"Custom Hex {custom_color}" if custom_color else color_accent
 
         system_instruction = f"""
 You are CodeLens AI Senior Frontend Architect.
 Generate a complete, modern, gorgeous, production-grade standalone single-page UI based on the user's idea.
 Target framework: {framework} (if React, provide clean React JSX component; if HTML, provide modern HTML5).
 Archetype / Page Type: {archetype.upper()} ({sections_desc})
-Design aesthetic: {style} ({bg_tone} background, {typography} font family).
+Design aesthetic: {style} ({bg_tone} background, {typography} font family, {glass_intensity} glassmorphism, buttons: {button_shape}).
 Brand name: {brand}
-Color Accent: {color_accent}
+Color Accent: {effective_color}
 Navbar Configuration: {navbar_style} (e.g. sticky glassmorphic or floating pill or minimal or none)
 Sidebar Configuration: {sidebar_style} (e.g. none or collapsible left navigation dock)
-Visual Animations & Effects: {animation_style} (ambient glow or grid mesh or smooth transitions)
+Visual Animations & Effects: {animation_style} with hover effects: {hover_fx}
 
 CRITICAL RULES:
 1. NEVER use the user's raw prompt text as the page heading (h1), hero title, or placeholder text. Always synthesize realistic, professional, domain-appropriate copy (e.g., if Auth: 'Sign In to Your Workspace', 'Enterprise Single Sign-On'; if Dashboard: 'Real-Time Observability', etc.).
