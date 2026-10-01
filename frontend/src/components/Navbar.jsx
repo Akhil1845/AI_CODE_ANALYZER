@@ -18,8 +18,15 @@ export default function Navbar() {
     setCurrentUser(auth.getCurrentUser());
 
     const handleThemeChange = (e) => setCurrentTheme(e.detail);
+    const handleUserUpdate = (e) => setCurrentUser(e.detail);
+
     window.addEventListener('codelens-theme-change', handleThemeChange);
-    return () => window.removeEventListener('codelens-theme-change', handleThemeChange);
+    window.addEventListener('codelens-user-update', handleUserUpdate);
+
+    return () => {
+      window.removeEventListener('codelens-theme-change', handleThemeChange);
+      window.removeEventListener('codelens-user-update', handleUserUpdate);
+    };
   }, [location.pathname]);
 
   const handleCycleTheme = () => {
@@ -224,33 +231,50 @@ export default function Navbar() {
             {/* Authentication Controls: Spacious & Balanced */}
             {currentUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '6px 14px',
-                  borderRadius: '9999px',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-subtle)'
-                }}>
+                <Link
+                  to="/profile"
+                  title="View & Edit Developer Profile"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '9px',
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    background: location.pathname === '/profile' ? 'var(--primary-subtle, rgba(236, 72, 153, 0.15))' : 'var(--bg-secondary)',
+                    border: `1px solid ${location.pathname === '/profile' ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: location.pathname === '/profile' ? '0 0 12px var(--primary-glow)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--primary)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = location.pathname === '/profile' ? 'var(--primary)' : 'var(--border-subtle)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
                   <div style={{
                     width: '24px',
                     height: '24px',
                     borderRadius: '50%',
-                    background: 'var(--primary)',
+                    background: currentUser.avatarGradient || 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '11px',
                     fontWeight: 800,
-                    color: '#ffffff'
+                    color: '#ffffff',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
                   }}>
                     {currentUser.name ? currentUser.name[0].toUpperCase() : 'U'}
                   </div>
                   <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main)' }}>
                     {currentUser.name}
                   </span>
-                </div>
+                </Link>
 
                 <Link
                   to="/logout"

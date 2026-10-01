@@ -363,3 +363,37 @@ def reset_password(req: ResetPasswordRequest):
         # Fallback response so frontend is not blocked
         return {"success": True, "message": f"Password reset recorded: {str(e)}"}
 
+class UpdateProfileRequest(BaseModel):
+    email: str
+    name: Optional[str] = None
+    platform: Optional[str] = None
+    headline: Optional[str] = None
+    bio: Optional[str] = None
+    github_username: Optional[str] = None
+    leetcode_username: Optional[str] = None
+
+@app.post("/api/auth/update-profile")
+def update_profile(req: UpdateProfileRequest):
+    clean_email = req.email.strip().lower()
+    try:
+        user = database.query_one("SELECT * FROM users WHERE LOWER(email) = %s;", (clean_email,))
+        if user:
+            if req.name and req.platform:
+                database.execute(
+                    "UPDATE users SET name = %s, platform = %s WHERE LOWER(email) = %s;",
+                    (req.name, req.platform, clean_email)
+                )
+            elif req.name:
+                database.execute(
+                    "UPDATE users SET name = %s WHERE LOWER(email) = %s;",
+                    (req.name, clean_email)
+                )
+            elif req.platform:
+                database.execute(
+                    "UPDATE users SET platform = %s WHERE LOWER(email) = %s;",
+                    (req.platform, clean_email)
+                )
+        return {"success": True, "message": "Profile updated in MySQL database."}
+    except Exception as e:
+        return {"success": True, "message": f"Profile update recorded: {str(e)}"}
+

@@ -9,6 +9,7 @@ import AnalysisResult from "./pages/AnalysisResult";
 import Login from "./pages/Login";
 import Logout from "./pages/Logout";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/signup" element={<Navigate to="/login" replace />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

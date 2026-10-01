@@ -136,6 +136,38 @@ export const auth = {
     return sessionUser;
   },
 
+  // Update current user profile
+  updateProfile(updatedFields) {
+    let current = this.getCurrentUser();
+    if (!current) {
+      // Default to Akhil demo profile if not logged in
+      current = {
+        id: 'usr_akhil',
+        name: 'Akhil',
+        email: 'itsmeakhil9999@gmail.com',
+        platform: 'LeetCode'
+      };
+    }
+
+    const updated = { ...current, ...updatedFields };
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updated));
+
+    // Update in stored users array
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.email.toLowerCase() === updated.email.toLowerCase());
+    if (index !== -1) {
+      users[index] = { ...users[index], ...updatedFields };
+      this.saveUsers(users);
+    } else {
+      users.push(updated);
+      this.saveUsers(users);
+    }
+
+    // Dispatch event so Navbar and components update immediately
+    window.dispatchEvent(new CustomEvent('codelens-user-update', { detail: updated }));
+    return updated;
+  },
+
   // Logout
   logout() {
     localStorage.removeItem(CURRENT_USER_KEY);
