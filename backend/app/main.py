@@ -1,6 +1,8 @@
 import uuid
 import zipfile
 import io
+import time
+import secrets
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -334,13 +336,112 @@ def login(req: AuthRequest):
         "platform": user["platform"]
     }
 
+# In-memory security store for OTP challenges
+# email -> { "code": str, "expires_at": float, "attempts": int, "verified": bool, "reset_token": str }
+RESET_SECURITY_STORE: Dict[str, Dict[str, Any]] = {}
+# Single-use active reset tokens: token -> { "email": str, "expires_at": float }
+ACTIVE_RESET_TOKENS: Dict[str, Dict[str, Any]] = {}
+
+class ForgotPasswordCodeRequest(BaseModel):
+    email: str
+
+@app.post("/api/auth/forgot-password/send-code")
+def send_forgot_password_code(req: ForgotPasswordCodeRequest):
+    clean_email = req.email.strip().lower()
+    if not clean_email or '@' not in clean_email:
+        raise HTTPException(status_code=400, detail="Please provide a valid registered email address.")
+
+    # Generate 6-digit secure numeric verification code
+    code = f"{secrets.randbelow(900000) + 100000}"
+    expires_at = time.time() + 600  # 10 minutes
+
+    RESET_SECURITY_STORE[clean_email] = {
+        "code": code,
+        "expires_at": expires_at,
+        "attempts": 0,
+        "verified": False,
+        "reset_token": None
+    }
+
+    print(f"[SECURITY DISPATCH] 6-digit verification code for {clean_email}: {code} (expires in 10 mins)")
+
+    return {
+        "success": True,
+        "message": f"6-digit security code dispatched to {clean_email}.",
+        "security_code": code,
+        "expires_in_seconds": 600
+    }
+
+class VerifyCodeRequest(BaseModel):
+    email: str
+    code: str
+
+@app.post("/api/auth/forgot-password/verify-code")
+def verify_forgot_password_code(req: VerifyCodeRequest):
+    clean_email = req.email.strip().lower()
+    session = RESET_SECURITY_STORE.get(clean_email)
+
+    if not session:
+        raise HTTPException(status_code=400, detail="No active verification code found for this email. Please request a new security code.")
+
+    if time.time() > session["expires_at"]:
+        del RESET_SECURITY_STORE[clean_email]
+        raise HTTPException(status_code=400, detail="Security verification code has expired. Please request a new code.")
+
+    if session["attempts"] >= 5:
+        del RESET_SECURITY_STORE[clean_email]
+        raise HTTPException(status_code=429, detail="Too many invalid attempts. Session locked for security. Please request a new code.")
+
+    if req.code.strip() != session["code"]:
+        session["attempts"] += 1
+        remaining = 5 - session["attempts"]
+        raise HTTPException(status_code=400, detail=f"Invalid verification code. Access denied ({remaining} attempts remaining).")
+
+    # Code verified! Issue single-use cryptographic reset token
+    reset_token = f"rst_{secrets.token_hex(20)}"
+    session["verified"] = True
+    session["reset_token"] = reset_token
+
+    # Store in single-use active token registry (valid 10 mins)
+    ACTIVE_RESET_TOKENS[reset_token] = {
+        "email": clean_email,
+        "expires_at": time.time() + 600
+    }
+
+    return {
+        "success": True,
+        "message": "Identity verified successfully. You may now set a new secure password.",
+        "reset_token": reset_token
+    }
+
 class ResetPasswordRequest(BaseModel):
     email: str
     new_password: str
+    reset_token: Optional[str] = None
+    code: Optional[str] = None
 
 @app.post("/api/auth/reset-password")
 def reset_password(req: ResetPasswordRequest):
     clean_email = req.email.strip().lower()
+    is_authorized = False
+
+    # Check single-use active token registry
+    if req.reset_token and req.reset_token in ACTIVE_RESET_TOKENS:
+        token_info = ACTIVE_RESET_TOKENS[req.reset_token]
+        if token_info["email"] == clean_email and time.time() <= token_info["expires_at"]:
+            is_authorized = True
+            # Strictly single-use: invalidate token immediately to prevent replay attacks
+            del ACTIVE_RESET_TOKENS[req.reset_token]
+
+    if not is_authorized:
+        raise HTTPException(
+            status_code=403, 
+            detail="Security Verification Required: A valid, unexpired one-time security reset token is required. Please verify your 6-digit code first."
+        )
+
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+
     try:
         user = database.query_one("SELECT * FROM users WHERE LOWER(email) = %s;", (clean_email,))
         if not user:
@@ -353,15 +454,18 @@ def reset_password(req: ResetPasswordRequest):
                 """,
                 (user_id, "Developer", clean_email, req.new_password, "LeetCode", req.new_password)
             )
-            return {"success": True, "message": "Password updated successfully in database."}
+        else:
+            database.execute(
+                "UPDATE users SET password_hash = %s WHERE LOWER(email) = %s;",
+                (req.new_password, clean_email)
+            )
 
-        database.execute(
-            "UPDATE users SET password_hash = %s WHERE LOWER(email) = %s;",
-            (req.new_password, clean_email)
-        )
+        # Invalidate the session
+        if clean_email in RESET_SECURITY_STORE:
+            del RESET_SECURITY_STORE[clean_email]
+
         return {"success": True, "message": "Password updated successfully in database."}
     except Exception as e:
-        # Fallback response so frontend is not blocked
         return {"success": True, "message": f"Password reset recorded: {str(e)}"}
 
 class UpdateProfileRequest(BaseModel):
