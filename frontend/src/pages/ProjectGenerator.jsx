@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -6,7 +6,6 @@ import {
   Box, 
   Download, 
   FileCode, 
-  Check, 
   Sparkles, 
   ArrowRight, 
   Play,
@@ -26,7 +25,15 @@ import {
   History,
   Sliders,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Compass,
+  Zap,
+  Layers,
+  Sparkle,
+  Paintbrush,
+  Tv,
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { projectGenerator } from '../services/projectGenerator';
 import { api } from '../services/api';
@@ -40,7 +47,7 @@ const STACKS = [
 ];
 
 const SINGLE_PAGE_FRAMEWORKS = [
-  { id: 'react', name: 'React 19 (JSX)', desc: 'Interactive component with hooks' },
+  { id: 'react', name: 'React 19 (JSX)', desc: 'Modular component with hooks' },
   { id: 'html', name: 'HTML5 + Tailwind', desc: 'Zero-config standalone webpage' },
   { id: 'vue', name: 'Vue 3 Single File', desc: 'Composition API component' }
 ];
@@ -96,29 +103,53 @@ const PAGE_ARCHETYPES = [
   }
 ];
 
+const NAVBAR_OPTIONS = [
+  { id: 'sticky-glass', name: 'Sticky Glassmorphism', desc: 'Frosted blur with subtle border on scroll' },
+  { id: 'floating-pill', name: 'Floating Capsule Pill', desc: 'Centered floating island header' },
+  { id: 'minimal', name: 'Minimal Borderless', desc: 'Clean transparent header without lines' },
+  { id: 'banner', name: 'With Announcement Bar', desc: 'Top alert bar + navigation' },
+  { id: 'none', name: 'No Navbar', desc: 'Standalone centered canvas' }
+];
+
+const SIDEBAR_OPTIONS = [
+  { id: 'none', name: 'No Sidebar (Full Width)', desc: 'Clean, open-space canvas' },
+  { id: 'left-full', name: 'Left Expanded Sidebar', desc: 'Full icons with text labels & user profile' },
+  { id: 'left-slim', name: 'Left Slim Icon Dock', desc: 'Compact 60px icon rail' },
+  { id: 'right-drawer', name: 'Right Action Drawer', desc: 'Slide-out utility panel' }
+];
+
+const ANIMATION_OPTIONS = [
+  { id: 'ambient-glow', name: 'Ambient Glowing Orbs', desc: 'Soft pulsating neon spheres' },
+  { id: 'grid-mesh', name: 'Cyberpunk Grid Mesh', desc: 'Geometric subtle vector grid' },
+  { id: 'particle-stars', name: 'Cosmic Particle Glow', desc: 'Subtle twinkling points' },
+  { id: 'minimal-static', name: 'Clean Static (No Motion)', desc: 'Fast, high-contrast flat layout' }
+];
+
+const COLOR_THEMES = [
+  { id: 'pink-indigo', name: 'Electric Pink & Violet', bg: '#070913', primary: '#ec4899', secondary: '#8b5cf6', preview: 'linear-gradient(135deg, #ec4899, #8b5cf6)' },
+  { id: 'cyan-blue', name: 'Cyber Cyan & Cobalt', bg: '#060d17', primary: '#06b6d4', secondary: '#3b82f6', preview: 'linear-gradient(135deg, #06b6d4, #3b82f6)' },
+  { id: 'emerald-mint', name: 'Emerald Matrix & Mint', bg: '#06110d', primary: '#10b981', secondary: '#34d399', preview: 'linear-gradient(135deg, #10b981, #34d399)' },
+  { id: 'amber-orange', name: 'Sunset Flame & Amber', bg: '#120c06', primary: '#f59e0b', secondary: '#ef4444', preview: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
+  { id: 'aurora-purple', name: 'Deep Aurora & Indigo', bg: '#080816', primary: '#6366f1', secondary: '#a855f7', preview: 'linear-gradient(135deg, #6366f1, #a855f7)' },
+  { id: 'monochrome', name: 'Monochrome Silver', bg: '#090a0f', primary: '#f1f5f9', secondary: '#94a3b8', preview: 'linear-gradient(135deg, #f1f5f9, #94a3b8)' }
+];
+
+const BG_TONES = [
+  { id: 'cosmic-dark', name: 'Cosmic Dark Navy (#070913)' },
+  { id: 'pitch-black', name: 'Pure Pitch Black (#030712)' },
+  { id: 'charcoal-slate', name: 'Charcoal Slate (#0f172a)' },
+  { id: 'light-enterprise', name: 'Light Enterprise (#f8fafc)' }
+];
+
 const AVAILABLE_SECTIONS = [
   { id: 'navbar', label: 'Sticky Glass Navbar' },
-  { id: 'hero', label: 'Hero Banner' },
+  { id: 'hero', label: 'Hero Header' },
   { id: 'features', label: 'Feature Bento Grid' },
   { id: 'kpi', label: 'KPI Metric Cards' },
   { id: 'pricing', label: 'Pricing Table' },
   { id: 'testimonials', label: 'Social Proof' },
   { id: 'faq', label: 'FAQ Accordion' },
   { id: 'footer', label: 'Modern Footer' }
-];
-
-const STYLES = [
-  { id: 'modern-dark', name: 'Dark Glassmorphism' },
-  { id: 'cyberpunk', name: 'Cyberpunk Neon' },
-  { id: 'clean-saas', name: 'Clean Modern Minimal' },
-  { id: 'light-enterprise', name: 'Light Enterprise' }
-];
-
-const COLOR_THEMES = [
-  { id: 'pink-indigo', name: 'Electric Pink', gradient: 'linear-gradient(135deg, #ec4899, #8b5cf6)' },
-  { id: 'cyan-blue', name: 'Cyber Cyan', gradient: 'linear-gradient(135deg, #06b6d4, #3b82f6)' },
-  { id: 'emerald-mint', name: 'Emerald Matrix', gradient: 'linear-gradient(135deg, #10b981, #34d399)' },
-  { id: 'amber-orange', name: 'Sunset Amber', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' }
 ];
 
 export default function ProjectGenerator() {
@@ -131,14 +162,18 @@ export default function ProjectGenerator() {
   const [pageArchetype, setPageArchetype] = useState('auth');
   const [selectedSections, setSelectedSections] = useState(['navbar', 'hero', 'footer']);
   const [colorAccent, setColorAccent] = useState('pink-indigo');
+  const [bgTone, setBgTone] = useState('cosmic-dark');
+  const [navbarStyle, setNavbarStyle] = useState('sticky-glass');
+  const [sidebarStyle, setSidebarStyle] = useState('none');
+  const [animationStyle, setAnimationStyle] = useState('ambient-glow');
   const [brandName, setBrandName] = useState('');
+  const [typography, setTypography] = useState('modern-sans');
 
   // Prompt / Idea
   const [prompt, setPrompt] = useState('Build a creative login and signup page with a sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle, and social sign in buttons.');
 
   // Single Page Configs
   const [singleFramework, setSingleFramework] = useState('react');
-  const [singleStyle, setSingleStyle] = useState('modern-dark');
   const [previewTab, setPreviewTab] = useState('preview'); // 'preview' or 'code'
   const [viewportMode, setViewportMode] = useState('desktop'); // 'desktop', 'tablet', 'mobile'
 
@@ -149,6 +184,9 @@ export default function ProjectGenerator() {
   const [includeDocker, setIncludeDocker] = useState(true);
   const [includeCi, setIncludeCi] = useState(true);
 
+  // Active Options Accordion Tab on Left
+  const [activeTabSection, setActiveTabSection] = useState('archetype'); // 'archetype', 'layout', 'design', 'sections'
+
   // States
   const [generating, setGenerating] = useState(false);
   const [genStatusText, setGenStatusText] = useState('');
@@ -156,7 +194,7 @@ export default function ProjectGenerator() {
   const [copied, setCopied] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  // Single Page Result
+  // Single Page Result: Starts NULL so no page is auto-rendered on initial load!
   const [singlePageResult, setSinglePageResult] = useState(null);
 
   // Full Project Files Map
@@ -169,35 +207,24 @@ export default function ProjectGenerator() {
     includeSwagger: true
   }));
 
-  // Build History (Pages & Projects Built)
-  const [buildHistory, setBuildHistory] = useState([
-    {
-      id: 'build-init',
-      mode: 'single',
-      title: 'NexusAuth Portal',
-      timestamp: 'Initial load',
-      tag: 'AUTH (React)',
-      prompt: 'Build a creative login and signup page with sticky glass navbar.'
-    }
-  ]);
-  const [activeBuildId, setActiveBuildId] = useState('build-init');
+  // Build History
+  const [buildHistory, setBuildHistory] = useState([]);
+  const [activeBuildId, setActiveBuildId] = useState(null);
 
   const fileKeys = Object.keys(projectFiles);
   const activeFile = selectedFile && projectFiles[selectedFile] ? selectedFile : fileKeys[0];
 
-  // Auto-generate starter single page on initial load
-  useEffect(() => {
-    if (!singlePageResult) {
-      handleGenerateSinglePage(false);
-    }
-  }, []);
-
-  // When user selects an archetype card
+  // When user clicks an archetype card
   const handleSelectArchetype = (arch) => {
     setPageArchetype(arch.id);
     setPrompt(arch.defaultPrompt);
     if (arch.defaultSections) {
       setSelectedSections(arch.defaultSections);
+    }
+    if (arch.id === 'dashboard') {
+      setSidebarStyle('left-full');
+    } else {
+      setSidebarStyle('none');
     }
   };
 
@@ -209,34 +236,27 @@ export default function ProjectGenerator() {
   };
 
   // Handle AI Single Page Generation
-  const handleGenerateSinglePage = async (withAI = true) => {
+  const handleGenerateSinglePage = async () => {
+    if (!prompt.trim()) return;
     setGenerating(true);
-    setGenStatusText('1. Designing UI architecture...');
+    setGenStatusText('1. Analyzing layout & modular options...');
     try {
-      let result = null;
-      if (withAI) {
-        setTimeout(() => setGenStatusText('2. Applying Tailwind styles & interactions...'), 1100);
-        setTimeout(() => setGenStatusText('3. Assembling live responsive preview...'), 2200);
-        result = await projectGenerator.generateAISinglePage({
-          prompt,
-          framework: singleFramework,
-          style: singleStyle,
-          page_type: pageArchetype,
-          sections: selectedSections,
-          color_accent: colorAccent,
-          brand_name: brandName
-        });
-      } else {
-        // High-end default starter
-        result = {
-          title: 'NexusAuth Portal',
-          description: 'Modern dual-tab authentication portal with glassmorphism, social sign-in, and password toggle.',
-          filename: singleFramework === 'html' ? 'index.html' : 'AuthPortal.jsx',
-          features: ['Dual-Tab Sign In & Sign Up', 'Sticky Glass Navbar', 'Social OAuth (Google & GitHub)', 'Password Visibility Toggle', 'Ambient Background Orbs'],
-          code: `import React, { useState } from 'react';\n\nexport default function AuthPortal() {\n  const [tab, setTab] = useState('login');\n  const [showPassword, setShowPassword] = useState(false);\n  return (\n    <div className="min-h-screen bg-[#070913] text-white flex flex-col justify-between relative overflow-hidden">\n      {/* Navbar */}\n      <header className="sticky top-0 z-50 px-6 py-4 backdrop-blur-xl border-b border-white/10 flex justify-between items-center">\n        <div className="flex items-center gap-2 font-black text-xl">\n          <span className="w-8 h-8 rounded-lg bg-pink-500 flex items-center justify-center text-sm">⚡</span>\n          Nexus<span className="text-pink-500">Auth</span>\n        </div>\n        <span className="text-xs text-emerald-400 font-semibold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">256-Bit SSL</span>\n      </header>\n      {/* Center Auth Card */}\n      <main className="flex-1 flex items-center justify-center p-6">\n        <div className="w-full max-w-md bg-slate-900/80 border border-white/10 backdrop-blur-2xl rounded-2xl p-8 shadow-2xl">\n          <div className="flex bg-slate-950/80 p-1 rounded-xl mb-6">\n            <button onClick={() => setTab('login')} className={\`flex-1 py-2 font-bold text-sm rounded-lg \${tab === 'login' ? 'bg-pink-600 text-white' : 'text-slate-400'}\`}>Sign In</button>\n            <button onClick={() => setTab('signup')} className={\`flex-1 py-2 font-bold text-sm rounded-lg \${tab === 'signup' ? 'bg-pink-600 text-white' : 'text-slate-400'}\`}>Sign Up</button>\n          </div>\n          <h2 className="text-2xl font-black mb-2">{tab === 'login' ? 'Welcome Back' : 'Create Account'}</h2>\n          <p className="text-xs text-slate-400 mb-6">Enter your details to access your workspace</p>\n          <form className="space-y-4">\n            <div>\n              <label className="block text-xs font-bold mb-1">Email</label>\n              <input type="email" placeholder="alex@company.com" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white" />\n            </div>\n            <div>\n              <label className="block text-xs font-bold mb-1">Password</label>\n              <div className="relative">\n                <input type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white pr-10" />\n                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-xs text-slate-400">👁️</button>\n              </div>\n            </div>\n            <button type="button" className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-indigo-600 rounded-xl font-black text-sm text-white shadow-lg">Continue &rarr;</button>\n          </form>\n        </div>\n      </main>\n      <footer className="py-4 text-center text-xs text-slate-500 border-t border-white/10">\n        © 2026 NexusAuth Systems Inc. All rights reserved.\n      </footer>\n    </div>\n  );\n}`,
-          preview_html: `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>NexusAuth Portal</title><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>body{font-family:'Plus Jakarta Sans',sans-serif;background:#070913;color:#f8fafc;}.glass{background:rgba(17,24,39,0.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);}</style></head><body class="min-h-screen flex flex-col justify-between relative overflow-hidden selection:bg-pink-500 selection:text-white"><div class="absolute w-[500px] h-[500px] bg-pink-500/15 -top-20 -left-20 rounded-full blur-[120px] pointer-events-none"></div><div class="absolute w-[500px] h-[500px] bg-indigo-600/15 -bottom-20 -right-20 rounded-full blur-[120px] pointer-events-none"></div><header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-white/10"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-pink-500/30">⚡</div><span class="text-xl font-extrabold text-white">Nexus<span class="text-pink-500">Auth</span></span></div><span class="text-xs font-bold text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">256-Bit SSL Secured</span></header><main class="flex-grow flex items-center justify-center px-4 py-12 relative z-10"><div class="w-full max-w-md glass rounded-2xl p-8 shadow-2xl"><div class="flex rounded-xl bg-slate-900 p-1 border border-white/5 mb-6"><button id="tab-login" onclick="setTab('login')" class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow">Sign In</button><button id="tab-signup" onclick="setTab('signup')" class="flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-400 hover:text-white">Sign Up</button></div><div id="view-login"><h2 class="text-2xl font-black text-white mb-1">Welcome Back</h2><p class="text-xs text-slate-400 mb-6">Enter your credentials to access your account</p><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-300 mb-1">Email</label><input type="email" placeholder="alex@company.com" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-pink-500"></div><div><label class="block text-xs font-bold text-slate-300 mb-1">Password</label><div class="relative"><input id="p-login" type="password" placeholder="••••••••" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-pink-500 pr-10"><button type="button" onclick="togglePass('p-login')" class="absolute right-3 top-3.5 text-xs text-slate-400">👁️</button></div></div><button onclick="alert('Signed In (Demo)')" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 font-extrabold text-sm text-white shadow-lg shadow-pink-500/25 hover:opacity-95 transition">Sign In &rarr;</button></div></div><div id="view-signup" class="hidden"><h2 class="text-2xl font-black text-white mb-1">Create Account</h2><p class="text-xs text-slate-400 mb-6">Start your 14-day free trial</p><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-300 mb-1">Full Name</label><input type="text" placeholder="Alex Mercer" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white"></div><div><label class="block text-xs font-bold text-slate-300 mb-1">Work Email</label><input type="email" placeholder="alex@company.com" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white"></div><button onclick="alert('Account Created (Demo)')" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 font-extrabold text-sm text-white shadow-lg shadow-pink-500/25 hover:opacity-95 transition">Create Account &rarr;</button></div></div></div></main><footer class="border-t border-white/10 glass py-4 text-center text-xs text-slate-500">© 2026 NexusAuth Systems Inc. All rights reserved.</footer><script>function setTab(t){if(t==='login'){document.getElementById('view-login').classList.remove('hidden');document.getElementById('view-signup').classList.add('hidden');document.getElementById('tab-login').className='flex-1 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow';document.getElementById('tab-signup').className='flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-400 hover:text-white';}else{document.getElementById('view-login').classList.add('hidden');document.getElementById('view-signup').classList.remove('hidden');document.getElementById('tab-signup').className='flex-1 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow';document.getElementById('tab-login').className='flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-400 hover:text-white';}}function togglePass(id){var el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}</script></body></html>`
-        };
-      }
+      setTimeout(() => setGenStatusText('2. Applying styling, navbar & animations...'), 1000);
+      setTimeout(() => setGenStatusText('3. Assembling interactive live preview...'), 2000);
+      const result = await projectGenerator.generateAISinglePage({
+        prompt,
+        framework: singleFramework,
+        style: 'modern-dark',
+        page_type: pageArchetype,
+        sections: selectedSections,
+        color_accent: colorAccent,
+        brand_name: brandName,
+        navbar_style: navbarStyle,
+        sidebar_style: sidebarStyle,
+        animation_style: animationStyle,
+        bg_tone: bgTone,
+        typography
+      });
 
       setSinglePageResult(result);
       setPreviewTab('preview');
@@ -387,6 +407,9 @@ export default function ProjectGenerator() {
     setPrompt(prev => `${prev.trim()} ${enhancements[Math.floor(Math.random() * enhancements.length)]}`);
   };
 
+  const selectedThemeObj = COLOR_THEMES.find(t => t.id === colorAccent) || COLOR_THEMES[0];
+  const selectedArchObj = PAGE_ARCHETYPES.find(a => a.id === pageArchetype) || PAGE_ARCHETYPES[0];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
       <Navbar />
@@ -413,15 +436,15 @@ export default function ProjectGenerator() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '20px',
+            marginBottom: '22px',
             flexWrap: 'wrap',
             gap: '14px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
                 background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
                 display: 'flex',
                 alignItems: 'center',
@@ -429,19 +452,19 @@ export default function ProjectGenerator() {
                 color: '#fff',
                 boxShadow: 'var(--primary-glow)'
               }}>
-                <Wand2 size={20} />
+                <Wand2 size={22} />
               </div>
               <div>
                 <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
                   Project &amp; Single Page Studio
                 </h1>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Architect UI pages &amp; repositories &bull; Live side-by-side interactive canvas
+                  Step 1: Select scope &bull; Step 2: Configure options &bull; Step 3: Generate &amp; preview live
                 </div>
               </div>
             </div>
 
-            {/* Scope Switcher Pills: Single Page vs Full Project */}
+            {/* Scope Switcher: Single Page vs Full Project */}
             <div style={{
               display: 'flex',
               background: 'var(--bg-secondary)',
@@ -456,7 +479,7 @@ export default function ProjectGenerator() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '7px',
-                  padding: '7px 16px',
+                  padding: '8px 18px',
                   borderRadius: '6px',
                   background: genMode === 'single' ? 'var(--primary)' : 'transparent',
                   color: genMode === 'single' ? '#fff' : 'var(--text-muted)',
@@ -479,7 +502,7 @@ export default function ProjectGenerator() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '7px',
-                  padding: '7px 16px',
+                  padding: '8px 18px',
                   borderRadius: '6px',
                   background: genMode === 'project' ? 'var(--primary)' : 'transparent',
                   color: genMode === 'project' ? '#fff' : 'var(--text-muted)',
@@ -500,7 +523,7 @@ export default function ProjectGenerator() {
           {/* DUAL-PANE WORKSPACE */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(420px, 480px) 1fr',
+            gridTemplateColumns: 'minmax(440px, 500px) 1fr',
             gap: '24px',
             alignItems: 'start'
           }}>
@@ -512,64 +535,18 @@ export default function ProjectGenerator() {
               
               {/* MAIN CONFIGURATION CARD */}
               <div className="glass-card" style={{
-                padding: '20px',
+                padding: '22px',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-light)'
               }}>
 
-                {/* 1. Page Archetype Selection (If Single Page Mode) */}
-                {genMode === 'single' && (
-                  <div style={{ marginBottom: '18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        1. Select Page Archetype
-                      </label>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Choose layout style</span>
-                    </div>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '8px'
-                    }}>
-                      {PAGE_ARCHETYPES.map((arch) => {
-                        const isSelected = pageArchetype === arch.id;
-                        return (
-                          <button
-                            key={arch.id}
-                            type="button"
-                            onClick={() => handleSelectArchetype(arch)}
-                            style={{
-                              padding: '10px 8px',
-                              borderRadius: '8px',
-                              background: isSelected ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                              border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                              color: isSelected ? '#fff' : 'var(--text-muted)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              gap: '4px',
-                              textAlign: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <span style={{ fontSize: '18px' }}>{arch.icon}</span>
-                            <span style={{ fontSize: '11.5px', fontWeight: isSelected ? 800 : 600 }}>{arch.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Prompt or Idea Input */}
-                <div style={{ marginBottom: '16px' }}>
+                {/* Prompt or Idea Input */}
+                <div style={{ marginBottom: '18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Sparkles size={13} color="var(--primary)" />
-                      <span>{genMode === 'single' ? '2. Your Prompt or Idea' : '1. Project Specification'}</span>
+                      <span>{genMode === 'single' ? 'Your Prompt / Custom Specification' : 'Project Idea / Specification'}</span>
                     </label>
 
                     <button
@@ -580,7 +557,7 @@ export default function ProjectGenerator() {
                         background: 'rgba(236, 72, 153, 0.1)',
                         border: '1px solid rgba(236, 72, 153, 0.3)',
                         color: 'var(--accent-pink)',
-                        padding: '3px 8px',
+                        padding: '3px 9px',
                         borderRadius: '5px',
                         fontSize: '11px',
                         fontWeight: 700,
@@ -591,7 +568,7 @@ export default function ProjectGenerator() {
                       }}
                     >
                       <Wand2 size={11} />
-                      <span>AI Enhance</span>
+                      <span>Enhance Idea</span>
                     </button>
                   </div>
 
@@ -599,13 +576,13 @@ export default function ProjectGenerator() {
                     rows={3}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe what to build or customize (e.g. Creative login with glass card, sticky navbar, show/hide password, and ambient background)..."
+                    placeholder="Describe what to build (e.g. Creative login and signup page with sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle)..."
                     style={{
                       width: '100%',
                       background: 'var(--bg-secondary)',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: 'var(--radius-sm)',
-                      padding: '10px 12px',
+                      padding: '11px 13px',
                       color: 'var(--text-main)',
                       fontSize: '13px',
                       lineHeight: 1.5,
@@ -616,160 +593,425 @@ export default function ProjectGenerator() {
                   />
                 </div>
 
-                {/* 3. Modular Sections Checkboxes (If Single Page Mode) */}
-                {genMode === 'single' && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
-                      3. Modular Sections to Include
-                    </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {AVAILABLE_SECTIONS.map((sec) => {
-                        const isChecked = selectedSections.includes(sec.id);
-                        return (
-                          <button
-                            key={sec.id}
-                            type="button"
-                            onClick={() => handleToggleSection(sec.id)}
-                            style={{
-                              padding: '5px 9px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              background: isChecked ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
-                              border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                              color: isChecked ? '#fff' : 'var(--text-muted)',
-                              transition: 'all 0.12s ease'
-                            }}
-                          >
-                            <span style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '3px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              background: isChecked ? 'var(--primary)' : 'transparent',
-                              border: `1px solid ${isChecked ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
-                              color: '#fff',
-                              fontSize: '9px'
-                            }}>
-                              {isChecked && '✓'}
-                            </span>
-                            <span>{sec.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Fine-Tuning Options Grid */}
+                {/* IF SINGLE PAGE: TABBED MODULAR CONFIGURATOR */}
                 {genMode === 'single' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '18px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                        Framework
-                      </label>
-                      <select
-                        value={singleFramework}
-                        onChange={(e) => setSingleFramework(e.target.value)}
+                  <div>
+                    {/* Navigation Pills to Switch Sub-Panels */}
+                    <div style={{
+                      display: 'flex',
+                      background: 'var(--bg-secondary)',
+                      padding: '3px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      marginBottom: '16px',
+                      gap: '2px'
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTabSection('archetype')}
                         style={{
-                          width: '100%',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-subtle)',
+                          flex: 1,
+                          padding: '6px 4px',
                           borderRadius: '6px',
-                          padding: '7px 9px',
-                          color: 'var(--text-main)',
-                          fontSize: '12px',
-                          outline: 'none',
-                          cursor: 'pointer'
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: 'none',
+                          background: activeTabSection === 'archetype' ? 'var(--bg-surface)' : 'transparent',
+                          color: activeTabSection === 'archetype' ? 'var(--primary)' : 'var(--text-muted)',
+                          boxShadow: activeTabSection === 'archetype' ? '0 1px 4px rgba(0,0,0,0.4)' : 'none'
                         }}
                       >
-                        {SINGLE_PAGE_FRAMEWORKS.map(f => (
-                          <option key={f.id} value={f.id}>{f.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                        1. Type
+                      </button>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                        Design Theme
-                      </label>
-                      <select
-                        value={singleStyle}
-                        onChange={(e) => setSingleStyle(e.target.value)}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTabSection('layout')}
                         style={{
-                          width: '100%',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-subtle)',
+                          flex: 1,
+                          padding: '6px 4px',
                           borderRadius: '6px',
-                          padding: '7px 9px',
-                          color: 'var(--text-main)',
-                          fontSize: '12px',
-                          outline: 'none',
-                          cursor: 'pointer'
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: 'none',
+                          background: activeTabSection === 'layout' ? 'var(--bg-surface)' : 'transparent',
+                          color: activeTabSection === 'layout' ? 'var(--primary)' : 'var(--text-muted)',
+                          boxShadow: activeTabSection === 'layout' ? '0 1px 4px rgba(0,0,0,0.4)' : 'none'
                         }}
                       >
-                        {STYLES.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                        2. Nav &amp; Side
+                      </button>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                        Color Accent
-                      </label>
-                      <select
-                        value={colorAccent}
-                        onChange={(e) => setColorAccent(e.target.value)}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTabSection('design')}
                         style={{
-                          width: '100%',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-subtle)',
+                          flex: 1,
+                          padding: '6px 4px',
                           borderRadius: '6px',
-                          padding: '7px 9px',
-                          color: 'var(--text-main)',
-                          fontSize: '12px',
-                          outline: 'none',
-                          cursor: 'pointer'
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: 'none',
+                          background: activeTabSection === 'design' ? 'var(--bg-surface)' : 'transparent',
+                          color: activeTabSection === 'design' ? 'var(--primary)' : 'var(--text-muted)',
+                          boxShadow: activeTabSection === 'design' ? '0 1px 4px rgba(0,0,0,0.4)' : 'none'
                         }}
                       >
-                        {COLOR_THEMES.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                        3. Colors &amp; FX
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTabSection('sections')}
+                        style={{
+                          flex: 1,
+                          padding: '6px 4px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          border: 'none',
+                          background: activeTabSection === 'sections' ? 'var(--bg-surface)' : 'transparent',
+                          color: activeTabSection === 'sections' ? 'var(--primary)' : 'var(--text-muted)',
+                          boxShadow: activeTabSection === 'sections' ? '0 1px 4px rgba(0,0,0,0.4)' : 'none'
+                        }}
+                      >
+                        4. Sections
+                      </button>
                     </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                        Custom Brand Name
-                      </label>
-                      <input
-                        type="text"
-                        value={brandName}
-                        onChange={(e) => setBrandName(e.target.value)}
-                        placeholder="e.g. NexusAuth (Optional)"
-                        style={{
-                          width: '100%',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: '6px',
-                          padding: '7px 9px',
-                          color: 'var(--text-main)',
-                          fontSize: '12px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
+                    {/* SUB-PANEL 1: ARCHETYPE & FRAMEWORK */}
+                    {activeTabSection === 'archetype' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                            SELECT PAGE ARCHETYPE
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                            {PAGE_ARCHETYPES.map((arch) => {
+                              const isSelected = pageArchetype === arch.id;
+                              return (
+                                <button
+                                  key={arch.id}
+                                  type="button"
+                                  onClick={() => handleSelectArchetype(arch)}
+                                  style={{
+                                    padding: '10px 6px',
+                                    borderRadius: '8px',
+                                    background: isSelected ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
+                                    border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                                    color: isSelected ? '#fff' : 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    textAlign: 'center',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <span style={{ fontSize: '18px' }}>{arch.icon}</span>
+                                  <span style={{ fontSize: '11px', fontWeight: isSelected ? 800 : 600 }}>{arch.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              Framework
+                            </label>
+                            <select
+                              value={singleFramework}
+                              onChange={(e) => setSingleFramework(e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: '6px',
+                                padding: '7px 9px',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                                outline: 'none'
+                              }}
+                            >
+                              {SINGLE_PAGE_FRAMEWORKS.map(f => (
+                                <option key={f.id} value={f.id}>{f.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              Brand / Product Name
+                            </label>
+                            <input
+                              type="text"
+                              value={brandName}
+                              onChange={(e) => setBrandName(e.target.value)}
+                              placeholder="e.g. NexusAuth (Optional)"
+                              style={{
+                                width: '100%',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: '6px',
+                                padding: '7px 10px',
+                                color: 'var(--text-main)',
+                                fontSize: '12px',
+                                outline: 'none'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-PANEL 2: NAVBAR & SIDEBAR CUSTOMIZATION */}
+                    {activeTabSection === 'layout' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            NAVBAR STYLE
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                            {NAVBAR_OPTIONS.map((nav) => {
+                              const isSel = navbarStyle === nav.id;
+                              return (
+                                <button
+                                  key={nav.id}
+                                  type="button"
+                                  onClick={() => setNavbarStyle(nav.id)}
+                                  style={{
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    textAlign: 'left',
+                                    background: isSel ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
+                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                                    color: isSel ? '#fff' : 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    fontSize: '11.5px',
+                                    fontWeight: isSel ? 700 : 500
+                                  }}
+                                >
+                                  {nav.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            SIDEBAR LAYOUT
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                            {SIDEBAR_OPTIONS.map((side) => {
+                              const isSel = sidebarStyle === side.id;
+                              return (
+                                <button
+                                  key={side.id}
+                                  type="button"
+                                  onClick={() => setSidebarStyle(side.id)}
+                                  style={{
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    textAlign: 'left',
+                                    background: isSel ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
+                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                                    color: isSel ? '#fff' : 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    fontSize: '11.5px',
+                                    fontWeight: isSel ? 700 : 500
+                                  }}
+                                >
+                                  {side.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-PANEL 3: COLORS & ANIMATION EFFECTS */}
+                    {activeTabSection === 'design' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            ACCENT COLOR PALETTE
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                            {COLOR_THEMES.map((theme) => {
+                              const isSel = colorAccent === theme.id;
+                              return (
+                                <button
+                                  key={theme.id}
+                                  type="button"
+                                  onClick={() => setColorAccent(theme.id)}
+                                  style={{
+                                    padding: '7px 8px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
+                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                                    color: isSel ? '#fff' : 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    fontWeight: isSel ? 700 : 500
+                                  }}
+                                >
+                                  <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.preview, flexShrink: 0 }} />
+                                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{theme.name.split(' ')[0]}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                            ANIMATIONS &amp; VISUAL EFFECTS
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                            {ANIMATION_OPTIONS.map((anim) => {
+                              const isSel = animationStyle === anim.id;
+                              return (
+                                <button
+                                  key={anim.id}
+                                  type="button"
+                                  onClick={() => setAnimationStyle(anim.id)}
+                                  style={{
+                                    padding: '7px 9px',
+                                    borderRadius: '6px',
+                                    textAlign: 'left',
+                                    background: isSel ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
+                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                                    color: isSel ? '#fff' : 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    fontWeight: isSel ? 700 : 500
+                                  }}
+                                >
+                                  {anim.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              Canvas Backdrop
+                            </label>
+                            <select
+                              value={bgTone}
+                              onChange={(e) => setBgTone(e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: '6px',
+                                padding: '6px 8px',
+                                color: 'var(--text-main)',
+                                fontSize: '11px',
+                                outline: 'none'
+                              }}
+                            >
+                              {BG_TONES.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              Typography
+                            </label>
+                            <select
+                              value={typography}
+                              onChange={(e) => setTypography(e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: '6px',
+                                padding: '6px 8px',
+                                color: 'var(--text-main)',
+                                fontSize: '11px',
+                                outline: 'none'
+                              }}
+                            >
+                              <option value="modern-sans">Plus Jakarta Sans</option>
+                              <option value="inter">Inter (SaaS Standard)</option>
+                              <option value="tech-mono">JetBrains Mono</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-PANEL 4: MODULAR SECTIONS TO INCLUDE */}
+                    {activeTabSection === 'sections' && (
+                      <div style={{ marginBottom: '18px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                          TOGGLE COMPONENT SECTIONS
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {AVAILABLE_SECTIONS.map((sec) => {
+                            const isChecked = selectedSections.includes(sec.id);
+                            return (
+                              <button
+                                key={sec.id}
+                                type="button"
+                                onClick={() => handleToggleSection(sec.id)}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: isChecked ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
+                                  border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                                  color: isChecked ? '#fff' : 'var(--text-muted)',
+                                  transition: 'all 0.12s ease'
+                                }}
+                              >
+                                <span style={{
+                                  width: '13px',
+                                  height: '13px',
+                                  borderRadius: '3px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: isChecked ? 'var(--primary)' : 'transparent',
+                                  border: `1px solid ${isChecked ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
+                                  color: '#fff',
+                                  fontSize: '9px'
+                                }}>
+                                  {isChecked && '✓'}
+                                </span>
+                                <span>{sec.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  /* Full Project Configuration Options */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
+                  /* FULL PROJECT CONFIGURATION PANEL */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
@@ -850,90 +1092,92 @@ export default function ProjectGenerator() {
                 {/* Primary Action Button */}
                 <button
                   type="button"
-                  onClick={genMode === 'single' ? () => handleGenerateSinglePage(true) : handleGenerateFullProject}
+                  onClick={genMode === 'single' ? handleGenerateSinglePage : handleGenerateFullProject}
                   disabled={generating || !prompt.trim()}
                   className="btn-primary"
-                  style={{ width: '100%', padding: '12px', fontSize: '13.5px', fontWeight: 800, borderRadius: 'var(--radius-sm)' }}
+                  style={{ width: '100%', padding: '13px', fontSize: '14px', fontWeight: 800, borderRadius: 'var(--radius-sm)' }}
                 >
                   {generating ? (
                     <>
-                      <RefreshCw size={15} className="animate-spin" />
+                      <RefreshCw size={16} className="animate-spin" />
                       <span>{genStatusText || 'Generating with AI...'}</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles size={15} />
+                      <Sparkles size={16} />
                       <span>{genMode === 'single' ? 'Generate Single Page UI' : 'Scaffold Full Project Repository'}</span>
-                      <ArrowRight size={15} />
+                      <ArrowRight size={16} />
                     </>
                   )}
                 </button>
               </div>
 
               {/* BUILT PAGES & PROJECTS SIDE-LIST */}
-              <div className="glass-card" style={{
-                padding: '16px 18px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-light)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <History size={13} color="var(--primary)" />
-                    <span>Pages &amp; Projects Built ({buildHistory.length})</span>
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>1-click view</span>
-                </div>
+              {buildHistory.length > 0 && (
+                <div className="glass-card" style={{
+                  padding: '16px 18px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-light)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <History size={13} color="var(--primary)" />
+                      <span>Pages &amp; Projects Built ({buildHistory.length})</span>
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Click to view</span>
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {buildHistory.map((item) => {
-                    const isSelected = activeBuildId === item.id;
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => handleSelectBuild(item)}
-                        style={{
-                          padding: '9px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: isSelected ? 'var(--bg-secondary)' : 'rgba(255,255,255,0.02)',
-                          border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-                          <div style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '6px',
-                            background: item.mode === 'single' ? 'rgba(236,72,153,0.15)' : 'rgba(99,102,241,0.15)',
-                            color: item.mode === 'single' ? 'var(--accent-pink)' : 'var(--primary)',
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {buildHistory.map((item) => {
+                      const isSelected = activeBuildId === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => handleSelectBuild(item)}
+                          style={{
+                            padding: '9px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isSelected ? 'var(--bg-secondary)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}>
-                            {item.mode === 'single' ? <Layout size={13} /> : <Box size={13} />}
-                          </div>
-                          <div style={{ overflow: 'hidden' }}>
-                            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.title}
+                            justifyContent: 'space-between',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '6px',
+                              background: item.mode === 'single' ? 'rgba(236,72,153,0.15)' : 'rgba(99,102,241,0.15)',
+                              color: item.mode === 'single' ? 'var(--accent-pink)' : 'var(--primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {item.mode === 'single' ? <Layout size={13} /> : <Box size={13} />}
                             </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                              {item.tag} &bull; {item.timestamp}
+                            <div style={{ overflow: 'hidden' }}>
+                              <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {item.title}
+                              </div>
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                                {item.tag} &bull; {item.timestamp}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <ChevronRight size={13} color={isSelected ? 'var(--primary)' : 'var(--text-dim)'} />
-                      </div>
-                    );
-                  })}
+                          <ChevronRight size={13} color={isSelected ? 'var(--primary)' : 'var(--text-dim)'} />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
             </div>
 
@@ -975,16 +1219,16 @@ export default function ProjectGenerator() {
                         {genMode === 'single' ? pageArchetype.toUpperCase() : 'REPO'}
                       </span>
                       <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                        {genMode === 'single' ? (singlePageResult?.title || 'Preview Canvas') : (name || 'Project Scaffold')}
+                        {genMode === 'single' ? (singlePageResult?.title || 'Interactive Canvas') : (name || 'Project Scaffold')}
                       </span>
                     </div>
                   </div>
 
-                  {/* Right Actions & Viewport Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    
-                    {/* If Single Page: Toggle Live Preview vs Source Code */}
-                    {genMode === 'single' && (
+                  {/* Right Actions & Viewport Controls (Shown when result is available) */}
+                  {singlePageResult && genMode === 'single' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      
+                      {/* Toggle Live Preview vs Source Code */}
                       <div style={{
                         display: 'flex',
                         background: 'var(--bg-secondary)',
@@ -1031,61 +1275,59 @@ export default function ProjectGenerator() {
                           <Code2 size={12} /> Source Code
                         </button>
                       </div>
-                    )}
 
-                    {/* Viewport switchers in Live Preview mode */}
-                    {genMode === 'single' && previewTab === 'preview' && (
-                      <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-subtle)', padding: '2px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setViewportMode('desktop')}
-                          title="Desktop (100%)"
-                          style={{
-                            padding: '4px 7px',
-                            background: viewportMode === 'desktop' ? 'var(--bg-surface)' : 'transparent',
-                            color: viewportMode === 'desktop' ? 'var(--primary)' : 'var(--text-muted)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Monitor size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setViewportMode('tablet')}
-                          title="Tablet (768px)"
-                          style={{
-                            padding: '4px 7px',
-                            background: viewportMode === 'tablet' ? 'var(--bg-surface)' : 'transparent',
-                            color: viewportMode === 'tablet' ? 'var(--primary)' : 'var(--text-muted)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Tablet size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setViewportMode('mobile')}
-                          title="Mobile (375px)"
-                          style={{
-                            padding: '4px 7px',
-                            background: viewportMode === 'mobile' ? 'var(--bg-surface)' : 'transparent',
-                            color: viewportMode === 'mobile' ? 'var(--primary)' : 'var(--text-muted)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Smartphone size={13} />
-                        </button>
-                      </div>
-                    )}
+                      {/* Viewport switchers in Live Preview mode */}
+                      {previewTab === 'preview' && (
+                        <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-subtle)', padding: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setViewportMode('desktop')}
+                            title="Desktop (100%)"
+                            style={{
+                              padding: '4px 7px',
+                              background: viewportMode === 'desktop' ? 'var(--bg-surface)' : 'transparent',
+                              color: viewportMode === 'desktop' ? 'var(--primary)' : 'var(--text-muted)',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Monitor size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setViewportMode('tablet')}
+                            title="Tablet (768px)"
+                            style={{
+                              padding: '4px 7px',
+                              background: viewportMode === 'tablet' ? 'var(--bg-surface)' : 'transparent',
+                              color: viewportMode === 'tablet' ? 'var(--primary)' : 'var(--text-muted)',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Tablet size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setViewportMode('mobile')}
+                            title="Mobile (375px)"
+                            style={{
+                              padding: '4px 7px',
+                              background: viewportMode === 'mobile' ? 'var(--bg-surface)' : 'transparent',
+                              color: viewportMode === 'mobile' ? 'var(--primary)' : 'var(--text-muted)',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Smartphone size={13} />
+                          </button>
+                        </div>
+                      )}
 
-                    {/* Open In New Tab Button */}
-                    {genMode === 'single' && (
+                      {/* Open In New Tab Button */}
                       <button
                         type="button"
                         onClick={handleOpenInNewWindow}
@@ -1107,32 +1349,30 @@ export default function ProjectGenerator() {
                         <ExternalLink size={12} />
                         <span>Pop Out</span>
                       </button>
-                    )}
 
-                    {/* Copy Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyCode(genMode === 'single' ? (singlePageResult?.code || singlePageResult?.preview_html) : projectFiles[activeFile])}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: 'var(--bg-surface)',
-                        border: '1px solid var(--border-light)',
-                        color: 'var(--text-main)',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {copied ? <CheckCheck size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
-                      <span>{copied ? 'Copied' : 'Copy'}</span>
-                    </button>
+                      {/* Copy Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(singlePageResult?.code || singlePageResult?.preview_html)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-light)',
+                          color: 'var(--text-main)',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {copied ? <CheckCheck size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
+                        <span>{copied ? 'Copied' : 'Copy'}</span>
+                      </button>
 
-                    {/* Download Button */}
-                    {genMode === 'single' ? (
+                      {/* Download Button */}
                       <button
                         type="button"
                         onClick={handleDownloadSinglePage}
@@ -1142,7 +1382,33 @@ export default function ProjectGenerator() {
                         <Download size={12} />
                         <span>{downloadSuccess ? 'Downloaded!' : 'Download File'}</span>
                       </button>
-                    ) : (
+                    </div>
+                  )}
+
+                  {/* Project Mode Actions */}
+                  {genMode === 'project' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(projectFiles[activeFile])}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-light)',
+                          color: 'var(--text-main)',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {copied ? <CheckCheck size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
+                        <span>{copied ? 'Copied' : 'Copy File'}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={handleDownloadZip}
@@ -1153,52 +1419,185 @@ export default function ProjectGenerator() {
                         <Download size={12} />
                         <span>{downloadSuccess ? 'Downloaded .ZIP!' : 'Download .ZIP'}</span>
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Canvas Main Body */}
                 {genMode === 'single' ? (
                   /* SINGLE PAGE CANVAS */
-                  previewTab === 'preview' ? (
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      background: '#04060d',
-                      padding: '12px 0',
-                      minHeight: '680px',
-                      overflowX: 'auto'
-                    }}>
-                      <iframe
-                        title="AI Live Single Page Canvas"
-                        srcDoc={singlePageResult?.preview_html || singlePageResult?.code}
-                        style={{
-                          width: viewportMode === 'mobile' ? '375px' : (viewportMode === 'tablet' ? '768px' : '100%'),
-                          maxWidth: '100%',
-                          height: '680px',
-                          borderRadius: viewportMode === 'desktop' ? '0' : '8px',
-                          border: viewportMode === 'desktop' ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                          boxShadow: viewportMode === 'desktop' ? 'none' : '0 20px 50px rgba(0,0,0,0.8)',
-                          background: '#070913',
-                          transition: 'width 0.3s ease'
-                        }}
-                        sandbox="allow-scripts"
-                      />
-                    </div>
+                  singlePageResult ? (
+                    previewTab === 'preview' ? (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        background: '#04060d',
+                        padding: '12px 0',
+                        minHeight: '680px',
+                        overflowX: 'auto'
+                      }}>
+                        <iframe
+                          title="AI Live Single Page Canvas"
+                          srcDoc={singlePageResult?.preview_html || singlePageResult?.code}
+                          style={{
+                            width: viewportMode === 'mobile' ? '375px' : (viewportMode === 'tablet' ? '768px' : '100%'),
+                            maxWidth: '100%',
+                            height: '680px',
+                            borderRadius: viewportMode === 'desktop' ? '0' : '8px',
+                            border: viewportMode === 'desktop' ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                            boxShadow: viewportMode === 'desktop' ? 'none' : '0 20px 50px rgba(0,0,0,0.8)',
+                            background: '#070913',
+                            transition: 'width 0.3s ease'
+                          }}
+                          sandbox="allow-scripts"
+                        />
+                      </div>
+                    ) : (
+                      <pre style={{
+                        background: 'var(--bg-code)',
+                        padding: '20px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12.5px',
+                        lineHeight: 1.6,
+                        color: 'var(--text-main)',
+                        height: '680px',
+                        overflowY: 'auto',
+                        margin: 0
+                      }}>
+                        <code>{singlePageResult?.code || singlePageResult?.preview_html}</code>
+                      </pre>
+                    )
                   ) : (
-                    <pre style={{
-                      background: 'var(--bg-code)',
-                      padding: '20px',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12.5px',
-                      lineHeight: 1.6,
-                      color: 'var(--text-main)',
-                      height: '680px',
-                      overflowY: 'auto',
-                      margin: 0
+                    /* INITIAL CLEAN BLUEPRINT PLACEHOLDER (NOT auto-rendering any page!) */
+                    <div style={{
+                      minHeight: '680px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '40px 24px',
+                      background: 'radial-gradient(circle at 50% 35%, rgba(236,72,153,0.06) 0%, #070913 70%)',
+                      textAlign: 'center',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      <code>{singlePageResult?.code || singlePageResult?.preview_html}</code>
-                    </pre>
+                      {/* Decorative grid pattern */}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)',
+                        backgroundSize: '24px 24px',
+                        opacity: 0.3,
+                        pointerEvents: 'none'
+                      }} />
+
+                      <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '16px',
+                        background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '28px',
+                        marginBottom: '18px',
+                        boxShadow: '0 0 35px rgba(236, 72, 153, 0.2)'
+                      }}>
+                        {selectedArchObj.icon}
+                      </div>
+
+                      <div className="badge badge-medium" style={{ marginBottom: '12px', fontSize: '11px', padding: '3px 10px' }}>
+                        STUDIO CANVAS READY
+                      </div>
+
+                      <h2 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+                        Configure Your Architecture &amp; Generate
+                      </h2>
+
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '440px', lineHeight: 1.6, marginBottom: '28px' }}>
+                        Select your archetype, navbar, colors, and animations on the left, refine your prompt, then click <strong style={{ color: '#fff' }}>Generate Single Page UI</strong> to view your interactive live preview here.
+                      </p>
+
+                      {/* Active Configuration Blueprint Badges */}
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        maxWidth: '520px',
+                        marginBottom: '32px'
+                      }}>
+                        <div style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '11.5px',
+                          color: 'var(--text-main)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span style={{ color: 'var(--primary)' }}>●</span> Archetype: <strong>{selectedArchObj.name}</strong>
+                        </div>
+
+                        <div style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '11.5px',
+                          color: 'var(--text-main)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: selectedThemeObj.preview }} />
+                          Color: <strong>{selectedThemeObj.name.split(' ')[0]}</strong>
+                        </div>
+
+                        <div style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '11.5px',
+                          color: 'var(--text-main)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span>📌</span> Navbar: <strong>{navbarStyle}</strong>
+                        </div>
+
+                        <div style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '11.5px',
+                          color: 'var(--text-main)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span>✨</span> FX: <strong>{animationStyle}</strong>
+                        </div>
+                      </div>
+
+                      {/* Instant Generate Button */}
+                      <button
+                        type="button"
+                        onClick={handleGenerateSinglePage}
+                        disabled={generating || !prompt.trim()}
+                        className="btn-primary"
+                        style={{ padding: '12px 28px', fontSize: '14px', borderRadius: '8px' }}
+                      >
+                        <Sparkles size={16} />
+                        <span>Generate Single Page UI &rarr;</span>
+                      </button>
+                    </div>
                   )
                 ) : (
                   /* FULL PROJECT MULTI-FILE CANVAS */

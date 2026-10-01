@@ -109,7 +109,12 @@ class ProjectAIService:
         page_type: str = "auto",
         sections: Optional[List[str]] = None,
         color_accent: str = "pink-indigo",
-        brand_name: Optional[str] = None
+        brand_name: Optional[str] = None,
+        navbar_style: str = "sticky-glass",
+        sidebar_style: str = "none",
+        animation_style: str = "ambient-glow",
+        bg_tone: str = "cosmic-dark",
+        typography: str = "modern-sans"
     ) -> Dict[str, Any]:
         """
         Generates a standalone, beautifully designed single-page application or component.
@@ -125,13 +130,16 @@ You are CodeLens AI Senior Frontend Architect.
 Generate a complete, modern, gorgeous, production-grade standalone single-page UI based on the user's idea.
 Target framework: {framework} (if React, provide clean React JSX component; if HTML, provide modern HTML5).
 Archetype / Page Type: {archetype.upper()} ({sections_desc})
-Design aesthetic: {style} (Dark cosmic backdrop, sleek typography, subtle glassmorphism, responsive).
+Design aesthetic: {style} ({bg_tone} background, {typography} font family).
 Brand name: {brand}
 Color Accent: {color_accent}
+Navbar Configuration: {navbar_style} (e.g. sticky glassmorphic or floating pill or minimal or none)
+Sidebar Configuration: {sidebar_style} (e.g. none or collapsible left navigation dock)
+Visual Animations & Effects: {animation_style} (ambient glow or grid mesh or smooth transitions)
 
 CRITICAL RULES:
 1. NEVER use the user's raw prompt text as the page heading (h1), hero title, or placeholder text. Always synthesize realistic, professional, domain-appropriate copy (e.g., if Auth: 'Sign In to Your Workspace', 'Enterprise Single Sign-On'; if Dashboard: 'Real-Time Observability', etc.).
-2. If Archetype is AUTH: You MUST render a true, interactive dual-tab Login & Sign Up card with working JavaScript tab switching ('Sign In' vs 'Sign Up'), email input, password with show/hide eye toggle, remember me checkbox, forgot password link, social login buttons (Google, GitHub), and sticky glass navbar.
+2. If Archetype is AUTH: You MUST render a true, interactive dual-tab Login & Sign Up card with working JavaScript tab switching ('Sign In' vs 'Sign Up'), email input, password with show/hide eye toggle, remember me checkbox, forgot password link, social login buttons (Google, GitHub), and the selected navbar style.
 3. If Archetype is DASHBOARD: Render an analytics dashboard with sidebar navigation, metric KPI cards, SVG activity charts, and recent activity table.
 4. If Archetype is ECOMMERCE: Render product showcase cards, rating stars, price tags, and interactive Add to Cart toast.
 5. If Archetype is PRICING: Render tier comparison cards, monthly/annual toggle, feature checkmarks, and CTA buttons.
@@ -168,7 +176,7 @@ Do NOT wrap the response in markdown blocks. Return ONLY the raw JSON string.
                 print(f"[JSON PARSE ERROR] {e}")
 
         # Dynamic fallback handcrafted generator tailored to the exact archetype
-        return self._generate_archetype_fallback(archetype, brand, framework, style, color_accent)
+        return self._generate_archetype_fallback(archetype, brand, framework, style, color_accent, navbar_style, sidebar_style)
 
     def _generate_archetype_fallback(
         self,
@@ -176,7 +184,9 @@ Do NOT wrap the response in markdown blocks. Return ONLY the raw JSON string.
         brand: str,
         framework: str,
         style: str,
-        color_accent: str
+        color_accent: str,
+        navbar_style: str = "sticky-glass",
+        sidebar_style: str = "none"
     ) -> Dict[str, Any]:
         """
         Generates handcrafted, ultra-responsive, beautiful templates tailored to the exact archetype.

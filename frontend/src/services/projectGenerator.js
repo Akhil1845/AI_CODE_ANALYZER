@@ -450,7 +450,12 @@ Refer to the manifest files to install dependencies and run locally.
         page_type: optionsOrPrompt.page_type || optionsOrPrompt.pageType || 'auto',
         sections: optionsOrPrompt.sections || [],
         brand_name: optionsOrPrompt.brand_name || optionsOrPrompt.brandName || '',
-        color_accent: optionsOrPrompt.color_accent || optionsOrPrompt.colorAccent || 'pink-indigo'
+        color_accent: optionsOrPrompt.color_accent || optionsOrPrompt.colorAccent || 'pink-indigo',
+        navbar_style: optionsOrPrompt.navbar_style || optionsOrPrompt.navbarStyle || 'sticky-glass',
+        sidebar_style: optionsOrPrompt.sidebar_style || optionsOrPrompt.sidebarStyle || 'none',
+        animation_style: optionsOrPrompt.animation_style || optionsOrPrompt.animationStyle || 'ambient-glow',
+        bg_tone: optionsOrPrompt.bg_tone || optionsOrPrompt.bgTone || 'cosmic-dark',
+        typography: optionsOrPrompt.typography || 'modern-sans'
       };
     } else {
       payload = { prompt: optionsOrPrompt, framework, style };

@@ -516,6 +516,11 @@ class GenerateSinglePageRequest(BaseModel):
     sections: Optional[List[str]] = None
     brand_name: Optional[str] = None
     color_accent: Optional[str] = "pink-indigo"
+    navbar_style: Optional[str] = "sticky-glass"
+    sidebar_style: Optional[str] = "none"
+    animation_style: Optional[str] = "ambient-glow"
+    bg_tone: Optional[str] = "cosmic-dark"
+    typography: Optional[str] = "modern-sans"
 
 @app.post("/api/generate/single-page")
 def generate_single_page(req: GenerateSinglePageRequest):
@@ -528,7 +533,12 @@ def generate_single_page(req: GenerateSinglePageRequest):
         page_type=req.page_type or "auto",
         sections=req.sections,
         color_accent=req.color_accent or "pink-indigo",
-        brand_name=req.brand_name
+        brand_name=req.brand_name,
+        navbar_style=req.navbar_style or "sticky-glass",
+        sidebar_style=req.sidebar_style or "none",
+        animation_style=req.animation_style or "ambient-glow",
+        bg_tone=req.bg_tone or "cosmic-dark",
+        typography=req.typography or "modern-sans"
     )
     return {"success": True, "data": result}
 
