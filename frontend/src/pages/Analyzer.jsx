@@ -42,13 +42,14 @@ export default function Analyzer() {
   const [logs, setLogs] = useState([]);
   const [detectedProject, setDetectedProject] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const logsEndRef = useRef(null);
+  const terminalRef = useRef(null);
 
+  // Auto-scroll ONLY inside the terminal log box, never scrolling the browser window
   useEffect(() => {
-    if (analyzing) {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [logs, analyzing]);
+  }, [logs]);
 
   const steps = [
     { title: 'Project Tree & File Indexing', desc: 'Streaming source files via Multi-Engine Scanner / Unpacking archive...' },
@@ -856,18 +857,21 @@ export default function Analyzer() {
                 })}
               </div>
 
-              {/* Terminal Logs Window */}
-              <div style={{
-                background: 'var(--bg-code)',
-                border: '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-md)',
-                padding: '16px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '12.5px',
-                lineHeight: 1.6,
-                maxHeight: '190px',
-                overflowY: 'auto'
-              }}>
+              {/* Terminal Logs Window (Scrolls internally without moving the viewport) */}
+              <div
+                ref={terminalRef}
+                style={{
+                  background: 'var(--bg-code)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '12.5px',
+                  lineHeight: 1.6,
+                  maxHeight: '190px',
+                  overflowY: 'auto'
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-dim)', marginBottom: '8px', fontSize: '11px', fontWeight: 600 }}>
                   <Terminal size={12} color="var(--primary)" />
                   <span>ANALYSIS TELEMETRY</span>
@@ -879,7 +883,6 @@ export default function Analyzer() {
                     {log}
                   </div>
                 ))}
-                <div ref={logsEndRef} />
               </div>
             </div>
           )}
