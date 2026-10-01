@@ -991,7 +991,7 @@ export default function AnalysisResult() {
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => alert('Exporting all applied patches as unified git patch file (.diff)...')}
+                onClick={handleDownloadAllPatches}
                 style={{ padding: '8px 18px', fontSize: '12.5px' }}
               >
                 <Download size={14} />
@@ -1070,116 +1070,24 @@ export default function AnalysisResult() {
           ) : viewMode === 'solutions' ? (
             /* All Solutions & Fixes Guide View */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-              {/* Solutions Guide Sub-Header Banner */}
-              <div className="glass-card" style={{
-                padding: '24px 28px',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(9, 13, 26, 0.95) 100%)',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+              {/* Solutions Header Summary */}
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                padding: '4px 6px',
                 flexWrap: 'wrap',
-                gap: '16px'
+                gap: '10px'
               }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 0 15px rgba(16, 185, 129, 0.5)'
-                    }}>
-                      <Sparkles size={18} color="#ffffff" />
-                    </div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                      Complete Solutions & Deployment Fix Guide
-                    </h2>
-                  </div>
-                  <p style={{ fontSize: '13.5px', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
-                    Inspect verified code fixes, cloud configuration patches (<code style={{ color: '#f0abfc' }}>vercel.json</code> / <code style={{ color: '#f0abfc' }}>render.yaml</code>), and patch sets. Copy individual snippets or resolve all issues in 1 click.
-                  </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={16} color="#34d399" />
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>
+                    Verified Solutions & Configurations ({filteredIssues.length})
+                  </span>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={handleSolveAll}
-                    disabled={solvingAll}
-                    style={{
-                      padding: '9px 18px',
-                      fontSize: '13px',
-                      background: pendingCount === 0 ? 'rgba(16, 185, 129, 0.25)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      border: '1px solid rgba(52, 211, 153, 0.5)',
-                      boxShadow: pendingCount > 0 ? '0 0 20px rgba(16, 185, 129, 0.45)' : 'none'
-                    }}
-                  >
-                    {solvingAll ? (
-                      <>
-                        <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>Resolving All ({issues.length})...</span>
-                      </>
-                    ) : pendingCount === 0 ? (
-                      <>
-                        <CheckCircle2 size={15} color="#34d399" />
-                        <span>All {issues.length} Issues Resolved</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={15} />
-                        <span>⚡ Solve All ({pendingCount} Pending)</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={handleCopyAllSolutions}
-                    style={{ padding: '9px 16px', fontSize: '13px' }}
-                  >
-                    {copiedAll ? <Check size={15} color="#34d399" /> : <Copy size={15} color="#ec4899" />}
-                    <span>{copiedAll ? 'Copied All to Clipboard!' : 'Copy All Solutions'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={handleDownloadAllPatches}
-                    style={{ padding: '9px 16px', fontSize: '13px' }}
-                  >
-                    <Download size={15} color="#ec4899" />
-                    <span>Download Patches (.diff)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenGitHubModal}
-                    style={{
-                      padding: '9px 20px',
-                      fontSize: '13px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      border: '1px solid rgba(52, 211, 153, 0.5)',
-                      boxShadow: '0 0 25px rgba(16, 185, 129, 0.45)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                    title="Directly commit solutions or create a Pull Request on GitHub"
-                  >
-                    <GitPullRequest size={16} />
-                    <span>🚀 Apply to GitHub (PR / Commit)</span>
-                  </button>
-                </div>
+                <span style={{ fontSize: '12.5px', color: '#94a3b8' }}>
+                  Inspect fixes below or use the top action bar to solve all and sync with GitHub
+                </span>
               </div>
 
               {/* Solutions Cards List */}
