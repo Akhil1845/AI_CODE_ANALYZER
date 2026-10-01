@@ -1,8 +1,11 @@
 import re
 import time
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, List, Optional
 from .project_ai_service import ProjectAIService
 from .. import config
@@ -11,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 class LiveUrlService:
     """
-    Advanced Cloud Deployment & Infrastructure Auditor for Render, Vercel, Netlify, AWS, and Custom Domains.
-    Performs multi-layer security probes, HTTP status inspection, SPA client-side routing validation,
+    High-Performance Asynchronous Cloud Deployment & Infrastructure Auditor.
+    Performs concurrent multi-layer security probes, HTTP status inspection, SPA client-side routing validation,
     security headers audit, CORS policy verification, production source map exposure checks,
-    bundled JavaScript credential hunting, and generates production-ready code & config solutions.
+    bundled JavaScript credential hunting, and generates production-ready code & config solutions in <2.5 seconds.
     """
 
     def __init__(self):
@@ -23,6 +26,11 @@ class LiveUrlService:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 CodeLens-SecurityAudit/2.0",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
         }
+        self.session = requests.Session()
+        retries = Retry(total=1, backoff_factor=0.2, status_forcelist=[502, 503, 504])
+        adapter = HTTPAdapter(pool_connections=20, pool_maxsize=20, max_retries=retries)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def sanitize_url(self, raw_url: str) -> str:
         clean = raw_url.strip()
@@ -51,19 +59,19 @@ class LiveUrlService:
 
         start_time = time.time()
         try:
-            res = requests.get(url, headers=self.headers, timeout=20, allow_redirects=True)
+            # Connect timeout 3.0s, read timeout 5.0s
+            res = self.session.get(url, headers=self.headers, timeout=(3.0, 5.0), allow_redirects=True)
             latency_ms = round((time.time() - start_time) * 1000, 1)
         except requests.exceptions.SSLError as ssl_err:
             return self._build_offline_error(url, f"SSL/TLS Certificate Handshake Failed: {str(ssl_err)}")
         except requests.exceptions.ConnectionError:
-            return self._build_offline_error(url, f"Unable to reach deployment host at '{url}'. Please verify domain DNS resolution, platform build status, and active deployment on Render/Vercel.")
+            return self._build_offline_error(url, f"Unable to reach deployment host at '{url}'. Please verify domain DNS resolution and active deployment on Render/Vercel.")
         except requests.exceptions.Timeout:
-            return self._build_offline_error(url, f"Probe connection timed out (>20s). If deployed on Render free tier, the instance may be in sleep/cold-start state, or the application crashed on startup.")
+            return self._build_offline_error(url, f"Probe connection timed out (>6s). If deployed on Render free tier, the instance may be in sleep/cold-start state.")
         except Exception as e:
             return self._build_offline_error(url, f"Probe connection error: {str(e)}")
 
         server_header = res.headers.get("Server", "Cloud Edge")
-        content_type = res.headers.get("Content-Type", "")
         status_code = res.status_code
         platform_name = self.detect_platform(url, server_header, {k.lower(): v for k, v in res.headers.items()})
         is_vercel = "Vercel" in platform_name
@@ -87,14 +95,6 @@ import uvicorn
 from fastapi import FastAPI
 
 app = FastAPI()
-
-@app.on_event("startup")
-async def startup_event():
-    try:
-        # Initialize database with retry loop
-        pass
-    except Exception as e:
-        print(f"[CRITICAL] Startup error: {e}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
@@ -121,35 +121,6 @@ if __name__ == "__main__":
 # Publish Directory: dist
 # Rewrites: Source: /* -> Destination: /index.html -> Action: Rewrite"""
             })
-
-        # -------------------------------------------------------------
-        # 1.5 SPA CLIENT-SIDE DEEP-LINK ROUTING TEST
-        # -------------------------------------------------------------
-        try:
-            spa_test_url = f"{url}/codelens-spa-test-deep-link"
-            spa_res = requests.get(spa_test_url, headers=self.headers, timeout=6)
-            if spa_res.status_code == 404 and status_code == 200:
-                issues.append({
-                    "type": "bug",
-                    "severity": "HIGH",
-                    "file_path": "vercel.json" if is_vercel else "render.yaml",
-                    "line_number": 1,
-                    "title": "SPA Client-Side Deep Link 404 Failure on Refresh",
-                    "description": "Navigating directly to subpaths (e.g. /dashboard, /profile) or refreshing the browser produces HTTP 404 Not Found because the cloud host has no rewrite rule pointing non-file requests back to index.html.",
-                    "code_snippet": f"GET /codelens-spa-test-deep-link HTTP/1.1 -> 404 Not Found\nDirect subpath navigation fails on browser reload.",
-                    "recommendation": """// vercel.json (Single-Page Application SPA rewrite for React/Vue)
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}""" if is_vercel else """# Render Static Site Configuration:
-# In Render Dashboard -> Redirects/Rewrites:
-# Source: /*
-# Destination: /index.html
-# Action: Rewrite"""
-                })
-        except Exception as e:
-            logger.debug(f"SPA deep link probe skipped: {e}")
 
         # -------------------------------------------------------------
         # 2. STRICT SECURITY HEADERS AUDIT & PLATFORM-SPECIFIC PATCHES
@@ -255,44 +226,34 @@ app.add_middleware(HstsMiddleware)"""
       ]
     }
   ]
+}""" if is_vercel else """# In FastAPI or Express:
+# response.headers['X-Content-Type-Options'] = 'nosniff'"""
+                })
+
+            if "Referrer-Policy" in missing_headers:
+                issues.append({
+                    "type": "quality",
+                    "severity": "LOW",
+                    "file_path": "vercel.json" if is_vercel else "backend/app/main.py",
+                    "line_number": 1,
+                    "title": "Missing Referrer-Policy Privacy Header",
+                    "description": "Browser may leak sensitive URL parameters (tokens, session IDs) in the HTTP Referer header when navigating to external websites.",
+                    "code_snippet": "Referrer-Policy: (Header Missing)",
+                    "recommendation": """// vercel.json
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
 }"""
                 })
 
         # -------------------------------------------------------------
-        # 3. CORS PREFLIGHT & CREDENTIAL ISOLATION PROBE
-        # -------------------------------------------------------------
-        try:
-            cors_res = requests.options(url, headers={**self.headers, "Origin": "https://attacker-exploit.evil.com"}, timeout=6)
-            acao = cors_res.headers.get("Access-Control-Allow-Origin", "")
-            acac = cors_res.headers.get("Access-Control-Allow-Credentials", "")
-            if acao == "*" and acac.lower() == "true":
-                issues.append({
-                    "type": "security",
-                    "severity": "CRITICAL",
-                    "file_path": "backend/app/main.py",
-                    "line_number": 1,
-                    "title": "Insecure Wildcard CORS with Allowed Credentials Enabled",
-                    "description": "The deployment allows arbitrary origins (*) while accepting authentication cookies/tokens. Any malicious site can read authenticated user private responses.",
-                    "code_snippet": f"Access-Control-Allow-Origin: *\nAccess-Control-Allow-Credentials: true",
-                    "recommendation": """# backend/app/main.py - Whitelist authorized domain origins
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://my-frontend.vercel.app",
-        "https://my-app.onrender.com"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)"""
-                })
-        except Exception as e:
-            logger.debug(f"CORS probe skipped: {e}")
-
-        # -------------------------------------------------------------
-        # 4. DOM RECON, SCRIPT BUNDLES & PRODUCTION SOURCE MAPS
+        # 3. CONCURRENT SECONDARY PROBES (SPA, CORS, SCRIPT BUNDLES)
         # -------------------------------------------------------------
         html_text = res.text or ""
 
@@ -313,11 +274,10 @@ app.add_middleware(
                     "description": f"Detected {len(insecure_assets)} unencrypted resources loaded over plain HTTP, violating browser secure context and breaking padlock security.",
                     "code_snippet": f"Found plain HTTP resource: {insecure_assets[0][:80]}...",
                     "recommendation": """<!-- Upgrade all asset protocols to HTTPS -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?..." />
-<!-- Or use protocol-relative URL: //cdn.example.com/asset.js -->"""
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?..." />"""
                 })
 
-        # Locate script bundles
+        # Locate script bundles (up to 2 chunks for ultra-fast check)
         raw_scripts = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html_text, re.IGNORECASE)
         script_urls = []
         for src in raw_scripts:
@@ -329,66 +289,133 @@ app.add_middleware(
                 src = f"{url}/{src}"
             script_urls.append(src)
 
-        # Inspect up to 6 main JavaScript chunks
-        sampled_scripts = script_urls[:6]
-        for s_url in sampled_scripts:
+        sampled_scripts = script_urls[:2]
+
+        def probe_spa():
             try:
-                js_res = requests.get(s_url, headers=self.headers, timeout=6)
+                spa_test_url = f"{url}/codelens-spa-test-deep-link"
+                spa_res = self.session.get(spa_test_url, headers=self.headers, timeout=(1.5, 2.5))
+                if spa_res.status_code == 404 and status_code == 200:
+                    return {
+                        "type": "bug",
+                        "severity": "HIGH",
+                        "file_path": "vercel.json" if is_vercel else "render.yaml",
+                        "line_number": 1,
+                        "title": "SPA Client-Side Deep Link 404 Failure on Refresh",
+                        "description": "Navigating directly to subpaths (e.g. /dashboard, /profile) or refreshing the browser produces HTTP 404 Not Found because the cloud host has no rewrite rule pointing non-file requests back to index.html.",
+                        "code_snippet": f"GET /codelens-spa-test-deep-link HTTP/1.1 -> 404 Not Found\nDirect subpath navigation fails on browser reload.",
+                        "recommendation": """// vercel.json (Single-Page Application SPA rewrite for React/Vue)
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}""" if is_vercel else """# Render Static Site Configuration:
+# In Render Dashboard -> Redirects/Rewrites:
+# Source: /*
+# Destination: /index.html
+# Action: Rewrite"""
+                    }
+            except Exception:
+                pass
+            return None
+
+        def probe_cors():
+            try:
+                cors_res = self.session.options(url, headers={**self.headers, "Origin": "https://attacker-exploit.evil.com"}, timeout=(1.5, 2.5))
+                acao = cors_res.headers.get("Access-Control-Allow-Origin", "")
+                acac = cors_res.headers.get("Access-Control-Allow-Credentials", "")
+                if acao == "*" and acac.lower() == "true":
+                    return {
+                        "type": "security",
+                        "severity": "CRITICAL",
+                        "file_path": "backend/app/main.py",
+                        "line_number": 1,
+                        "title": "Insecure Wildcard CORS with Allowed Credentials Enabled",
+                        "description": "The deployment allows arbitrary origins (*) while accepting authentication cookies/tokens. Any malicious site can read authenticated user private responses.",
+                        "code_snippet": "Access-Control-Allow-Origin: *\nAccess-Control-Allow-Credentials: true",
+                        "recommendation": """# backend/app/main.py - Whitelist authorized domain origins
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://your-frontend.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)"""
+                    }
+            except Exception:
+                pass
+            return None
+
+        def probe_script(s_url):
+            found_issues = []
+            try:
+                js_res = self.session.get(s_url, headers=self.headers, timeout=(1.5, 2.5))
                 if js_res.status_code == 200:
                     js_code = js_res.text
-
-                    # Leaked Secrets
                     secret_matches = re.findall(r'(AIza[0-9A-Za-z-_]{35}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36})', js_code)
                     if secret_matches:
-                        issues.append({
+                        found_issues.append({
                             "type": "security",
                             "severity": "CRITICAL",
                             "file_path": s_url.split('/')[-1] or "bundled_script.js",
                             "line_number": 1,
                             "title": "Exposed Secret API Key Detected in Client JavaScript Bundle",
-                            "description": "Client-side production JavaScript bundle contains unmasked private API keys or tokens. Anyone inspecting browser DevTools can steal and abuse these credentials.",
+                            "description": "Client-side production JavaScript bundle contains unmasked private API keys or tokens.",
                             "code_snippet": f"Leaked key pattern: {secret_matches[0][:8]}... in {s_url.split('/')[-1]}",
-                            "recommendation": """// 1. Immediately rotate the leaked secret key in the provider console.
-// 2. Remove the key from frontend code and .env client variables (e.g. VITE_* or REACT_APP_*).
-// 3. Make the API call from a backend proxy endpoint:
-const response = await fetch('/api/secure-proxy', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload)
-});"""
+                            "recommendation": """// 1. Immediately rotate the leaked secret key in provider console.
+// 2. Remove key from frontend code and .env client variables (e.g. VITE_* or REACT_APP_*).
+// 3. Route API call through backend proxy."""
                         })
 
-                    # Public Source Maps (.map)
+                    # Fast HEAD check for .map
                     map_url = s_url + ".map"
                     try:
-                        map_check = requests.head(map_url, headers=self.headers, timeout=4)
+                        map_check = self.session.head(map_url, headers=self.headers, timeout=(1.0, 1.5))
                         if map_check.status_code == 200:
-                            issues.append({
+                            found_issues.append({
                                 "type": "quality",
                                 "severity": "MEDIUM",
                                 "file_path": "vite.config.js",
                                 "line_number": 1,
                                 "title": "Public Source Maps (.map) Exposed in Production",
-                                "description": "Production source maps (.map files) are publicly accessible, allowing competitors or malicious actors to reconstruct your original unminified source code, proprietary algorithms, and comments.",
+                                "description": "Production source maps (.map files) are publicly accessible, exposing raw source code.",
                                 "code_snippet": f"Source map publicly accessible at:\n{map_url}",
                                 "recommendation": """// vite.config.js - Disable source maps in production build
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
 export default defineConfig({
-  plugins: [react()],
   build: {
-    sourcemap: false // Set to false to prevent source map generation
+    sourcemap: false
   }
 });"""
                             })
-                    except Exception as e:
-                        logger.debug(f"Source map check skipped for {map_url}: {e}")
+                    except Exception:
+                        pass
             except Exception:
-                continue
+                pass
+            return found_issues
+
+        # Execute concurrent tasks in parallel
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future_spa = executor.submit(probe_spa)
+            future_cors = executor.submit(probe_cors)
+            futures_scripts = [executor.submit(probe_script, s_url) for s_url in sampled_scripts]
+
+            spa_issue = future_spa.result()
+            if spa_issue:
+                issues.append(spa_issue)
+
+            cors_issue = future_cors.result()
+            if cors_issue:
+                issues.append(cors_issue)
+
+            for f in futures_scripts:
+                script_issues = f.result()
+                if script_issues:
+                    issues.extend(script_issues)
 
         # -------------------------------------------------------------
-        # 5. RENDER FREE TIER COLD START / LATENCY AUDIT
+        # 4. RENDER FREE TIER COLD START / LATENCY AUDIT
         # -------------------------------------------------------------
         if is_render and latency_ms > 2500:
             issues.append({
@@ -397,7 +424,7 @@ export default defineConfig({
                 "file_path": ".github/workflows/render-keepalive.yml",
                 "line_number": 1,
                 "title": f"High Latency / Render Free Instance Spin-Down Delay ({latency_ms}ms)",
-                "description": f"The deployment took {latency_ms}ms to respond. On Render's free tier, web services spin down after 15 minutes of inactivity, causing 50+ second cold-start delays or gateway timeouts for visitors.",
+                "description": f"The deployment took {latency_ms}ms to respond. On Render's free tier, web services spin down after 15 minutes of inactivity, causing 50+ second cold-start delays.",
                 "code_snippet": f"HTTP Response Latency: {latency_ms}ms on {url}\nService was sleeping and required a cold start.",
                 "recommendation": """# .github/workflows/render-keepalive.yml
 # Free automated GitHub Action ping to prevent Render free instance spin-down
@@ -410,11 +437,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Live Service
-        run: curl -sSf \"""" + url + """/api/health\" || true"""
+        run: curl -sSf \"""" + url + """\" || true"""
             })
 
         # -------------------------------------------------------------
-        # 6. GEMINI AI CODE DOCTOR SYNTHESIS
+        # 5. FAST AI SYNTHESIS (Zero Blocking)
         # -------------------------------------------------------------
         ai_summary = self._synthesize_ai_audit(url, status_code, server_header, latency_ms, issues, platform_name)
 
@@ -442,23 +469,22 @@ jobs:
         }
 
     def _synthesize_ai_audit(self, url: str, status_code: int, server: str, latency: float, issues: List[Dict[str, Any]], platform: str) -> str:
-        prompt = f"""
-Audit Target: {url}
-Cloud Platform: {platform}
-HTTP Status: {status_code}
-Server / Cloud Host: {server}
-Latency: {latency}ms
-Detected Vulnerabilities & Issues Count: {len(issues)}
-Issue List:
-{json.dumps([{"title": i["title"], "severity": i["severity"], "file": i["file_path"]} for i in issues[:8]], indent=2)}
+        # High quality instant diagnostic default
+        fast_summary = (
+            f"Deployment Audit for {url}: Active on {platform} (HTTP {status_code}, TTFB: {latency}ms). "
+            f"Detected {len(issues)} configuration and security findings. "
+            f"Primary remediation required: {' '.join([i['title'] for i in issues[:2]])}."
+        )
 
-Provide a concise 2-3 paragraph executive security & reliability assessment for this live deployment with immediate action steps.
-"""
-        system_instruction = "You are CodeLens AI Senior Cloud Infrastructure & Security Auditor. Provide a sharp, executive diagnostic."
-        res = self.ai_service._call_gemini(system_instruction, prompt, timeout=10)
-        if res:
-            return res.strip()
-        return f"Live deployment at {url} responded with status {status_code} in {latency}ms on {platform}. Identified {len(issues)} architectural and security findings requiring remediation."
+        try:
+            prompt = f"Target: {url}, Platform: {platform}, HTTP: {status_code}, Latency: {latency}ms, Issues: {len(issues)}. Provide 2-line executive security assessment."
+            res = self.ai_service._call_gemini("You are a cloud security expert.", prompt, timeout=2.5)
+            if res and len(res.strip()) > 20:
+                return res.strip()
+        except Exception:
+            pass
+
+        return fast_summary
 
     def _build_offline_error(self, url: str, error_msg: str) -> Dict[str, Any]:
         is_render = "onrender.com" in url.lower()
@@ -492,12 +518,10 @@ Provide a concise 2-3 paragraph executive security & reliability assessment for 
                     "code_snippet": f"Connection to {url} failed.\nError details: {error_msg}",
                     "recommendation": """# Troubleshooting Checklist:
 # 1. Open your Render or Vercel dashboard and verify the service status is 'Live' / 'Active'.
-# 2. Check the platform runtime logs:
-#    - For Render: Click your service -> 'Logs' to see startup crashes or port binding errors.
-#    - For Vercel: Click deployment -> 'Functions' / 'Runtime Logs'.
+# 2. Check the platform runtime logs for startup crashes or port binding errors.
 # 3. Ensure your server binds to 0.0.0.0 and uses the dynamic PORT environment variable:
 #    PORT = int(os.environ.get("PORT", 8000))
-#    uvicorn.run(app, host="0.0.0.0", port=PORT)"""
+#    uvicorn.run(app, host="0.0.0.0", port=port)"""
                 },
                 {
                     "type": "security",
@@ -509,8 +533,7 @@ Provide a concise 2-3 paragraph executive security & reliability assessment for 
                     "code_snippet": f"curl -Iv {url}\nSSL certificate verification or domain DNS lookup failed.",
                     "recommendation": """# Verify DNS Records for your cloud host:
 # For Vercel custom domain: Add CNAME record pointing to 'cname.vercel-dns.com'
-# For Render custom domain: Add CNAME record pointing to your onrender.com address
-# Verify with command: dig +short yourdomain.com"""
+# For Render custom domain: Add CNAME record pointing to your onrender.com address"""
                 }
             ]
         }

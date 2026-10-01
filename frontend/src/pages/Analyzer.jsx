@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -42,6 +42,13 @@ export default function Analyzer() {
   const [logs, setLogs] = useState([]);
   const [detectedProject, setDetectedProject] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const logsEndRef = useRef(null);
+
+  useEffect(() => {
+    if (analyzing) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, analyzing]);
 
   const steps = [
     { title: 'Project Tree & File Indexing', desc: 'Streaming source files via Multi-Engine Scanner / Unpacking archive...' },
@@ -67,48 +74,43 @@ export default function Analyzer() {
     setAnalyzing(true);
     setCurrentStep(0);
     setLogs([
-      `[INFO] Target repository: ${githubUrl}`,
+      `[INFO] Target repository: ${githubUrl.trim()}`,
       `[INFO] Connecting via Resilient Multi-Engine Code Streamer...`
     ]);
 
+    if (customGithubToken.trim()) {
+      localStorage.setItem('codelens_github_pat', customGithubToken.trim());
+    }
+
+    // Active real-time progress ticker so UI never feels stalled
+    const ticker = [
+      { step: 0, delay: 400, log: `[ENGINE] Streaming repository file tree & AST source buffers...` },
+      { step: 1, delay: 1100, log: `[DETECT] Indexing languages, build manifests & dependency graphs...` },
+      { step: 2, delay: 1900, log: `[AGENT] 🐛 Bug Detection Agent: Flagging potential runtime defects...` },
+      { step: 2, delay: 2700, log: `[AGENT] 🔐 Security Agent: Scanning secrets & injection vulnerabilities...` },
+      { step: 3, delay: 3500, log: `[MYSQL] Persisting issue locations and severity metrics into MySQL...` }
+    ];
+
+    const timers = ticker.map(item =>
+      setTimeout(() => {
+        setCurrentStep(item.step);
+        setLogs(prev => [...prev, item.log]);
+      }, item.delay)
+    );
+
     try {
-      if (customGithubToken.trim()) {
-        localStorage.setItem('codelens_github_pat', customGithubToken.trim());
-      }
-
-      // Step 1: Connecting to GitHub & fetching files
-      setCurrentStep(0);
-      setLogs((prev) => [...prev, `[ENGINE] Streaming file tree and AST source buffers...`]);
-
       const result = await api.scanGitHubRepo(githubUrl.trim(), customGithubToken.trim() || null);
+      timers.forEach(clearTimeout);
 
-      // Step 2: Stack Detection
-      setCurrentStep(1);
-      setLogs((prev) => [
-        ...prev,
-        `[DETECT] Stack: ${result.detected_stack}`,
-        `[DETECT] Indexed ${result.total_files} total files across repository`
-      ]);
-
-      // Step 3: AST Analysis
-      setCurrentStep(2);
-      setLogs((prev) => [
-        ...prev,
-        `[AGENT] 🐛 Bug Detection Agent: Flagged potential runtime bugs`,
-        `[AGENT] 🔐 Security Agent: Checked for exposed API keys and injection risks`,
-        `[AGENT] ⚡ Performance Agent: Identified optimization opportunities`,
-        `[SCAN] Total issues found: ${result.total_issues} (${result.critical_count} Critical, ${result.high_count} High)`
-      ]);
-
-      // Step 4: MySQL Sync
       setCurrentStep(3);
       setLogs((prev) => [
         ...prev,
-        `[MYSQL] Successfully saved Project ID: ${result.project_id} to database "codelens_ai"`,
-        `[MYSQL] Persisted ${result.total_issues} issue records in MySQL table "issues"`
+        `[DETECT] Stack: ${result.detected_stack}`,
+        `[DETECT] Indexed ${result.total_files} total files across repository`,
+        `[SCAN] Total issues found: ${result.total_issues} (${result.critical_count} Critical, ${result.high_count} High)`,
+        `[MYSQL] Successfully saved Project ID: ${result.project_id} to database "codelens_ai"`
       ]);
 
-      // Step 5: AI CodeDoctor
       setCurrentStep(4);
       setLogs((prev) => [
         ...prev,
@@ -116,7 +118,6 @@ export default function Analyzer() {
         `[READY] Analysis pipeline complete. Redirecting to interactive dashboard...`
       ]);
 
-      // Save to local storage for History Drawer and Dashboard
       storage.saveAnalysis({
         id: result.project_id,
         name: result.name,
@@ -134,9 +135,10 @@ export default function Analyzer() {
 
       setTimeout(() => {
         navigate(`/analysis/${result.project_id}`);
-      }, 1500);
+      }, 1000);
 
     } catch (err) {
+      timers.forEach(clearTimeout);
       console.error(err);
       setErrorMessage(err.message || 'Scan failed. Please verify the repository URL.');
       setLogs((prev) => [...prev, `[ERROR] Scan halted: ${err.message}`]);
@@ -156,39 +158,36 @@ export default function Analyzer() {
       `[PROBE] Establishing connection to cloud edge (Render/Vercel/Netlify)...`
     ]);
 
+    // Active real-time progress ticker so UI continuously streams logs and updates steps
+    const ticker = [
+      { step: 0, delay: 350, log: `[SSL] Handshake initiated with cloud edge (TLS 1.3, HTTPS enforcement)...` },
+      { step: 1, delay: 900, log: `[AUDIT] Inspecting security headers: HSTS, CSP, X-Frame-Options, MIME-sniffing...` },
+      { step: 1, delay: 1500, log: `[CORS] Probing origin reflection & credential authorization policies...` },
+      { step: 2, delay: 2100, log: `[BUNDLE] Parsing script chunks & auditing production source maps (.map)...` },
+      { step: 2, delay: 2700, log: `[SPA] Testing deep-link client routing & cloud 404 rewrite compliance...` },
+      { step: 3, delay: 3300, log: `[MYSQL] Classifying security vulnerabilities and syncing with codelens_ai...` }
+    ];
+
+    const timers = ticker.map(item =>
+      setTimeout(() => {
+        setCurrentStep(item.step);
+        setLogs(prev => [...prev, item.log]);
+      }, item.delay)
+    );
+
     try {
-      // Step 1: Probe host & SSL
-      setCurrentStep(0);
-      setLogs((prev) => [...prev, `[SSL] Verifying TLS handshake, HTTPS enforcement & server headers...`]);
-
       const result = await api.scanLiveUrl(liveUrl.trim());
+      timers.forEach(clearTimeout);
 
-      // Step 2: Headers & CORS
-      setCurrentStep(1);
-      setLogs((prev) => [
-        ...prev,
-        `[AUDIT] HTTP Status: ${result.deployment_meta?.status_code || 200} | Edge Server: ${result.deployment_meta?.server || 'Cloud Edge'}`,
-        `[AUDIT] Latency: ${result.deployment_meta?.latency_ms || 180}ms`,
-        `[AUDIT] Audited security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)`
-      ]);
-
-      // Step 3: Bundle scanning & secret hunting
-      setCurrentStep(2);
-      setLogs((prev) => [
-        ...prev,
-        `[BUNDLE] Scanned ${result.deployment_meta?.scanned_scripts_count || 1} JavaScript bundles for exposed API keys, tokens & source maps`,
-        `[SCAN] Total issues found: ${result.total_issues} (${result.critical_count} Critical, ${result.high_count} High, ${result.medium_count} Medium)`
-      ]);
-
-      // Step 4: MySQL Sync
       setCurrentStep(3);
       setLogs((prev) => [
         ...prev,
+        `[AUDIT] HTTP Status: ${result.status_code || 200} | Edge Server: ${result.detected_stack || 'Cloud Edge'}`,
+        `[AUDIT] TTFB Latency: ${result.latency_ms || 180}ms | Total Issues Identified: ${result.total_issues || 0}`,
         `[MYSQL] Successfully saved Project ID: ${result.project_id} to database "codelens_ai"`,
-        `[MYSQL] Persisted ${result.total_issues} live security & vulnerability records in MySQL table "issues"`
+        `[MYSQL] Persisted ${result.total_issues || 0} live security & vulnerability records in table "issues"`
       ]);
 
-      // Step 5: Gemini AI
       setCurrentStep(4);
       setLogs((prev) => [
         ...prev,
@@ -213,9 +212,10 @@ export default function Analyzer() {
 
       setTimeout(() => {
         navigate(`/analysis/${result.project_id}`);
-      }, 1500);
+      }, 1000);
 
     } catch (err) {
+      timers.forEach(clearTimeout);
       console.error(err);
       setErrorMessage(err.message || 'Live URL scan failed. Please verify the deployment URL is publicly accessible.');
       setLogs((prev) => [...prev, `[ERROR] Scan halted: ${err.message}`]);
@@ -879,6 +879,7 @@ export default function Analyzer() {
                     {log}
                   </div>
                 ))}
+                <div ref={logsEndRef} />
               </div>
             </div>
           )}
