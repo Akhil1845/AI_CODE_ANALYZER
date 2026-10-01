@@ -408,6 +408,8 @@ export const api = {
         return {
           id: p.id,
           name: p.name,
+          source_type: p.source_type || 'upload',
+          repo_url: p.repo_url || '',
           framework: p.detected_stack || 'Multi-Language',
           techStack: [p.detected_stack || 'General'],
           filesScanned: p.total_files || 1,
@@ -477,7 +479,13 @@ export const api = {
               recommendation: iss.recommendation
             },
             beforeCode: iss.code_snippet,
-            afterCode: `// Optimized implementation\n${iss.recommendation}`,
+            afterCode: iss.recommendation && (
+              iss.recommendation.startsWith('//') || 
+              iss.recommendation.startsWith('#') || 
+              iss.recommendation.startsWith('{') || 
+              iss.recommendation.startsWith('/*') ||
+              iss.recommendation.startsWith('<')
+            ) ? iss.recommendation : `// Recommended Fix Implementation\n${iss.recommendation}`,
             validationStatus: null
           }));
         }

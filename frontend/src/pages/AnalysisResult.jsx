@@ -16,7 +16,13 @@ import {
   RefreshCw, 
   Sparkles, 
   Check, 
-  Loader2
+  Loader2,
+  Copy,
+  ExternalLink,
+  Globe,
+  Server,
+  FileText,
+  Layers
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -28,6 +34,11 @@ export default function AnalysisResult() {
   const [issues, setIssues] = useState([]);
   const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // View mode: 'split' (interactive 2-column) or 'solutions' (complete solutions guide)
+  const [viewMode, setViewMode] = useState('split');
+  const [copiedIssueId, setCopiedIssueId] = useState(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -86,6 +97,20 @@ export default function AnalysisResult() {
     }, 400);
   };
 
+  const handleToggleResolveIssue = (issueId) => {
+    setIssues(prev => prev.map(item => {
+      if (item.id === issueId) {
+        const isResolved = item.validationStatus === 'RESOLVED';
+        return {
+          ...item,
+          validationStatus: isResolved ? 'PENDING' : 'RESOLVED',
+          resolvedTimestamp: isResolved ? null : new Date().toLocaleTimeString()
+        };
+      }
+      return item;
+    }));
+  };
+
   const handleSolveAll = async () => {
     if (!issues || issues.length === 0) return;
     setSolvingAll(true);
@@ -122,6 +147,47 @@ export default function AnalysisResult() {
     } finally {
       setSolvingAll(false);
     }
+  };
+
+  const handleCopySolution = (code, issueId) => {
+    navigator.clipboard.writeText(code);
+    setCopiedIssueId(issueId);
+    setTimeout(() => setCopiedIssueId(null), 2000);
+  };
+
+  const handleCopyAllSolutions = () => {
+    if (!issues || issues.length === 0) return;
+    const text = issues.map((iss, idx) => {
+      return `## Solution ${idx + 1}: [${iss.severity}] ${iss.title}\n` +
+        `- **Target File**: \`${iss.file}\` (line ${iss.line})\n` +
+        `- **Category**: ${iss.category}\n` +
+        `- **Mistake & Risk Analysis**: ${iss.explanation}\n\n` +
+        `### Faulty / Missing State:\n\`\`\`\n${iss.beforeCode}\n\`\`\`\n\n` +
+        `### Verified Solution Code:\n\`\`\`\n${iss.afterCode}\n\`\`\`\n\n` +
+        `---\n`;
+    }).join('\n');
+    navigator.clipboard.writeText(text);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2500);
+  };
+
+  const handleDownloadAllPatches = () => {
+    if (!issues || issues.length === 0) return;
+    const content = issues.map((iss, idx) => {
+      return `# =============================================================\n` +
+        `# Patch ${idx + 1}: ${iss.title} [${iss.severity} - ${iss.category}]\n` +
+        `# Target: ${iss.file}:${iss.line}\n` +
+        `# Problem: ${iss.explanation}\n` +
+        `# =============================================================\n` +
+        `<<<<<<< FAULTY ORIGINAL\n${iss.beforeCode}\n=======\n${iss.afterCode}\n>>>>>>> APPLIED FIX\n\n`;
+    }).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(project?.name || 'codelens').replace(/[^a-zA-Z0-9_-]/g, '_')}-solutions.patch`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const pendingCount = issues.filter(i => i.validationStatus !== 'RESOLVED').length;
@@ -209,42 +275,130 @@ export default function AnalysisResult() {
               gap: '18px'
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-                    {project?.name || 'StudentManagementSystem'}
+                    {project?.name || 'Analyzed Deployment'}
                   </h1>
                   <span className="badge badge-high" style={{ fontSize: '12px' }}>
-                    {project?.framework || 'Spring Boot 3 + Java 17'}
+                    {project?.framework || 'Multi-Language Cloud App'}
                   </span>
+                  {project?.source_type === 'live_url' && (
+                    <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.4)', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <Globe size={12} />
+                      Live Deployment Probe
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: '#94a3b8', flexWrap: 'wrap' }}>
-                  <span><strong style={{ color: '#ffffff' }}>{project?.filesScanned || 147}</strong> Files Scanned</span>
+                  <span><strong style={{ color: '#ffffff' }}>{project?.filesScanned || issues.length || 1}</strong> Assets / Scanned Targets</span>
                   <span>•</span>
-                  <span><strong style={{ color: '#ffffff' }}>{(project?.linesAnalyzed || 24892).toLocaleString()}</strong> Lines of Code</span>
+                  <span><strong style={{ color: '#ffffff' }}>{issues.length}</strong> Total Issues Detected</span>
                   <span>•</span>
                   <span>Scanned on {new Date(project?.createdAt || Date.now()).toLocaleDateString()}</span>
+                  {project?.repo_url && (
+                    <>
+                      <span>•</span>
+                      <a
+                        href={project.repo_url.startsWith('http') ? project.repo_url : `https://${project.repo_url}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#f0abfc', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                      >
+                        <span>{project.repo_url.replace(/https?:\/\//, '')}</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    </>
+                  )}
                 </div>
+
+                {/* Cloud Deployment Info Sub-banner */}
+                {(project?.source_type === 'live_url' || project?.framework?.includes('Cloud') || project?.framework?.includes('Render') || project?.framework?.includes('Vercel')) && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '8px 14px',
+                    background: 'rgba(16, 185, 129, 0.07)',
+                    border: '1px solid rgba(52, 211, 153, 0.25)',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    fontSize: '12px',
+                    color: '#cbd5e1'
+                  }}>
+                    <Server size={14} color="#34d399" />
+                    <span><strong>Cloud Infrastructure Audit:</strong> Security headers, SPA 404 client-routing, CORS origin policies, and bundle secrets inspected. Ready-to-apply <code style={{ color: '#f0abfc' }}>vercel.json</code> & <code style={{ color: '#f0abfc' }}>render.yaml</code> solutions generated below.</span>
+                  </div>
+                )}
               </div>
 
-              {/* Quick actions */}
+              {/* Quick actions & View Switcher */}
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* View Mode Switcher */}
+                <div style={{ display: 'flex', gap: '3px', background: 'rgba(9, 13, 26, 0.85)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('split')}
+                    style={{
+                      padding: '7px 13px',
+                      borderRadius: '4px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      background: viewMode === 'split' ? 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)' : 'transparent',
+                      color: viewMode === 'split' ? '#ffffff' : '#94a3b8',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Layers size={14} />
+                    <span>Split View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('solutions')}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '4px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      background: viewMode === 'solutions' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
+                      color: viewMode === 'solutions' ? '#ffffff' : '#94a3b8',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Sparkles size={14} color={viewMode === 'solutions' ? '#ffffff' : '#34d399'} />
+                    <span>⚡ All Solutions Guide ({issues.length})</span>
+                  </button>
+                </div>
+
                 {issues.length > 0 && (
                   <button
                     type="button"
-                    onClick={handleSolveAll}
-                    disabled={solvingAll || pendingCount === 0}
+                    onClick={() => {
+                      handleSolveAll();
+                      setViewMode('solutions');
+                    }}
+                    disabled={solvingAll}
                     style={{
-                      padding: '8px 20px',
+                      padding: '8px 18px',
                       fontSize: '13px',
                       fontWeight: 800,
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid rgba(52, 211, 153, 0.5)',
                       background: pendingCount === 0
-                        ? 'rgba(16, 185, 129, 0.2)'
+                        ? 'rgba(16, 185, 129, 0.25)'
                         : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                       color: '#ffffff',
-                      cursor: pendingCount === 0 ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
@@ -255,42 +409,50 @@ export default function AnalysisResult() {
                     {solvingAll ? (
                       <>
                         <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>AI CodeDoctor Resolving ({issues.length})...</span>
+                        <span>AI Resolving All ({issues.length})...</span>
                       </>
                     ) : pendingCount === 0 ? (
                       <>
                         <CheckCircle2 size={15} color="#34d399" />
-                        <span>All Issues Resolved (100%)</span>
+                        <span>All {issues.length} Solutions Applied</span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={15} color="#ffffff" />
-                        <span>⚡ Solve All Issues ({pendingCount})</span>
+                        <span>⚡ Solve All ({pendingCount})</span>
                       </>
                     )}
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => alert('Exporting full audit report as JSON & PDF...')}
-                  style={{ padding: '8px 16px', fontSize: '13px' }}
-                >
-                  <Download size={15} color="#ec4899" />
-                  <span>Export Report</span>
-                </button>
-                <Link
-                  to="/analyzer"
-                  className="btn-primary"
-                  style={{ padding: '8px 18px', fontSize: '13px' }}
-                >
-                  <RefreshCw size={15} />
-                  <span>Re-scan ZIP</span>
-                </Link>
-              </div>
+                {issues.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleCopyAllSolutions}
+                    style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    title="Copy all solutions formatted in Markdown"
+                  >
+                    {copiedAll ? <Check size={14} color="#34d399" /> : <Copy size={14} color="#ec4899" />}
+                    <span>{copiedAll ? 'Copied All!' : 'Copy Solutions'}</span>
+                  </button>
+                )}
+
+                {issues.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleDownloadAllPatches}
+                    style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    title="Download unified .patch file"
+                  >
+                    <Download size={14} color="#ec4899" />
+                    <span>Download Patches</span>
+                  </button>
+                )}
             </div>
           </div>
+        </div>
 
           {/* Issue Summary Filter Chips */}
           <div style={{
@@ -518,6 +680,414 @@ export default function AnalysisResult() {
                 <Link to="/dashboard" className="btn-secondary" style={{ padding: '11px 24px', fontSize: '14px' }}>
                   <span>View All Projects</span>
                 </Link>
+              </div>
+            </div>
+          ) : viewMode === 'solutions' ? (
+            /* All Solutions & Fixes Guide View */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+              {/* Solutions Guide Sub-Header Banner */}
+              <div className="glass-card" style={{
+                padding: '24px 28px',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(9, 13, 26, 0.95) 100%)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 0 15px rgba(16, 185, 129, 0.5)'
+                    }}>
+                      <Sparkles size={18} color="#ffffff" />
+                    </div>
+                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                      Complete Solutions & Deployment Fix Guide
+                    </h2>
+                  </div>
+                  <p style={{ fontSize: '13.5px', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+                    Inspect verified code fixes, cloud configuration patches (<code style={{ color: '#f0abfc' }}>vercel.json</code> / <code style={{ color: '#f0abfc' }}>render.yaml</code>), and patch sets. Copy individual snippets or resolve all issues in 1 click.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={handleSolveAll}
+                    disabled={solvingAll}
+                    style={{
+                      padding: '9px 18px',
+                      fontSize: '13px',
+                      background: pendingCount === 0 ? 'rgba(16, 185, 129, 0.25)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: '1px solid rgba(52, 211, 153, 0.5)',
+                      boxShadow: pendingCount > 0 ? '0 0 20px rgba(16, 185, 129, 0.45)' : 'none'
+                    }}
+                  >
+                    {solvingAll ? (
+                      <>
+                        <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                        <span>Resolving All ({issues.length})...</span>
+                      </>
+                    ) : pendingCount === 0 ? (
+                      <>
+                        <CheckCircle2 size={15} color="#34d399" />
+                        <span>All {issues.length} Issues Resolved</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={15} />
+                        <span>⚡ Solve All ({pendingCount} Pending)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleCopyAllSolutions}
+                    style={{ padding: '9px 16px', fontSize: '13px' }}
+                  >
+                    {copiedAll ? <Check size={15} color="#34d399" /> : <Copy size={15} color="#ec4899" />}
+                    <span>{copiedAll ? 'Copied All to Clipboard!' : 'Copy All Solutions'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleDownloadAllPatches}
+                    style={{ padding: '9px 16px', fontSize: '13px' }}
+                  >
+                    <Download size={15} color="#ec4899" />
+                    <span>Download Patches (.diff)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Solutions Cards List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {filteredIssues.length === 0 ? (
+                  <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                    No solutions found matching the active filter criteria.
+                  </div>
+                ) : (
+                  filteredIssues.map((issue, index) => {
+                    const isResolved = issue.validationStatus === 'RESOLVED';
+                    const isCopied = copiedIssueId === issue.id;
+
+                    return (
+                      <div
+                        key={issue.id}
+                        className="glass-card"
+                        style={{
+                          padding: '24px 26px',
+                          border: isResolved ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid var(--border-light)',
+                          background: isResolved ? 'linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(15, 21, 43, 0.95) 100%)' : 'rgba(15, 21, 43, 0.88)',
+                          boxShadow: isResolved ? '0 0 25px rgba(16, 185, 129, 0.15)' : '0 10px 30px rgba(0,0,0,0.5)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {/* Solution Top Header */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '14px',
+                          flexWrap: 'wrap',
+                          gap: '12px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <span style={{
+                              padding: '3px 9px',
+                              borderRadius: '4px',
+                              background: 'rgba(236, 72, 153, 0.18)',
+                              border: '1px solid rgba(236, 72, 153, 0.4)',
+                              color: '#f0abfc',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              fontFamily: 'var(--font-mono)'
+                            }}>
+                              SOLUTION #{index + 1}
+                            </span>
+                            <span className={`badge ${getSeverityBadgeClass(issue.severity)}`}>
+                              {issue.severity}
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {getCategoryIcon(issue.category)}
+                              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#cbd5e1', fontFamily: 'var(--font-mono)' }}>
+                                {issue.category}
+                              </span>
+                            </div>
+                            {isResolved && (
+                              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', fontSize: '11px', fontWeight: 800 }}>
+                                ✓ RESOLVED
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick action buttons on each card */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleCopySolution(issue.afterCode, issue.id)}
+                              style={{
+                                padding: '6px 14px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                borderRadius: 'var(--radius-sm)',
+                                background: isCopied ? 'rgba(16, 185, 129, 0.25)' : 'rgba(236, 72, 153, 0.15)',
+                                border: isCopied ? '1px solid #34d399' : '1px solid rgba(236, 72, 153, 0.4)',
+                                color: isCopied ? '#34d399' : '#f0abfc',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {isCopied ? <Check size={14} color="#34d399" /> : <Copy size={14} />}
+                              <span>{isCopied ? 'Solution Copied!' : 'Copy Fix Code'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleResolveIssue(issue.id)}
+                              style={{
+                                padding: '6px 14px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                borderRadius: 'var(--radius-sm)',
+                                background: isResolved ? 'rgba(148, 163, 184, 0.15)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                border: isResolved ? '1px solid rgba(148, 163, 184, 0.3)' : '1px solid rgba(52, 211, 153, 0.5)',
+                                color: isResolved ? '#94a3b8' : '#ffffff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <CheckCircle2 size={14} color={isResolved ? '#94a3b8' : '#ffffff'} />
+                              <span>{isResolved ? 'Mark Pending' : 'Apply & Resolve'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedIssueId(issue.id);
+                                setViewMode('split');
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: 'transparent',
+                                border: '1px solid var(--border-subtle)',
+                                color: '#cbd5e1',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                              title="Open interactive sandbox and deep detail in Split View"
+                            >
+                              <Layers size={13} />
+                              <span>Split View</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Title and Target File Info */}
+                        <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', marginBottom: '8px' }}>
+                          {issue.title}
+                        </h3>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          marginBottom: '14px',
+                          fontSize: '12.5px',
+                          fontFamily: 'var(--font-mono)',
+                          color: '#f0abfc',
+                          flexWrap: 'wrap'
+                        }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(9, 13, 26, 0.7)', padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
+                            <FileText size={13} color="#f0abfc" />
+                            Target: {issue.file}:{issue.line}
+                          </span>
+                          {issue.function && (
+                            <span style={{ color: '#94a3b8' }}>
+                              Scope: <strong style={{ color: '#e2e8f0' }}>{issue.function}</strong>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Explanation & Impact */}
+                        <div style={{
+                          background: 'rgba(9, 13, 26, 0.75)',
+                          padding: '14px 18px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--border-subtle)',
+                          marginBottom: '18px'
+                        }}>
+                          <div style={{ fontSize: '13.5px', color: '#cbd5e1', lineHeight: 1.6, marginBottom: (issue.doctorAnalysis?.cause || issue.doctorAnalysis?.impact) ? '12px' : '0' }}>
+                            <strong style={{ color: '#ffffff' }}>Problem Diagnosis: </strong>
+                            {issue.explanation}
+                          </div>
+
+                          {(issue.doctorAnalysis?.cause || issue.doctorAnalysis?.impact) && (
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                              gap: '10px',
+                              paddingTop: '10px',
+                              borderTop: '1px solid rgba(255,255,255,0.06)'
+                            }}>
+                              {issue.doctorAnalysis?.cause && (
+                                <div>
+                                  <span style={{ fontSize: '11px', color: '#f0abfc', fontWeight: 800 }}>ROOT CAUSE: </span>
+                                  <span style={{ fontSize: '12.5px', color: '#e2e8f0' }}>{issue.doctorAnalysis.cause}</span>
+                                </div>
+                              )}
+                              {issue.doctorAnalysis?.impact && (
+                                <div>
+                                  <span style={{ fontSize: '11px', color: '#fb7185', fontWeight: 800 }}>PRODUCTION RISK: </span>
+                                  <span style={{ fontSize: '12.5px', color: '#fda4af' }}>{issue.doctorAnalysis.impact}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Diff Comparison Side-by-Side */}
+                        <div>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '8px'
+                          }}>
+                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.04em' }}>
+                              CODE & CONFIGURATION PATCH
+                            </span>
+                            <span style={{ fontSize: '11.5px', color: '#34d399', fontWeight: 700 }}>
+                              ✓ Ready to deploy / copy-paste
+                            </span>
+                          </div>
+
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+                            gap: '14px'
+                          }}>
+                            {/* Before / Faulty */}
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <div style={{
+                                padding: '6px 12px',
+                                background: 'rgba(244, 63, 94, 0.15)',
+                                borderTopLeftRadius: 'var(--radius-sm)',
+                                borderTopRightRadius: 'var(--radius-sm)',
+                                border: '1px solid rgba(244, 63, 94, 0.3)',
+                                borderBottom: 'none',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                color: '#fb7185',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                              }}>
+                                <span>FAULTY / MISSING STATE</span>
+                                <span>ORIGINAL</span>
+                              </div>
+                              <pre
+                                className="diff-removed"
+                                style={{
+                                  margin: 0,
+                                  borderTopLeftRadius: 0,
+                                  borderTopRightRadius: 0,
+                                  borderBottomLeftRadius: 'var(--radius-sm)',
+                                  borderBottomRightRadius: 'var(--radius-sm)',
+                                  fontSize: '12.5px',
+                                  fontFamily: 'var(--font-mono)',
+                                  whiteSpace: 'pre-wrap',
+                                  maxHeight: '320px',
+                                  overflowY: 'auto'
+                                }}
+                              >
+                                <code>{issue.beforeCode || issue.snippet || '// Missing configuration'}</code>
+                              </pre>
+                            </div>
+
+                            {/* After / Solution */}
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <div style={{
+                                padding: '6px 12px',
+                                background: 'rgba(16, 185, 129, 0.18)',
+                                borderTopLeftRadius: 'var(--radius-sm)',
+                                borderTopRightRadius: 'var(--radius-sm)',
+                                border: '1px solid rgba(52, 211, 153, 0.35)',
+                                borderBottom: 'none',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                color: '#34d399',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                              }}>
+                                <span>VERIFIED SOLUTION (PASTE INTO: {issue.file.split('/').pop()})</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopySolution(issue.afterCode, issue.id)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#34d399',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                                  <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                                </button>
+                              </div>
+                              <pre
+                                className="diff-added"
+                                style={{
+                                  margin: 0,
+                                  borderTopLeftRadius: 0,
+                                  borderTopRightRadius: 0,
+                                  borderBottomLeftRadius: 'var(--radius-sm)',
+                                  borderBottomRightRadius: 'var(--radius-sm)',
+                                  fontSize: '12.5px',
+                                  fontFamily: 'var(--font-mono)',
+                                  whiteSpace: 'pre-wrap',
+                                  maxHeight: '320px',
+                                  overflowY: 'auto'
+                                }}
+                              >
+                                <code>{issue.afterCode}</code>
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           ) : (

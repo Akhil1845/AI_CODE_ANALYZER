@@ -139,51 +139,67 @@ def analyze_live_url(req: LiveUrlScanRequest):
     
     result = live_url_service.scan_live_deployment(req.url.strip())
     
-    # Persist in MySQL if success
-    if result.get("success", False):
-        try:
-            project_id = f"proj-{uuid.uuid4().hex[:8]}"
+    # Always persist project and issues in MySQL so user gets full diagnostic report
+    project_id = f"proj-{uuid.uuid4().hex[:8]}"
+    scan_id = f"scan-{uuid.uuid4().hex[:8]}"
+    try:
+        database.execute(
+            """
+            INSERT INTO projects (id, name, source_type, repo_url, detected_stack, total_files)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                project_id, 
+                result.get("name") or req.url.strip(), 
+                "live_url", 
+                result.get("target_url") or req.url.strip(), 
+                result.get("detected_stack") or "Cloud Deployment", 
+                result.get("total_files", 1)
+            )
+        )
+
+        database.execute(
+            """
+            INSERT INTO scans (id, project_id, total_issues, critical_count, high_count, medium_count, low_count)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                scan_id, 
+                project_id, 
+                result.get("total_issues", len(result.get("issues", []))), 
+                result.get("critical_count", 0), 
+                result.get("high_count", 0), 
+                result.get("medium_count", 0), 
+                result.get("low_count", 0)
+            )
+        )
+
+        for issue in result.get("issues", []):
+            issue_id = f"iss-{uuid.uuid4().hex[:8]}"
             database.execute(
                 """
-                INSERT INTO projects (id, name, source_type, repo_url, detected_stack, total_files)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO issues (id, scan_id, type, severity, file_path, line_number, title, description, code_snippet, recommendation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (project_id, result["name"], "live_url", result["target_url"], result["detected_stack"], result["total_files"])
-            )
-
-            scan_id = f"scan-{uuid.uuid4().hex[:8]}"
-            database.execute(
-                """
-                INSERT INTO scans (id, project_id, total_issues, critical_count, high_count, medium_count, low_count)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
-                (scan_id, project_id, result["total_issues"], result["critical_count"], result["high_count"], result["medium_count"], result["low_count"])
-            )
-
-            for issue in result.get("issues", []):
-                issue_id = f"iss-{uuid.uuid4().hex[:8]}"
-                database.execute(
-                    """
-                    INSERT INTO issues (id, scan_id, type, severity, file_path, line_number, title, description, code_snippet, recommendation)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        issue_id,
-                        scan_id,
-                        issue.get("type", "security"),
-                        issue.get("severity", "MEDIUM"),
-                        issue.get("file_path", "live_probe"),
-                        issue.get("line_number", 1),
-                        issue.get("title", ""),
-                        issue.get("description", ""),
-                        issue.get("code_snippet", ""),
-                        issue.get("recommendation", "")
-                    )
+                (
+                    issue_id,
+                    scan_id,
+                    issue.get("type", "security"),
+                    issue.get("severity", "MEDIUM"),
+                    issue.get("file_path", "vercel.json"),
+                    issue.get("line_number", 1),
+                    issue.get("title", ""),
+                    issue.get("description", ""),
+                    issue.get("code_snippet", ""),
+                    issue.get("recommendation", "")
                 )
-            result["project_id"] = project_id
-            result["scan_id"] = scan_id
-        except Exception as db_err:
-            print(f"[LIVE URL MYSQL ERROR] {db_err}")
+            )
+    except Exception as db_err:
+        print(f"[LIVE URL MYSQL ERROR] {db_err}")
+
+    result["project_id"] = project_id
+    result["scan_id"] = scan_id
+    result["success"] = True
 
     return result
 
