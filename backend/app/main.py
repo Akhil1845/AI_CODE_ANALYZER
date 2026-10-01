@@ -14,6 +14,7 @@ from .services.analyzer import StaticAnalyzer
 from .services.github_service import GitHubService
 from .services.codedoctor import CodeDoctorService
 from .services.email_service import send_verification_email
+from .services.project_ai_service import ProjectAIService
 
 app = FastAPI(
     title="CodeLens AI Backend",
@@ -33,6 +34,7 @@ app.add_middleware(
 github_service = GitHubService()
 static_analyzer = StaticAnalyzer()
 codedoctor_service = CodeDoctorService()
+project_ai_service = ProjectAIService()
 
 @app.on_event("startup")
 def on_startup():
@@ -505,4 +507,34 @@ def update_profile(req: UpdateProfileRequest):
         return {"success": True, "message": "Profile updated in MySQL database."}
     except Exception as e:
         return {"success": True, "message": f"Profile update recorded: {str(e)}"}
+
+class GenerateSinglePageRequest(BaseModel):
+    prompt: str
+    framework: Optional[str] = "react"
+    style: Optional[str] = "modern-dark"
+
+@app.post("/api/generate/single-page")
+def generate_single_page(req: GenerateSinglePageRequest):
+    if not req.prompt or not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="Please provide a prompt or idea for the single page.")
+    result = project_ai_service.generate_single_page(req.prompt.strip(), req.framework or "react", req.style or "modern-dark")
+    return {"success": True, "data": result}
+
+class GenerateFullProjectRequest(BaseModel):
+    prompt: str
+    name: Optional[str] = "my-project"
+    stack: Optional[str] = "react"
+    database: Optional[str] = "postgres"
+
+@app.post("/api/generate/full-project")
+def generate_full_project(req: GenerateFullProjectRequest):
+    if not req.prompt or not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="Please describe your project idea or specification.")
+    files = project_ai_service.generate_full_project(
+        prompt=req.prompt.strip(),
+        name=req.name or "my-project",
+        stack=req.stack or "react",
+        database=req.database or "postgres"
+    )
+    return {"success": True, "files": files}
 

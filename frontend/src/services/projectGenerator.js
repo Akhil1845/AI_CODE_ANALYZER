@@ -437,5 +437,35 @@ Refer to the manifest files to install dependencies and run locally.
       zip.file(path, content);
     }
     return await zip.generateAsync({ type: 'blob' });
+  },
+
+  // AI Single Page Generator
+  async generateAISinglePage(prompt, framework = 'react', style = 'modern-dark') {
+    const res = await fetch('/api/generate/single-page', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, framework, style })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to generate single page.');
+    }
+    const data = await res.json();
+    return data.data;
+  },
+
+  // AI Full Project Generator with Idea Expansion
+  async generateAIFullProject(prompt, name, stack, database) {
+    const res = await fetch('/api/generate/full-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, name, stack, database })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to generate custom project.');
+    }
+    const data = await res.json();
+    return data.files;
   }
 };
