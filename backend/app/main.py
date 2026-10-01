@@ -13,6 +13,7 @@ from . import database
 from .services.analyzer import StaticAnalyzer
 from .services.github_service import GitHubService
 from .services.codedoctor import CodeDoctorService
+from .services.email_service import send_verification_email
 
 app = FastAPI(
     title="CodeLens AI Backend",
@@ -363,13 +364,14 @@ def send_forgot_password_code(req: ForgotPasswordCodeRequest):
         "reset_token": None
     }
 
-    print(f"[SECURITY DISPATCH] 6-digit verification code for {clean_email}: {code} (expires in 10 mins)")
+    # Dispatch real email to user's inbox
+    email_res = send_verification_email(clean_email, code)
 
     return {
         "success": True,
-        "message": f"6-digit security code dispatched to {clean_email}.",
-        "security_code": code,
-        "expires_in_seconds": 600
+        "message": f"A 6-digit security verification code has been dispatched to {clean_email}. Please check your email inbox and spam folder.",
+        "expires_in_seconds": 600,
+        "email_dispatched": email_res.get("sent", False)
     }
 
 class VerifyCodeRequest(BaseModel):

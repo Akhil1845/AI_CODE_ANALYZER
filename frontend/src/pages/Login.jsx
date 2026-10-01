@@ -48,7 +48,6 @@ export default function Login() {
   // Multi-step security for Forgot Password
   const [forgotStep, setForgotStep] = useState(1); // 1 = Request Code, 2 = Verify 6-digit OTP, 3 = Set New Password
   const [otpCode, setOtpCode] = useState('');
-  const [dispatchedOtp, setDispatchedOtp] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -114,9 +113,8 @@ export default function Login() {
 
     try {
       const data = await auth.sendResetCode(email);
-      setDispatchedOtp(data.security_code || '');
       setForgotStep(2);
-      setInfoNotice(`✓ 6-Digit security verification code dispatched to ${email}.`);
+      setInfoNotice(data.message || `✓ A 6-digit security verification code has been dispatched to ${email}. Please check your email inbox and spam folder.`);
       setResendCooldown(30);
     } catch (err) {
       setError(err.message || 'Failed to dispatch security verification code.');
@@ -1011,58 +1009,23 @@ export default function Login() {
               {mode === 'forgot' && forgotStep === 2 && (
                 <>
                   <div style={{
-                    padding: '12px 14px',
+                    padding: '14px 16px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(56, 189, 248, 0.08)',
                     border: '1px solid rgba(56, 189, 248, 0.25)',
-                    fontSize: '12.5px',
+                    fontSize: '13px',
                     color: 'var(--text-main)',
                     lineHeight: 1.5,
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
+                    alignItems: 'flex-start',
+                    gap: '12px'
                   }}>
-                    <KeyRound size={16} color="#38bdf8" style={{ flexShrink: 0 }} />
+                    <Mail size={18} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div>
-                      A 6-digit security code was dispatched to <strong>{email}</strong>. Please enter it below.
+                      A 6-digit security verification code has been dispatched to <strong style={{ color: '#fff' }}>{email}</strong>. 
+                      Please check your email inbox and spam folder, then enter the 6 digits below.
                     </div>
                   </div>
-
-                  {dispatchedOtp && (
-                    <div style={{
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(16, 185, 129, 0.1)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '12px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <ShieldCheck size={15} color="#10b981" />
-                        <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>
-                          Security Code: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, letterSpacing: '2px', fontSize: '13px' }}>{dispatchedOtp}</span>
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setOtpCode(dispatchedOtp)}
-                        style={{
-                          background: 'var(--accent-emerald)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '3px 8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Auto-Fill Code
-                      </button>
-                    </div>
-                  )}
 
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
@@ -1307,7 +1270,6 @@ export default function Login() {
                     setMode('signin');
                     setForgotStep(1);
                     setOtpCode('');
-                    setDispatchedOtp('');
                     setResetToken('');
                     setError('');
                     setInfoNotice('');

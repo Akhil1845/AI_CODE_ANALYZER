@@ -30,3 +30,11 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 # Server
 PORT = int(os.getenv("PORT", "8000"))
 HOST = os.getenv("HOST", "127.0.0.1")
+
+# Email & SMTP Configuration for Secure Identity Verification
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")

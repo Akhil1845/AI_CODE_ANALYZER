@@ -102,40 +102,19 @@ export const auth = {
     }
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Try Backend API
-    try {
-      const res = await fetch('/api/auth/forgot-password/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Save local security challenge for fallback
-        localStorage.setItem(`codelens_otp_${cleanEmail}`, JSON.stringify({
-          code: data.security_code,
-          expiresAt: Date.now() + (data.expires_in_seconds || 600) * 1000
-        }));
-        return data;
-      }
-    } catch (e) {
-      console.warn('Backend send-code note (using security generator):', e);
+    const res = await fetch('/api/auth/forgot-password/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Failed to dispatch verification code to email.');
     }
-
-    // Fallback: Generate local cryptographic 6-digit code
-    const fallbackCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 600 * 1000;
-    localStorage.setItem(`codelens_otp_${cleanEmail}`, JSON.stringify({
-      code: fallbackCode,
-      expiresAt
-    }));
-
-    return {
-      success: true,
-      message: `6-digit security verification code dispatched to ${cleanEmail}.`,
-      security_code: fallbackCode,
-      expires_in_seconds: 600
-    };
   },
 
   // Verify 6-digit OTP code
@@ -146,39 +125,17 @@ export const auth = {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = inputCode.trim();
 
-    // 1. Try Backend API
-    try {
-      const res = await fetch('/api/auth/forgot-password/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, code: cleanCode })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data;
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.detail || 'Invalid verification code. Access denied.');
-      }
-    } catch (e) {
-      // Check local storage challenge
-      const localChallenge = localStorage.getItem(`codelens_otp_${cleanEmail}`);
-      if (localChallenge) {
-        const parsed = JSON.parse(localChallenge);
-        if (Date.now() > parsed.expiresAt) {
-          throw new Error('Security verification code has expired. Please request a new code.');
-        }
-        if (parsed.code !== cleanCode) {
-          throw new Error('Invalid verification code. Access denied. Please check your code.');
-        }
-        const resetToken = 'rst_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-        return {
-          success: true,
-          message: 'Identity verified successfully.',
-          reset_token: resetToken
-        };
-      }
-      throw e;
+    const res = await fetch('/api/auth/forgot-password/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, code: cleanCode })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Invalid verification code. Access denied.');
     }
   },
 
