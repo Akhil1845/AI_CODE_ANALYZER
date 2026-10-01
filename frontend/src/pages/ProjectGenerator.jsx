@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -268,6 +268,7 @@ export default function ProjectGenerator() {
 
   // Single Page Result: Starts NULL so NO page is auto-rendered on initial load!
   const [singlePageResult, setSinglePageResult] = useState(null);
+  const canvasRef = useRef(null);
 
   // Full Project Files Map
   const [projectFiles, setProjectFiles] = useState(() => projectGenerator.generateFiles({
@@ -365,6 +366,11 @@ export default function ProjectGenerator() {
         ...prev.filter(b => b.id !== newBuildId).slice(0, 9)
       ]);
       setActiveBuildId(newBuildId);
+
+      // Smoothly scroll down to the canvas
+      setTimeout(() => {
+        canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
     } catch (err) {
       console.error(err);
       alert('Generation error: ' + err.message);
@@ -412,6 +418,11 @@ export default function ProjectGenerator() {
         ...prev.filter(b => b.id !== newBuildId).slice(0, 9)
       ]);
       setActiveBuildId(newBuildId);
+
+      // Smoothly scroll down to project repo view
+      setTimeout(() => {
+        canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
     } catch (err) {
       console.error(err);
     } finally {
@@ -430,6 +441,9 @@ export default function ProjectGenerator() {
       setProjectFiles(item.files);
       setSelectedFile(Object.keys(item.files)[0]);
     }
+    setTimeout(() => {
+      canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
   };
 
   // Download Single Page
@@ -611,22 +625,21 @@ export default function ProjectGenerator() {
             </div>
           </div>
 
-          {/* DUAL-PANE WORKSPACE */}
+          {/* STACKED WORKSPACE (Canvas Down) */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(460px, 520px) 1fr',
-            gap: '24px',
-            alignItems: 'start'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px'
           }}>
 
             {/* ======================================================== */}
-            {/* LEFT COLUMN: Controls, Modular Options, Prompt & History */}
+            {/* TOP SECTION: Controls, Modular Options, Prompt & Actions */}
             {/* ======================================================== */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
               
               {/* MAIN CONFIGURATION CARD */}
               <div className="glass-card" style={{
-                padding: '22px',
+                padding: '28px',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-light)'
@@ -692,11 +705,11 @@ export default function ProjectGenerator() {
                       display: 'flex',
                       flexWrap: 'wrap',
                       background: 'var(--bg-secondary)',
-                      padding: '3px',
+                      padding: '4px',
                       borderRadius: '8px',
                       border: '1px solid var(--border-subtle)',
-                      marginBottom: '16px',
-                      gap: '3px'
+                      marginBottom: '20px',
+                      gap: '4px'
                     }}>
                       {[
                         { id: 'archetype', label: '1. Archetype' },
@@ -713,9 +726,9 @@ export default function ProjectGenerator() {
                           onClick={() => setActiveTabSection(tab.id)}
                           style={{
                             flex: '1 1 auto',
-                            padding: '6px 8px',
+                            padding: '8px 14px',
                             borderRadius: '6px',
-                            fontSize: '11px',
+                            fontSize: '12px',
                             fontWeight: 700,
                             cursor: 'pointer',
                             border: 'none',
@@ -732,12 +745,12 @@ export default function ProjectGenerator() {
 
                     {/* SUB-PANEL 1: ARCHETYPES & SCOPE */}
                     {activeTabSection === 'archetype' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '18px' }}>
                         <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase' }}>
                             SELECT PAGE ARCHETYPE ({PAGE_ARCHETYPES.length})
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
                             {PAGE_ARCHETYPES.map((arch) => {
                               const isSelected = pageArchetype === arch.id;
                               return (
@@ -746,7 +759,7 @@ export default function ProjectGenerator() {
                                   type="button"
                                   onClick={() => handleSelectArchetype(arch)}
                                   style={{
-                                    padding: '10px 6px',
+                                    padding: '12px 10px',
                                     borderRadius: '8px',
                                     background: isSelected ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
                                     border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
@@ -755,13 +768,13 @@ export default function ProjectGenerator() {
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
-                                    gap: '4px',
+                                    gap: '6px',
                                     textAlign: 'center',
                                     transition: 'all 0.15s ease'
                                   }}
                                 >
-                                  <span style={{ fontSize: '20px' }}>{arch.icon}</span>
-                                  <span style={{ fontSize: '11px', fontWeight: isSelected ? 800 : 600 }}>{arch.name}</span>
+                                  <span style={{ fontSize: '22px' }}>{arch.icon}</span>
+                                  <span style={{ fontSize: '12px', fontWeight: isSelected ? 800 : 600 }}>{arch.name}</span>
                                 </button>
                               );
                             })}
@@ -831,9 +844,9 @@ export default function ProjectGenerator() {
 
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)',
-                            gap: '6px',
-                            maxHeight: '180px',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                            gap: '8px',
+                            maxHeight: '340px',
                             overflowY: 'auto',
                             paddingRight: '4px'
                           }}>
@@ -845,20 +858,21 @@ export default function ProjectGenerator() {
                                   type="button"
                                   onClick={() => { setColorAccent(theme.id); setUseCustomColor(false); }}
                                   style={{
-                                    padding: '6px 8px',
+                                    padding: '8px 10px',
                                     borderRadius: '6px',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '6px',
+                                    gap: '8px',
                                     background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
                                     border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
                                     color: isSel ? '#fff' : 'var(--text-muted)',
                                     cursor: 'pointer',
-                                    fontSize: '11px',
-                                    fontWeight: isSel ? 700 : 500
+                                    fontSize: '11.5px',
+                                    fontWeight: isSel ? 700 : 500,
+                                    transition: 'all 0.12s ease'
                                   }}
                                 >
-                                  <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: theme.preview, flexShrink: 0 }} />
+                                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: theme.preview, flexShrink: 0, boxShadow: isSel ? '0 0 8px rgba(236,72,153,0.5)' : 'none' }} />
                                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{theme.name}</span>
                                 </button>
                               );
@@ -868,7 +882,7 @@ export default function ProjectGenerator() {
 
                         {/* Custom Hex Color Picker */}
                         <div style={{
-                          padding: '10px 12px',
+                          padding: '10px 14px',
                           borderRadius: '8px',
                           background: 'rgba(255,255,255,0.02)',
                           border: '1px solid var(--border-subtle)',
@@ -882,11 +896,11 @@ export default function ProjectGenerator() {
                               type="color"
                               value={customColor || '#ec4899'}
                               onChange={(e) => { setCustomColor(e.target.value); setUseCustomColor(true); }}
-                              style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'transparent' }}
+                              style={{ width: '30px', height: '30px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'transparent' }}
                             />
                             <div>
-                              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>Custom Hex Accent</div>
-                              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Pick any custom color</div>
+                              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)' }}>Custom Hex Accent</div>
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Pick any custom color for your design system</div>
                             </div>
                           </div>
 
@@ -896,12 +910,12 @@ export default function ProjectGenerator() {
                             onChange={(e) => { setCustomColor(e.target.value); setUseCustomColor(true); }}
                             placeholder="#ec4899"
                             style={{
-                              width: '85px',
+                              width: '100px',
                               background: 'var(--bg-secondary)',
                               border: `1px solid ${useCustomColor ? 'var(--primary)' : 'var(--border-subtle)'}`,
                               borderRadius: '6px',
-                              padding: '5px 8px',
-                              fontSize: '11.5px',
+                              padding: '6px 10px',
+                              fontSize: '12px',
                               fontFamily: 'monospace',
                               color: 'var(--text-main)',
                               outline: 'none'
@@ -944,9 +958,9 @@ export default function ProjectGenerator() {
                           </div>
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '6px',
-                            maxHeight: '230px',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                            gap: '8px',
+                            maxHeight: '340px',
                             overflowY: 'auto',
                             paddingRight: '4px'
                           }}>
@@ -958,7 +972,7 @@ export default function ProjectGenerator() {
                                   type="button"
                                   onClick={() => setNavbarStyle(nav.id)}
                                   style={{
-                                    padding: '8px 10px',
+                                    padding: '10px 12px',
                                     borderRadius: '6px',
                                     textAlign: 'left',
                                     background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
@@ -967,11 +981,12 @@ export default function ProjectGenerator() {
                                     cursor: 'pointer',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '2px'
+                                    gap: '3px',
+                                    transition: 'all 0.12s ease'
                                   }}
                                 >
-                                  <div style={{ fontSize: '11.5px', fontWeight: isSel ? 800 : 600 }}>{nav.name}</div>
-                                  <div style={{ fontSize: '10px', color: 'var(--text-dim)', lineHeight: 1.3 }}>{nav.desc}</div>
+                                  <div style={{ fontSize: '12px', fontWeight: isSel ? 800 : 600 }}>{nav.name}</div>
+                                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', lineHeight: 1.3 }}>{nav.desc}</div>
                                 </button>
                               );
                             })}
@@ -989,9 +1004,9 @@ export default function ProjectGenerator() {
                           </div>
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '6px',
-                            maxHeight: '230px',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                            gap: '8px',
+                            maxHeight: '340px',
                             overflowY: 'auto',
                             paddingRight: '4px'
                           }}>
@@ -1003,7 +1018,7 @@ export default function ProjectGenerator() {
                                   type="button"
                                   onClick={() => setSidebarStyle(side.id)}
                                   style={{
-                                    padding: '8px 10px',
+                                    padding: '10px 12px',
                                     borderRadius: '6px',
                                     textAlign: 'left',
                                     background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
@@ -1012,11 +1027,12 @@ export default function ProjectGenerator() {
                                     cursor: 'pointer',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '2px'
+                                    gap: '3px',
+                                    transition: 'all 0.12s ease'
                                   }}
                                 >
-                                  <div style={{ fontSize: '11.5px', fontWeight: isSel ? 800 : 600 }}>{side.name}</div>
-                                  <div style={{ fontSize: '10px', color: 'var(--text-dim)', lineHeight: 1.3 }}>{side.desc}</div>
+                                  <div style={{ fontSize: '12px', fontWeight: isSel ? 800 : 600 }}>{side.name}</div>
+                                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', lineHeight: 1.3 }}>{side.desc}</div>
                                 </button>
                               );
                             })}
@@ -1027,12 +1043,12 @@ export default function ProjectGenerator() {
 
                     {/* SUB-PANEL 5: ANIMATIONS & VISUAL FX */}
                     {activeTabSection === 'animations' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '18px' }}>
                         <div>
                           <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
                             BACKGROUND SHADER &amp; FX
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
                             {BG_ANIMATIONS.map((anim) => {
                               const isSel = animationStyle === anim.id;
                               return (
@@ -1041,7 +1057,7 @@ export default function ProjectGenerator() {
                                   type="button"
                                   onClick={() => setAnimationStyle(anim.id)}
                                   style={{
-                                    padding: '8px 10px',
+                                    padding: '10px 12px',
                                     borderRadius: '6px',
                                     textAlign: 'left',
                                     background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
@@ -1050,11 +1066,12 @@ export default function ProjectGenerator() {
                                     cursor: 'pointer',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '2px'
+                                    gap: '3px',
+                                    transition: 'all 0.12s ease'
                                   }}
                                 >
-                                  <div style={{ fontSize: '11.5px', fontWeight: isSel ? 800 : 600 }}>{anim.name}</div>
-                                  <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{anim.desc}</div>
+                                  <div style={{ fontSize: '12px', fontWeight: isSel ? 800 : 600 }}>{anim.name}</div>
+                                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>{anim.desc}</div>
                                 </button>
                               );
                             })}
@@ -1065,7 +1082,7 @@ export default function ProjectGenerator() {
                           <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
                             CARD &amp; BUTTON HOVER EFFECTS
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
                             {HOVER_FX.map((h) => {
                               const isSel = hoverFx === h.id;
                               return (
@@ -1074,15 +1091,16 @@ export default function ProjectGenerator() {
                                   type="button"
                                   onClick={() => setHoverFx(h.id)}
                                   style={{
-                                    padding: '7px 9px',
+                                    padding: '9px 12px',
                                     borderRadius: '6px',
                                     textAlign: 'left',
                                     background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
                                     border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
                                     color: isSel ? '#fff' : 'var(--text-muted)',
                                     cursor: 'pointer',
-                                    fontSize: '11px',
-                                    fontWeight: isSel ? 700 : 500
+                                    fontSize: '11.5px',
+                                    fontWeight: isSel ? 700 : 500,
+                                    transition: 'all 0.12s ease'
                                   }}
                                 >
                                   {h.name}
@@ -1097,7 +1115,7 @@ export default function ProjectGenerator() {
                     {/* SUB-PANEL 6: 12 MODULAR SECTIONS */}
                     {activeTabSection === 'sections' && (
                       <div style={{ marginBottom: '18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                             COMPONENT SECTIONS ({selectedSections.length}/{MODULAR_SECTIONS.length})
                           </span>
@@ -1120,7 +1138,7 @@ export default function ProjectGenerator() {
                           </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
                           {MODULAR_SECTIONS.map((sec) => {
                             const isChecked = selectedSections.includes(sec.id);
                             return (
@@ -1129,14 +1147,14 @@ export default function ProjectGenerator() {
                                 type="button"
                                 onClick={() => handleToggleSection(sec.id)}
                                 style={{
-                                  padding: '7px 8px',
+                                  padding: '9px 12px',
                                   borderRadius: '6px',
-                                  fontSize: '11px',
+                                  fontSize: '12px',
                                   fontWeight: 600,
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: '6px',
+                                  gap: '8px',
                                   background: isChecked ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
                                   border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-subtle)'}`,
                                   color: isChecked ? '#fff' : 'var(--text-muted)',
@@ -1144,16 +1162,16 @@ export default function ProjectGenerator() {
                                 }}
                               >
                                 <span style={{
-                                  width: '13px',
-                                  height: '13px',
-                                  borderRadius: '3px',
+                                  width: '15px',
+                                  height: '15px',
+                                  borderRadius: '4px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   background: isChecked ? 'var(--primary)' : 'transparent',
                                   border: `1px solid ${isChecked ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
                                   color: '#fff',
-                                  fontSize: '9px'
+                                  fontSize: '10px'
                                 }}>
                                   {isChecked && '✓'}
                                 </span>
@@ -1167,9 +1185,9 @@ export default function ProjectGenerator() {
 
                     {/* SUB-PANEL 7: STYLING & SHAPE */}
                     {activeTabSection === 'styling' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '14px', marginBottom: '18px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                             Typography
                           </label>
                           <select
@@ -1180,9 +1198,9 @@ export default function ProjectGenerator() {
                               background: 'var(--bg-secondary)',
                               border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              padding: '7px 9px',
+                              padding: '8px 10px',
                               color: 'var(--text-main)',
-                              fontSize: '11.5px',
+                              fontSize: '12px',
                               outline: 'none'
                             }}
                           >
@@ -1194,7 +1212,7 @@ export default function ProjectGenerator() {
                         </div>
 
                         <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                             Button Shape
                           </label>
                           <select
@@ -1205,9 +1223,9 @@ export default function ProjectGenerator() {
                               background: 'var(--bg-secondary)',
                               border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              padding: '7px 9px',
+                              padding: '8px 10px',
                               color: 'var(--text-main)',
-                              fontSize: '11.5px',
+                              fontSize: '12px',
                               outline: 'none'
                             }}
                           >
@@ -1219,7 +1237,7 @@ export default function ProjectGenerator() {
                         </div>
 
                         <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                             Glass Intensity
                           </label>
                           <select
@@ -1230,9 +1248,9 @@ export default function ProjectGenerator() {
                               background: 'var(--bg-secondary)',
                               border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              padding: '7px 9px',
+                              padding: '8px 10px',
                               color: 'var(--text-main)',
-                              fontSize: '11.5px',
+                              fontSize: '12px',
                               outline: 'none'
                             }}
                           >
@@ -1348,90 +1366,124 @@ export default function ProjectGenerator() {
                   </div>
                 )}
 
-                {/* Primary Action Button */}
-                <button
-                  type="button"
-                  onClick={genMode === 'single' ? handleGenerateSinglePage : handleGenerateFullProject}
-                  disabled={generating || !prompt.trim()}
-                  className="btn-primary"
-                  style={{ width: '100%', padding: '13px', fontSize: '14px', fontWeight: 800, borderRadius: 'var(--radius-sm)' }}
-                >
-                  {generating ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" />
-                      <span>{genStatusText || 'Compiling UI architecture...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} />
-                      <span>{genMode === 'single' ? 'Generate Single Page UI' : 'Scaffold Full Project Repository'}</span>
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* BUILT PAGES & PROJECTS SIDE-LIST */}
-              {buildHistory.length > 0 && (
-                <div className="glass-card" style={{
-                  padding: '16px 18px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-light)'
+                {/* Primary Action Bar */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  paddingTop: '20px',
+                  borderTop: '1px solid var(--border-subtle)',
+                  flexWrap: 'wrap'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <History size={13} color="var(--primary)" />
-                      <span>Pages &amp; Projects Built ({buildHistory.length})</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: 'var(--accent-pink)', fontWeight: 700 }}>
+                      <Sparkles size={14} /> Full Customizer
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Click to view</span>
+                    <span>&bull;</span>
+                    <span>Interactive canvas renders in full width down below 👇</span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {singlePageResult && genMode === 'single' && (
+                      <button
+                        type="button"
+                        onClick={() => canvasRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                        style={{
+                          padding: '11px 18px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: 'var(--text-main)',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Eye size={15} color="var(--primary)" />
+                        <span>Jump to Preview Canvas 👇</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={genMode === 'single' ? handleGenerateSinglePage : handleGenerateFullProject}
+                      disabled={generating || !prompt.trim()}
+                      className="btn-primary"
+                      style={{
+                        padding: '13px 32px',
+                        fontSize: '14.5px',
+                        fontWeight: 800,
+                        borderRadius: 'var(--radius-sm)',
+                        boxShadow: '0 4px 20px rgba(236,72,153,0.35)'
+                      }}
+                    >
+                      {generating ? (
+                        <>
+                          <RefreshCw size={16} className="animate-spin" />
+                          <span>{genStatusText || 'Compiling UI architecture...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} />
+                          <span>{genMode === 'single' ? 'Generate Single Page UI' : 'Scaffold Full Project Repository'}</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* BUILT PAGES & PROJECTS HORIZONTAL HISTORY BAR */}
+              {buildHistory.length > 0 && (
+                <div className="glass-card" style={{
+                  padding: '14px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-light)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  overflowX: 'auto'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', flexShrink: 0 }}>
+                    <History size={14} color="var(--primary)" />
+                    <span>Recent Builds ({buildHistory.length}):</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '2px 0' }}>
                     {buildHistory.map((item) => {
                       const isSelected = activeBuildId === item.id;
                       return (
-                        <div
+                        <button
                           key={item.id}
+                          type="button"
                           onClick={() => handleSelectBuild(item)}
                           style={{
-                            padding: '9px 12px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: isSelected ? 'var(--bg-secondary)' : 'rgba(255,255,255,0.02)',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            background: isSelected ? 'var(--primary)' : 'var(--bg-secondary)',
                             border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                            color: isSelected ? '#ffffff' : 'var(--text-muted)',
                             cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 700,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
+                            gap: '6px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
                             transition: 'all 0.15s ease'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-                            <div style={{
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '6px',
-                              background: item.mode === 'single' ? 'rgba(236,72,153,0.15)' : 'rgba(99,102,241,0.15)',
-                              color: item.mode === 'single' ? 'var(--accent-pink)' : 'var(--primary)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              {item.mode === 'single' ? <Layout size={13} /> : <Box size={13} />}
-                            </div>
-                            <div style={{ overflow: 'hidden' }}>
-                              <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {item.title}
-                              </div>
-                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                                {item.tag} &bull; {item.timestamp}
-                              </div>
-                            </div>
-                          </div>
-
-                          <ChevronRight size={13} color={isSelected ? 'var(--primary)' : 'var(--text-dim)'} />
-                        </div>
+                          {item.mode === 'single' ? <Layout size={12} /> : <Box size={12} />}
+                          <span>{item.title}</span>
+                          <span style={{ fontSize: '10.5px', opacity: 0.75 }}>&bull; {item.tag}</span>
+                        </button>
                       );
                     })}
                   </div>
@@ -1441,15 +1493,15 @@ export default function ProjectGenerator() {
             </div>
 
             {/* ======================================================== */}
-            {/* RIGHT COLUMN: The Built Canvas / Live View / Code Studio */}
+            {/* DOWN SECTION: The Built Canvas / Live View / Code Studio */}
             {/* ======================================================== */}
-            <div style={{ position: 'sticky', top: '80px' }}>
+            <div ref={canvasRef} style={{ width: '100%', scrollMarginTop: '80px' }}>
               <div className="glass-card" style={{
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-light)',
                 background: '#070912',
                 overflow: 'hidden',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
+                boxShadow: '0 25px 60px rgba(0,0,0,0.65)'
               }}>
 
                 {/* Canvas Top Bar */}
@@ -1727,65 +1779,65 @@ export default function ProjectGenerator() {
                       </pre>
                     )
                   ) : (
-                    /* EXPANDED MASTER BLUEPRINT PLACEHOLDER (Waiting for User to Select & Click Generate) */
+                    /* CLEAN STUDIO CANVAS PLACEHOLDER (Waiting for User to Click Generate) */
                     <div style={{
-                      minHeight: '680px',
+                      minHeight: '420px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '40px 24px',
-                      background: 'radial-gradient(circle at 50% 30%, rgba(236,72,153,0.07) 0%, #070913 70%)',
+                      padding: '48px 24px',
+                      background: 'radial-gradient(circle at 50% 35%, rgba(236,72,153,0.06) 0%, #070913 70%)',
                       textAlign: 'center',
                       position: 'relative',
                       overflow: 'hidden'
                     }}>
-                      {/* Decorative grid pattern */}
+                      {/* Decorative subtle pattern */}
                       <div style={{
                         position: 'absolute',
                         inset: 0,
-                        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)',
+                        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px)',
                         backgroundSize: '24px 24px',
-                        opacity: 0.3,
+                        opacity: 0.25,
                         pointerEvents: 'none'
                       }} />
 
                       <div style={{
-                        width: '68px',
-                        height: '68px',
+                        width: '64px',
+                        height: '64px',
                         borderRadius: '18px',
                         background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
                         border: '1px solid rgba(236, 72, 153, 0.35)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '30px',
+                        fontSize: '28px',
                         marginBottom: '16px',
-                        boxShadow: '0 0 40px rgba(236, 72, 153, 0.25)'
+                        boxShadow: '0 0 30px rgba(236, 72, 153, 0.2)'
                       }}>
                         {selectedArchObj.icon}
                       </div>
 
                       <div className="badge badge-medium" style={{ marginBottom: '12px', fontSize: '11px', padding: '3px 12px' }}>
-                        STUDIO CANVAS &bull; ARCHITECTURE READY
+                        LIVE INTERACTIVE CANVAS &bull; DOWN BELOW
                       </div>
 
-                      <h2 style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
-                        Configure Your Architecture &amp; Generate
+                      <h2 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+                        Live Page Renders Down Here
                       </h2>
 
-                      <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', maxWidth: '520px', lineHeight: 1.6, marginBottom: '26px' }}>
-                        Select your archetype, color theme, navbar style, sidebar layout, and modular blocks on the left. Then click <strong style={{ color: '#fff' }}>Generate Single Page UI</strong> to synthesize and display the live preview.
+                      <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '560px', lineHeight: 1.6, marginBottom: '24px' }}>
+                        Customize your archetype, palette, navbar, sidebar, and animations in the deck above. Then click <strong style={{ color: '#fff' }}>Generate Single Page UI</strong> to synthesize and display your responsive page down here.
                       </p>
 
                       {/* Live Selected Architecture Matrix */}
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
                         gap: '8px',
-                        maxWidth: '620px',
+                        maxWidth: '740px',
                         width: '100%',
-                        marginBottom: '30px',
+                        marginBottom: '26px',
                         textAlign: 'left'
                       }}>
                         <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>

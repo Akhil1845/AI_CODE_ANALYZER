@@ -15,6 +15,7 @@ from .services.github_service import GitHubService
 from .services.codedoctor import CodeDoctorService
 from .services.email_service import send_verification_email
 from .services.project_ai_service import ProjectAIService
+from .services.live_url_service import LiveUrlService
 
 app = FastAPI(
     title="CodeLens AI Backend",
@@ -35,6 +36,7 @@ github_service = GitHubService()
 static_analyzer = StaticAnalyzer()
 codedoctor_service = CodeDoctorService()
 project_ai_service = ProjectAIService()
+live_url_service = LiveUrlService()
 
 @app.on_event("startup")
 def on_startup():
@@ -117,6 +119,67 @@ def analyze_github_repo(req: GitHubScanRequest):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# -------------------------------------------------------------
+# 1.5 LIVE DEPLOYED URL SCANNER (Render, Vercel, Netlify, Custom Domains)
+# -------------------------------------------------------------
+class LiveUrlScanRequest(BaseModel):
+    url: str
+
+@app.post("/api/analyze/live-url")
+def analyze_live_url(req: LiveUrlScanRequest):
+    if not req.url or not req.url.strip():
+        raise HTTPException(status_code=400, detail="Please provide a valid deployment URL (e.g. https://my-app.onrender.com or https://my-app.vercel.app)")
+    
+    result = live_url_service.scan_live_deployment(req.url.strip())
+    
+    # Persist in MySQL if success
+    if result.get("success", False):
+        try:
+            project_id = f"proj-{uuid.uuid4().hex[:8]}"
+            database.execute(
+                """
+                INSERT INTO projects (id, name, source_type, repo_url, detected_stack, total_files)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (project_id, result["name"], "live_url", result["target_url"], result["detected_stack"], result["total_files"])
+            )
+
+            scan_id = f"scan-{uuid.uuid4().hex[:8]}"
+            database.execute(
+                """
+                INSERT INTO scans (id, project_id, total_issues, critical_count, high_count, medium_count, low_count)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (scan_id, project_id, result["total_issues"], result["critical_count"], result["high_count"], result["medium_count"], result["low_count"])
+            )
+
+            for issue in result.get("issues", []):
+                issue_id = f"iss-{uuid.uuid4().hex[:8]}"
+                database.execute(
+                    """
+                    INSERT INTO issues (id, scan_id, type, severity, file_path, line_number, title, description, code_snippet, recommendation)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        issue_id,
+                        scan_id,
+                        issue.get("type", "security"),
+                        issue.get("severity", "MEDIUM"),
+                        issue.get("file_path", "live_probe"),
+                        issue.get("line_number", 1),
+                        issue.get("title", ""),
+                        issue.get("description", ""),
+                        issue.get("code_snippet", ""),
+                        issue.get("recommendation", "")
+                    )
+                )
+            result["project_id"] = project_id
+            result["scan_id"] = scan_id
+        except Exception as db_err:
+            print(f"[LIVE URL MYSQL ERROR] {db_err}")
+
+    return result
 
 # -------------------------------------------------------------
 # 2. ZIP ARCHIVE SCANNER

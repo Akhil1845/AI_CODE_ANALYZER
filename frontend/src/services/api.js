@@ -371,6 +371,20 @@ export const api = {
     return await res.json();
   },
 
+  // Scan Live Cloud Deployment (Render, Vercel, Netlify, Custom Domains)
+  async scanLiveUrl(url) {
+    const res = await fetch(`${API_BASE_URL}/analyze/live-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Live deployment scan failed');
+    }
+    return await res.json();
+  },
+
   // Get All Projects for Dashboard
   async getProjects() {
     try {
