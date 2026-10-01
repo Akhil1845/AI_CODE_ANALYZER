@@ -83,7 +83,30 @@ This code will expire in 10 minutes and can only be used once.
 If you did not request a password reset, please ignore this email. Your account remains secure.
 """
 
-    # 1. Attempt sending via Resend API if API Key is configured
+    # 1. Attempt sending via Real SMTP (e.g. Gmail SMTP sends directly to ANY customer email!)
+    if SMTP_USER and SMTP_PASSWORD:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = SMTP_FROM or f"CodeLens AI <{SMTP_USER}>"
+            msg["To"] = to_email
+
+            msg.attach(MIMEText(text_content, "plain"))
+            msg.attach(MIMEText(html_content, "html"))
+
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+
+            print(f"[EMAIL_SERVICE] Dispatched real verification email to {to_email} via SMTP ({SMTP_HOST}).")
+            return {"sent": True, "provider": "smtp", "recipient": to_email}
+        except Exception as e:
+            print(f"[EMAIL_SERVICE ERROR] SMTP delivery failed to {to_email}: {e}. Trying Resend fallback...")
+
+    # 2. Secondary fallback: Resend API
     if RESEND_API_KEY:
         sender = SMTP_FROM or "CodeLens AI <onboarding@resend.dev>"
         try:
@@ -112,7 +135,6 @@ If you did not request a password reset, please ignore this email. Your account 
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8", errors="ignore")
             print(f"[EMAIL_SERVICE WARNING] Resend HTTP {e.code}: {err_body}")
-            # If Resend free tier restricts to owner account (e.g. itsmyprivate69@gmail.com)
             import re
             match = re.search(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", err_body)
             if match and match.group(1).lower() != to_email.lower():
@@ -144,35 +166,10 @@ If you did not request a password reset, please ignore this email. Your account 
                 except Exception as ex2:
                     print(f"[EMAIL_SERVICE ERROR] Fallback delivery failed: {ex2}")
         except Exception as e:
-            print(f"[EMAIL_SERVICE WARNING] Resend API delivery failed: {e}. Falling back to SMTP...")
+            print(f"[EMAIL_SERVICE WARNING] Resend API delivery failed: {e}")
 
-    # 2. Attempt sending via Real SMTP (e.g. Gmail / Outlook / Custom SMTP)
-    if SMTP_USER and SMTP_PASSWORD:
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = SMTP_FROM or f"CodeLens AI <{SMTP_USER}>"
-            msg["To"] = to_email
-
-            msg.attach(MIMEText(text_content, "plain"))
-            msg.attach(MIMEText(html_content, "html"))
-
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-
-            print(f"[EMAIL_SERVICE] Dispatched real verification email to {to_email} via SMTP ({SMTP_HOST}).")
-            return {"sent": True, "provider": "smtp"}
-        except Exception as e:
-            print(f"[EMAIL_SERVICE ERROR] SMTP delivery failed to {to_email}: {e}")
-            return {"sent": False, "error": str(e)}
-
-    # 3. Neither SMTP nor Resend credentials are configured in backend/.env yet
-    print(f"[EMAIL_SERVICE NOTICE] Real email could not be delivered to {to_email} because SMTP_USER/SMTP_PASSWORD or RESEND_API_KEY is not configured in backend/.env.")
+    # 3. Neither SMTP nor Resend succeeded
     return {
         "sent": False,
-        "error": "Email dispatch service credentials not configured in backend/.env. Please configure SMTP_USER/SMTP_PASSWORD or RESEND_API_KEY."
+        "error": "Email dispatch service could not send message."
     }
