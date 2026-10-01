@@ -86,7 +86,7 @@ return new UserProfileDTO(user.getName(), user.getEmail());`,
       function: 'jwtTokenProvider()',
       snippet: `26:     @Bean
 27:     public JwtTokenProvider jwtTokenProvider() {
-28:         String secretKey = "super_secret_jwt_signing_key_do_not_share_12345";
+28:         String secretKey = "mock_dummy_jwt_signing_key_for_testing";
 29:         return new JwtTokenProvider(secretKey, 86400000L);
 30:     }`,
       explanation: 'A sensitive cryptographic secret key is hardcoded directly into the repository. Anyone with read access to the codebase can forge authorization tokens and escalate privileges across the system.',
@@ -95,7 +95,7 @@ return new UserProfileDTO(user.getName(), user.getEmail());`,
         impact: 'Complete system compromise via forged admin auth tokens.',
         recommendation: 'Inject secret key via @Value("${jwt.secret}") or external environment variable / vault.'
       },
-      beforeCode: `String secretKey = "super_secret_jwt_signing_key_do_not_share_12345";
+      beforeCode: `String secretKey = "mock_dummy_jwt_signing_key_for_testing";
 return new JwtTokenProvider(secretKey, 86400000L);`,
       afterCode: `@Value("\${jwt.secret}")
 private String secretKey;

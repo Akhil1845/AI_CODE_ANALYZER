@@ -2,9 +2,12 @@ import re
 import time
 import requests
 import json
+import logging
 from typing import Dict, Any, List, Optional
 from .project_ai_service import ProjectAIService
 from .. import config
+
+logger = logging.getLogger(__name__)
 
 class LiveUrlService:
     """
@@ -132,8 +135,8 @@ class LiveUrlService:
                     "code_snippet": f"Access-Control-Allow-Origin: *\nAccess-Control-Allow-Credentials: true",
                     "recommendation": "Explicitly whitelist authorized frontend origins instead of using wildcard '*'."
                 })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"CORS preflight probe skipped: {e}")
 
         # 4. DOM & Bundled JavaScript Inspection
         html_text = res.text or ""
@@ -206,8 +209,8 @@ class LiveUrlService:
                                 "code_snippet": f"Publicly accessible: {map_url}",
                                 "recommendation": "Set `productionSourceMap: false` or `build.sourcemap: false` in vite.config.js / next.config.js."
                             })
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Source map check skipped for {map_url}: {e}")
             except Exception:
                 continue
 

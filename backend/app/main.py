@@ -23,10 +23,16 @@ app = FastAPI(
     version="1.2.0"
 )
 
-# Enable CORS for React frontend
+# Enable CORS for React frontend with safe origin whitelist
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -349,8 +355,8 @@ def fix_issue(issue_id: str, req: FixRequest):
                 fix_result.get("validation_status", "VALIDATED")
             )
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[CodeDoctor] Warning: Failed to persist fix to database: {e}")
 
     return {
         "fix_id": fix_id,

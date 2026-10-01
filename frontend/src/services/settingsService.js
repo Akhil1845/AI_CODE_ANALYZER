@@ -71,7 +71,13 @@ export const settingsService = {
 
   exportSettingsAndHistoryJson() {
     const settings = this.getSettings();
-    const history = JSON.parse(localStorage.getItem('codelens_user_analyses') || '[]');
+    let history = [];
+    try {
+      history = JSON.parse(localStorage.getItem('codelens_user_analyses') || '[]');
+    } catch (e) {
+      console.warn('Failed to parse cached history JSON:', e);
+      history = [];
+    }
     return JSON.stringify({ settings, history, exportedAt: new Date().toISOString() }, null, 2);
   }
 };

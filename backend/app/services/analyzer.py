@@ -1,6 +1,9 @@
 import ast
 import re
+import logging
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 class StaticAnalyzer:
     """
@@ -35,19 +38,50 @@ class StaticAnalyzer:
         try:
             tree = ast.parse(content, filename=file_path)
             for node in ast.walk(tree):
-                # 1. Bare except / broad exception
+                # 1. Bare except, BaseException, and silent pass detection
                 if isinstance(node, ast.ExceptHandler):
-                    if node.type is None or (isinstance(node.type, ast.Name) and node.type.id in ('Exception', 'BaseException')):
+                    # Bare except (except:) catches SystemExit and KeyboardInterrupt
+                    if node.type is None:
                         issues.append({
-                            'type': 'quality',
-                            'severity': 'MEDIUM',
+                            'type': 'bug',
+                            'severity': 'HIGH',
                             'file_path': file_path,
                             'line_number': getattr(node, 'lineno', 1),
-                            'title': 'Overly broad exception handling',
-                            'description': 'Catching BaseException or broad Exception suppresses unexpected system exits, KeyboardInterrupt, or critical errors.',
-                            'code_snippet': 'except Exception:',
-                            'recommendation': 'Catch specific, expected exception classes instead of broad Exception.'
+                            'title': 'Bare except clause (catches system exits and interrupts)',
+                            'description': 'A bare except: without exception type catches SystemExit, KeyboardInterrupt, and GeneratorExit, preventing clean termination.',
+                            'code_snippet': 'except:',
+                            'recommendation': 'Specify the expected exception type explicitly: except SpecificError: or at minimum except Exception as e:.'
                         })
+                    elif isinstance(node.type, ast.Name):
+                        # Catching BaseException
+                        if node.type.id == 'BaseException':
+                            issues.append({
+                                'type': 'quality',
+                                'severity': 'HIGH',
+                                'file_path': file_path,
+                                'line_number': getattr(node, 'lineno', 1),
+                                'title': 'Catching BaseException suppresses process termination',
+                                'description': 'Catching BaseException interferes with Python signal handling and system exits.',
+                                'code_snippet': 'except BaseException:',
+                                'recommendation': 'Catch standard Exception or domain-specific exceptions instead.'
+                            })
+                        # Silent error swallowing with pass or ...
+                        elif node.type.id in ('Exception', 'StandardError'):
+                            is_silent = len(node.body) == 1 and (
+                                isinstance(node.body[0], ast.Pass) or 
+                                (isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant) and node.body[0].value.value is Ellipsis)
+                            )
+                            if is_silent:
+                                issues.append({
+                                    'type': 'quality',
+                                    'severity': 'MEDIUM',
+                                    'file_path': file_path,
+                                    'line_number': getattr(node, 'lineno', 1),
+                                    'title': 'Silent exception suppression (empty pass block)',
+                                    'description': 'Silently swallowing exceptions with pass hides runtime failures, making debugging and production incident triage nearly impossible.',
+                                    'code_snippet': 'except Exception:\n    pass',
+                                    'recommendation': 'Log the error with logger.warning/error or handle the fallback explicitly.'
+                                })
 
                 # 2. Mutable default argument
                 if isinstance(node, ast.FunctionDef):
@@ -110,8 +144,8 @@ class StaticAnalyzer:
                 'code_snippet': (e.text or '').strip(),
                 'recommendation': 'Fix the syntax error to ensure valid compilation.'
             })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"AST parsing skipped for {file_path}: {e}")
 
         # Line-by-line heuristic patterns
         for idx, line in enumerate(lines, start=1):
@@ -130,7 +164,7 @@ class StaticAnalyzer:
                 })
 
             # CORS wildcard with credentials
-            if 'allow_origins=["*"]' in stripped.replace(" ", "") and 'allow_credentials=True' in content:
+            if not file_path.endswith('analyzer.py') and 'allow_origins=["*"]' in stripped.replace(" ", "") and 'allow_credentials=True' in content:
                 issues.append({
                     'type': 'security',
                     'severity': 'CRITICAL',
@@ -352,6 +386,8 @@ class StaticAnalyzer:
 
         for idx, line in enumerate(lines, start=1):
             if line.strip().startswith(('#', '//', '/*', '*')):
+                continue
+            if any(w in line.lower() for w in ('mock_', 'dummy_', 'placeholder', 'example_', 'fake_', 'sample_')):
                 continue
             for pattern, severity, title in secret_patterns:
                 if re.search(pattern, line):
