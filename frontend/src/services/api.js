@@ -460,7 +460,7 @@ export const api = {
       const res = await fetch(`${API_BASE_URL}/projects/${projectId}`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const data = await res.json();
-        if (data.issues && data.issues.length > 0) {
+        if (data && Array.isArray(data.issues)) {
           return data.issues.map(iss => ({
             id: iss.id,
             category: (iss.type || 'BUG').toUpperCase(),

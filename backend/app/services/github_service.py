@@ -205,13 +205,22 @@ class GitHubService:
         # Detect primary technology stack
         detected_stack = "Multi-Language"
         lower_names = [f.lower() for f in file_names]
-        if any(f.endswith('.java') or 'pom.xml' in f or 'build.gradle' in f for f in lower_names):
-            detected_stack = "Spring Boot / Java"
-        elif any(f.endswith('.py') or 'requirements.txt' in f for f in lower_names):
+        has_java = any(f.endswith('.java') or 'pom.xml' in f or 'build.gradle' in f for f in lower_names)
+        has_python = any(f.endswith('.py') or 'requirements.txt' in f or 'setup.py' in f for f in lower_names)
+        has_js = any(f.endswith(('.jsx', '.tsx', 'package.json')) for f in lower_names)
+        has_cpp = any(f.endswith(('.cpp', '.cc', '.cxx', 'cmakelists.txt')) for f in lower_names)
+
+        if has_python and has_js:
+            detected_stack = "Full Stack (Python / FastAPI + React)"
+        elif has_java and has_js:
+            detected_stack = "Full Stack (Spring Boot + React)"
+        elif has_python:
             detected_stack = "Python / FastAPI"
-        elif any(f.endswith(('.jsx', '.tsx', 'package.json')) for f in lower_names):
+        elif has_java:
+            detected_stack = "Spring Boot / Java"
+        elif has_js:
             detected_stack = "React / Node.js"
-        elif any(f.endswith(('.cpp', '.cc', '.cxx', 'cmakelists.txt')) for f in lower_names):
+        elif has_cpp:
             detected_stack = "C++ Systems"
 
         critical = sum(1 for i in all_issues if i['severity'] == 'CRITICAL')
