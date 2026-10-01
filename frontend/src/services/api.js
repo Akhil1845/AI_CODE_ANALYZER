@@ -98,19 +98,6 @@ export const api = {
     return await res.json();
   },
 
-  // Apply Fixes Directly to GitHub (Commit or Pull Request)
-  async applyFixesToGitHub(payload) {
-    const res = await fetch(`${API_BASE_URL}/github/apply-fixes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to apply fixes to GitHub repository.');
-    }
-    return await res.json();
-  },
 
   // Get All Real Projects for Dashboard
   async getProjects() {

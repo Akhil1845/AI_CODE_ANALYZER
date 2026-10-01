@@ -670,17 +670,23 @@ def verify_github_token(req: GitHubVerifyTokenRequest):
     return result
 
 class GitHubApplyFixesRequest(BaseModel):
-    repo_url: str
+    repo_url: Optional[str] = None
+    repoUrl: Optional[str] = None
     token: str
     fixes: List[Dict[str, str]]
     branch_mode: Optional[str] = "pr"
+    branchMode: Optional[str] = None
     target_branch: Optional[str] = None
+    targetBranch: Optional[str] = None
     pr_title: Optional[str] = None
+    prTitle: Optional[str] = None
     commit_message: Optional[str] = None
+    commitMessage: Optional[str] = None
 
 @app.post("/api/github/apply-fixes")
 def apply_fixes_to_github(req: GitHubApplyFixesRequest):
-    if not req.repo_url or not req.repo_url.strip():
+    target_repo = req.repo_url or req.repoUrl
+    if not target_repo or not target_repo.strip():
         raise HTTPException(status_code=400, detail="Target GitHub repository URL is required.")
     if not req.token or not req.token.strip():
         raise HTTPException(status_code=400, detail="GitHub Personal Access Token is required.")
@@ -689,16 +695,17 @@ def apply_fixes_to_github(req: GitHubApplyFixesRequest):
 
     try:
         result = github_service.apply_fixes(
-            repo_url=req.repo_url.strip(),
+            repo_url=target_repo.strip(),
             token=req.token.strip(),
             fixes=req.fixes,
-            branch_mode=req.branch_mode or "pr",
-            target_branch=req.target_branch,
-            pr_title=req.pr_title,
-            commit_message=req.commit_message
+            branch_mode=req.branch_mode or req.branchMode or "pr",
+            target_branch=req.target_branch or req.targetBranch,
+            pr_title=req.pr_title or req.prTitle,
+            commit_message=req.commit_message or req.commitMessage
         )
         return result
     except Exception as e:
+        print(f"[GITHUB_APPLY_FIXES_ERROR] {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # -------------------------------------------------------------

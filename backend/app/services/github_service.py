@@ -375,61 +375,129 @@ class GitHubService:
         else:
             commit_branch = base_branch
 
-        # 2. Commit each file
-        committed_files = []
+        # 2. Deduplicate and merge fixes by file path
+        grouped_fixes: Dict[str, List[str]] = {}
         for fix in fixes:
             file_path = fix.get("path", "").strip().lstrip('/')
             raw_content = fix.get("content", "")
-
             if not file_path:
                 continue
+            if file_path not in grouped_fixes:
+                grouped_fixes[file_path] = []
+            grouped_fixes[file_path].append(raw_content)
 
-            # Clean JSON files of any comment lines (// ...) that would break standard JSON parsers
+        final_fixes: List[Dict[str, str]] = []
+        for file_path, contents in grouped_fixes.items():
+            if len(contents) == 1 and not file_path.lower().endswith("vercel.json"):
+                final_fixes.append({"path": file_path, "content": contents[0]})
+                continue
+
+            # Merge vercel.json configurations
+            if file_path.lower().endswith("vercel.json"):
+                combined_headers = {
+                    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+                    "X-Frame-Options": "DENY",
+                    "X-Content-Type-Options": "nosniff",
+                    "Referrer-Policy": "strict-origin-when-cross-origin"
+                }
+                
+                # Check for custom headers from issues
+                for c in contents:
+                    for line in c.splitlines():
+                        if "key" in line and "value" in line:
+                            try:
+                                k_match = re.search(r'"key"\s*:\s*"([^"]+)"', line)
+                                v_match = re.search(r'"value"\s*:\s*"([^"]+)"', line)
+                                if k_match and v_match:
+                                    combined_headers[k_match.group(1)] = v_match.group(1)
+                            except Exception:
+                                pass
+
+                # Build production vercel.json
+                master_vercel = {
+                    "version": 2,
+                    "headers": [
+                        {
+                            "source": "/(.*)",
+                            "headers": [{"key": k, "value": v} for k, v in combined_headers.items()]
+                        }
+                    ],
+                    "rewrites": [
+                        {
+                            "source": "/api/(.*)",
+                            "destination": "https://interdental-farcically-bernardina.ngrok-free.dev/api/$1"
+                        },
+                        {
+                            "source": "/((?!api/|.*\\..*).*)",
+                            "destination": "/index.html"
+                        }
+                    ]
+                }
+                final_fixes.append({
+                    "path": file_path,
+                    "content": json.dumps(master_vercel, indent=2)
+                })
+            else:
+                final_fixes.append({"path": file_path, "content": contents[-1]})
+
+        # 3. Commit each unique file with retry backoff
+        committed_files = []
+        for fix in final_fixes:
+            file_path = fix["path"]
+            raw_content = fix["content"]
+
+            # Clean JSON files of any stray comment lines
             if file_path.lower().endswith(".json"):
-                clean_lines = []
-                for line in raw_content.splitlines():
-                    stripped = line.strip()
-                    if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*"):
-                        continue
-                    clean_lines.append(line)
+                clean_lines = [l for l in raw_content.splitlines() if not l.strip().startswith("//") and not l.strip().startswith("/*") and not l.strip().startswith("*")]
                 clean_content = "\n".join(clean_lines).strip()
             else:
                 clean_content = raw_content
 
-            # Check if file already exists in branch to get its SHA (required by GitHub Contents API for updates)
-            file_sha = None
-            check_res = requests.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}?ref={commit_branch}",
-                headers=headers,
-                timeout=10
-            )
-            if check_res.status_code == 200:
-                file_sha = check_res.json().get("sha")
-
-            # Base64 encode content
             b64_content = base64.b64encode(clean_content.encode("utf-8")).decode("utf-8")
-
             file_commit_msg = commit_message or f"fix(codelens): configure {file_path} for production deployment"
-            put_payload = {
-                "message": file_commit_msg,
-                "content": b64_content,
-                "branch": commit_branch
-            }
-            if file_sha:
-                put_payload["sha"] = file_sha
 
-            put_res = requests.put(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}",
-                headers=headers,
-                json=put_payload,
-                timeout=15
-            )
+            # Retry up to 3 times to handle SHA race conditions
+            success = False
+            last_err = ""
+            for attempt in range(3):
+                file_sha = None
+                check_res = requests.get(
+                    f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}?ref={commit_branch}&t={int(time.time()*1000)}",
+                    headers=headers,
+                    timeout=12
+                )
+                if check_res.status_code == 200:
+                    file_sha = check_res.json().get("sha")
 
-            if put_res.status_code not in (200, 201):
-                err_msg = put_res.json().get("message", "Commit error")
-                raise Exception(f"Failed to commit file '{file_path}': {err_msg}")
+                put_payload = {
+                    "message": file_commit_msg,
+                    "content": b64_content,
+                    "branch": commit_branch
+                }
+                if file_sha:
+                    put_payload["sha"] = file_sha
 
-            committed_files.append(file_path)
+                put_res = requests.put(
+                    f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}",
+                    headers=headers,
+                    json=put_payload,
+                    timeout=15
+                )
+
+                if put_res.status_code in (200, 201):
+                    success = True
+                    committed_files.append(file_path)
+                    break
+                else:
+                    try:
+                        err_json = put_res.json()
+                        last_err = err_json.get("message", f"HTTP {put_res.status_code}")
+                    except Exception:
+                        last_err = f"HTTP {put_res.status_code}"
+                    time.sleep(1.0)
+
+            if not success:
+                raise Exception(f"Failed to commit file '{file_path}' to branch '{commit_branch}': {last_err}")
 
         # 3. If PR mode, open Pull Request
         pr_info = None
