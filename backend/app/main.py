@@ -759,4 +759,142 @@ def reprobe_live_url(req: CloudReprobeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# -------------------------------------------------------------
+# BACKEND CLOUD UPLOAD & DEPLOYMENT ENDPOINTS
+# -------------------------------------------------------------
+@app.get("/api/cloud/bridge")
+def get_cloud_bridge():
+    return cloud_deploy_service.get_active_cloud_bridge()
+
+class PackageBackendRequest(BaseModel):
+    backend_path: str
+    write_files: Optional[bool] = False
+
+@app.post("/api/cloud/package-backend")
+def package_backend(req: PackageBackendRequest):
+    if not req.backend_path or not req.backend_path.strip():
+        raise HTTPException(status_code=400, detail="Backend directory path is required.")
+    try:
+        return cloud_deploy_service.package_local_backend(req.backend_path, write_files=req.write_files or False)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class CreateRenderServiceRequest(BaseModel):
+    token: str
+    repo_url: str
+    service_name: str
+    branch: Optional[str] = "main"
+    root_dir: Optional[str] = None
+
+@app.post("/api/cloud/create-service")
+def create_render_service(req: CreateRenderServiceRequest):
+    if not req.token or not req.token.strip():
+        raise HTTPException(status_code=400, detail="Render API Key is required.")
+    if not req.repo_url or not req.repo_url.strip():
+        raise HTTPException(status_code=400, detail="GitHub Repository URL is required for Render service creation.")
+    if not req.service_name or not req.service_name.strip():
+        raise HTTPException(status_code=400, detail="Service name is required.")
+    try:
+        return cloud_deploy_service.create_render_web_service(
+            token=req.token.strip(),
+            repo_url=req.repo_url.strip(),
+            service_name=req.service_name.strip(),
+            branch=req.branch or "main",
+            root_dir=req.root_dir
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class LinkBackendRequest(BaseModel):
+    frontend_repo_url: str
+    github_token: str
+    backend_url: str
+    target_branch: Optional[str] = "main"
+
+@app.post("/api/cloud/link-backend")
+def link_backend_to_frontend(req: LinkBackendRequest):
+    if not req.frontend_repo_url or not req.frontend_repo_url.strip():
+        raise HTTPException(status_code=400, detail="Frontend repository URL is required.")
+    if not req.github_token or not req.github_token.strip():
+        raise HTTPException(status_code=400, detail="GitHub Token is required to commit configuration.")
+    if not req.backend_url or not req.backend_url.strip():
+        raise HTTPException(status_code=400, detail="Cloud Backend URL is required.")
+
+    backend_url = req.backend_url.strip().rstrip('/')
+    
+    # 1. Master vercel.json with API proxy rewrite
+    vercel_config = {
+        "version": 2,
+        "headers": [
+            {
+                "source": "/(.*)",
+                "headers": [
+                    { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+                    { "key": "X-Frame-Options", "value": "DENY" },
+                    { "key": "X-Content-Type-Options", "value": "nosniff" },
+                    { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+                ]
+            }
+        ],
+        "rewrites": [
+            {
+                "source": "/api/(.*)",
+                "destination": f"{backend_url}/api/$1"
+            },
+            {
+                "source": "/((?!api/|.*\\..*).*)",
+                "destination": "/user_login.html"
+            }
+        ]
+    }
+
+    # 2. Dynamic config.js for frontend clients
+    config_js = (
+        "// CareerPilot Dynamic Backend Configuration\n"
+        "(function() {\n"
+        "  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';\n"
+        f"  const CLOUD_URL = '{backend_url}';\n"
+        "  const activeBackend = isLocal ? 'http://localhost:8089' : CLOUD_URL;\n"
+        "  window.CAREERPILOT_BACKEND = activeBackend;\n"
+        "  window.API_BASE = activeBackend + '/api/students';\n"
+        "  window.AUTH_BASE = activeBackend + '/api/auth';\n\n"
+        "  const origFetch = window.fetch;\n"
+        "  window.fetch = function(res, init) {\n"
+        "    let u = typeof res === 'string' ? res : res.url;\n"
+        "    if (u.includes('localhost:8089')) u = u.replace('http://localhost:8089', activeBackend);\n"
+        "    else if (u.startsWith('/api/')) u = activeBackend + u;\n"
+        "    init = init || {};\n"
+        "    init.headers = init.headers || {};\n"
+        "    if (init.headers instanceof Headers) init.headers.append('ngrok-skip-browser-warning', 'true');\n"
+        "    else init.headers['ngrok-skip-browser-warning'] = 'true';\n"
+        "    return typeof res === 'string' ? origFetch(u, init) : origFetch(new Request(u, {...res, ...init}));\n"
+        "  };\n"
+        "})();\n"
+    )
+
+    fixes = [
+        {"path": "vercel.json", "content": json.dumps(vercel_config, indent=2)},
+        {"path": "frontend/vercel.json", "content": json.dumps(vercel_config, indent=2)},
+        {"path": "frontend/config.js", "content": config_js}
+    ]
+
+    try:
+        commit_res = github_service.apply_fixes(
+            repo_url=req.frontend_repo_url.strip(),
+            token=req.github_token.strip(),
+            fixes=fixes,
+            branch_mode="direct",
+            target_branch=req.target_branch or "main",
+            commit_message=f"feat(cloud): link frontend to live cloud backend ({backend_url})"
+        )
+        return {
+            "success": True,
+            "backend_url": backend_url,
+            "commit": commit_res,
+            "message": f"Successfully linked frontend to cloud backend ({backend_url})! Vercel is auto-redeploying now."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 

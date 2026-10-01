@@ -98,6 +98,21 @@ export default function AnalysisResult() {
   const [reprobeResult, setReprobeResult] = useState(null);
   const [reprobeFeedback, setReprobeFeedback] = useState('');
 
+  // Backend Cloud Deployment States
+  const [backendPath, setBackendPath] = useState('D:\\internship_ai\\backend\\internship_ai_backend');
+  const [packagingBackend, setPackagingBackend] = useState(false);
+  const [packageResult, setPackageResult] = useState(null);
+  const [packageError, setPackageError] = useState('');
+  const [cloudBridge, setCloudBridge] = useState(null);
+  const [renderServiceName, setRenderServiceName] = useState('careerpilot-backend');
+  const [deployingBackend, setDeployingBackend] = useState(false);
+  const [deployBackendResult, setDeployBackendResult] = useState(null);
+  const [deployBackendError, setDeployBackendError] = useState('');
+  const [linkingBackend, setLinkingBackend] = useState(false);
+  const [linkBackendResult, setLinkBackendResult] = useState(null);
+  const [linkBackendError, setLinkBackendError] = useState('');
+  const [customBackendUrl, setCustomBackendUrl] = useState('');
+
   useEffect(() => {
     let mounted = true;
     Promise.all([
@@ -327,6 +342,92 @@ export default function AnalysisResult() {
       setReprobeFeedback(`Live probe note: ${err.message}`);
     } finally {
       setReprobingLive(false);
+    }
+  };
+
+  const fetchCloudBridge = async () => {
+    try {
+      const b = await api.getCloudBridge();
+      setCloudBridge(b);
+      if (b?.active && b?.public_url && !customBackendUrl) {
+        setCustomBackendUrl(b.public_url);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePackageBackend = async (writeFiles = false) => {
+    if (!backendPath || !backendPath.trim()) {
+      setPackageError('Please provide the local backend directory path.');
+      return;
+    }
+    setPackagingBackend(true);
+    setPackageError('');
+    try {
+      const res = await api.packageBackend({ backendPath: backendPath.trim(), writeFiles });
+      setPackageResult(res);
+    } catch (err) {
+      setPackageError(err.message || 'Failed to inspect and package backend.');
+    } finally {
+      setPackagingBackend(false);
+    }
+  };
+
+  const handleDeployToRender = async () => {
+    if (!cloudToken || !cloudToken.trim()) {
+      setDeployBackendError('Please enter your Render API Key.');
+      return;
+    }
+    if (!githubRepoUrl || !githubRepoUrl.trim()) {
+      setDeployBackendError('Please provide your backend GitHub repository URL.');
+      return;
+    }
+    setDeployingBackend(true);
+    setDeployBackendError('');
+    try {
+      const res = await api.createRenderService({
+        token: cloudToken.trim(),
+        repoUrl: githubRepoUrl.trim(),
+        serviceName: renderServiceName.trim(),
+        branch: targetBranch || 'main',
+        rootDir: 'backend/internship_ai_backend'
+      });
+      setDeployBackendResult(res);
+      if (res?.cloud_backend_url) {
+        setCustomBackendUrl(res.cloud_backend_url);
+      }
+    } catch (err) {
+      setDeployBackendError(err.message || 'Failed to deploy service to Render.');
+    } finally {
+      setDeployingBackend(false);
+    }
+  };
+
+  const handleLinkBackendToFrontend = async (targetUrlToLink) => {
+    const backendUrlToUse = targetUrlToLink || customBackendUrl || cloudBridge?.public_url;
+    if (!backendUrlToUse || !backendUrlToUse.trim()) {
+      setLinkBackendError('Please provide or detect an active Cloud Backend URL.');
+      return;
+    }
+    if (!githubToken || !githubToken.trim()) {
+      setLinkBackendError('GitHub Personal Access Token is required to commit vercel.json rewrites.');
+      return;
+    }
+    setLinkingBackend(true);
+    setLinkBackendError('');
+    try {
+      const res = await api.linkBackendToFrontend({
+        frontendRepoUrl: (githubRepoUrl || project?.repo_url || '').trim(),
+        githubToken: githubToken.trim(),
+        backendUrl: backendUrlToUse.trim(),
+        targetBranch: targetBranch || 'main'
+      });
+      setLinkBackendResult(res);
+    } catch (err) {
+      setLinkBackendError(err.message || 'Failed to link backend to frontend.');
+    } finally {
+      setLinkingBackend(false);
     }
   };
 

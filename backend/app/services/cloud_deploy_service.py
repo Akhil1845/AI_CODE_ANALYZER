@@ -1,3 +1,6 @@
+import os
+import json
+import re
 import time
 import requests
 from typing import Dict, Any, List, Optional
@@ -241,3 +244,213 @@ class CloudDeployService:
             "health_score": max(10, 100 - (scan_res.get("critical_count", 0) * 35 + scan_res.get("high_count", 0) * 20 + scan_res.get("medium_count", 0) * 10)),
             "checked_at": time.strftime("%H:%M:%S")
         }
+
+    def get_active_cloud_bridge(self) -> Dict[str, Any]:
+        """
+        Auto-detects any active public HTTPS bridge (e.g. ngrok tunnel) for immediate cloud connectivity.
+        """
+        try:
+            res = requests.get("http://127.0.0.1:4040/api/tunnels", timeout=2)
+            if res.status_code == 200:
+                data = res.json()
+                tunnels = data.get("tunnels", [])
+                for t in tunnels:
+                    pub = t.get("public_url", "")
+                    if pub.startswith("https://"):
+                        return {
+                            "active": True,
+                            "type": "ngrok_cloud_bridge",
+                            "public_url": pub,
+                            "local_port": t.get("config", {}).get("addr", ""),
+                            "status": "ONLINE",
+                            "message": f"Active live cloud bridge detected: {pub}"
+                        }
+        except Exception:
+            pass
+
+        return {
+            "active": False,
+            "type": None,
+            "public_url": None,
+            "status": "OFFLINE",
+            "message": "No active public cloud bridge found. Backend can be deployed to Render or tunneled."
+        }
+
+    def package_local_backend(self, backend_path: str, write_files: bool = False) -> Dict[str, Any]:
+        """
+        Inspects a local backend directory, detects framework, generates Dockerfile & render.yaml.
+        """
+        clean_path = backend_path.strip().strip('"\'')
+        if not os.path.exists(clean_path):
+            raise ValueError(f"Directory '{clean_path}' does not exist on local filesystem.")
+
+        files = os.listdir(clean_path)
+        detected_stack = "Generic Web Backend"
+        detected_port = 8080
+        dockerfile_content = ""
+
+        # Check for Java Maven / Spring Boot
+        if "pom.xml" in files or any(os.path.exists(os.path.join(clean_path, f, "pom.xml")) for f in files if os.path.isdir(os.path.join(clean_path, f))):
+            detected_stack = "Spring Boot (Java 17 / Maven)"
+            detected_port = 8089
+            dockerfile_content = (
+                "# Multi-stage Docker build for Spring Boot Backend\n"
+                "FROM maven:3.9.6-eclipse-temurin-17 AS build\n"
+                "WORKDIR /app\n"
+                "COPY pom.xml .\n"
+                "COPY src ./src\n"
+                "RUN mvn clean package -DskipTests\n\n"
+                "FROM eclipse-temurin:17-jre-jammy\n"
+                "WORKDIR /app\n"
+                "COPY --from=build /app/target/*.jar app.jar\n"
+                f"EXPOSE {detected_port}\n"
+                f"ENV PORT={detected_port}\n"
+                "ENV APP_DB=postgres\n"
+                "ENTRYPOINT [\"java\", \"-Dserver.port=${PORT:-8089}\", \"-jar\", \"app.jar\"]\n"
+            )
+        # Check for Python (FastAPI / Flask / Django)
+        elif "requirements.txt" in files or "pyproject.toml" in files:
+            detected_stack = "Python (FastAPI / Flask)"
+            detected_port = 8000
+            dockerfile_content = (
+                "# Production Dockerfile for Python Backend\n"
+                "FROM python:3.11-slim\n"
+                "WORKDIR /app\n"
+                "COPY requirements.txt .\n"
+                "RUN pip install --no-cache-dir -r requirements.txt\n"
+                "COPY . .\n"
+                f"EXPOSE {detected_port}\n"
+                f"ENV PORT={detected_port}\n"
+                "CMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n"
+            )
+        # Check for Node.js (Express / Nest)
+        elif "package.json" in files:
+            detected_stack = "Node.js (Express / Nest)"
+            detected_port = 5000
+            dockerfile_content = (
+                "# Production Dockerfile for Node.js Backend\n"
+                "FROM node:18-alpine\n"
+                "WORKDIR /app\n"
+                "COPY package*.json ./\n"
+                "RUN npm install --production\n"
+                "COPY . .\n"
+                f"EXPOSE {detected_port}\n"
+                f"ENV PORT={detected_port}\n"
+                "CMD [\"npm\", \"start\"]\n"
+            )
+        else:
+            dockerfile_content = (
+                "# Generic Container Definition\n"
+                "FROM alpine:latest\n"
+                f"EXPOSE {detected_port}\n"
+            )
+
+        render_yaml_content = (
+            "services:\n"
+            "  - type: web\n"
+            f"    name: {os.path.basename(clean_path.rstrip('/\\\\')) or 'cloud-backend'}\n"
+            "    runtime: docker\n"
+            "    plan: free\n"
+            "    region: oregon\n"
+            "    envVars:\n"
+            f"      - key: PORT\n"
+            f"        value: {detected_port}\n"
+        )
+
+        files_written = []
+        if write_files:
+            try:
+                dockerfile_path = os.path.join(clean_path, "Dockerfile")
+                with open(dockerfile_path, "w", encoding="utf-8") as f:
+                    f.write(dockerfile_content)
+                files_written.append("Dockerfile")
+
+                render_path = os.path.join(clean_path, "render.yaml")
+                with open(render_path, "w", encoding="utf-8") as f:
+                    f.write(render_yaml_content)
+                files_written.append("render.yaml")
+            except Exception as w_err:
+                print(f"[PACKAGE_BACKEND] File write note: {w_err}")
+
+        return {
+            "success": True,
+            "backend_path": clean_path,
+            "detected_stack": detected_stack,
+            "detected_port": detected_port,
+            "dockerfile": dockerfile_content,
+            "render_yaml": render_yaml_content,
+            "files_written": files_written
+        }
+
+    def create_render_web_service(
+        self,
+        token: str,
+        repo_url: str,
+        service_name: str,
+        branch: Optional[str] = "main",
+        root_dir: Optional[str] = None,
+        env_vars: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Creates a new Web Service on Render using the Render REST API.
+        """
+        clean_token = token.strip() if token else ""
+        if not clean_token:
+            raise ValueError("Render API Key is required to create a cloud service.")
+
+        headers = {
+            "Authorization": f"Bearer {clean_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "CodeLens-CloudDeploy/1.0"
+        }
+
+        # 1. Fetch primary owner ID
+        owners_res = requests.get("https://api.render.com/v1/owners?limit=5", headers=headers, timeout=10)
+        if owners_res.status_code != 200:
+            raise Exception("Invalid Render API Key or unable to retrieve Render account.")
+        owners = owners_res.json()
+        owner_id = owners[0].get("owner", {}).get("id")
+        if not owner_id:
+            raise Exception("Could not determine Render Account Owner ID.")
+
+        # 2. Construct service creation payload
+        clean_name = re.sub(r'[^a-zA-Z0-9\-]', '-', service_name.lower().strip()).strip('-')[:30]
+        payload = {
+            "type": "web_service",
+            "name": clean_name,
+            "ownerId": owner_id,
+            "repo": repo_url.strip(),
+            "autoDeploy": "yes",
+            "serviceDetails": {
+                "env": "docker",
+                "plan": "free",
+                "region": "oregon"
+            }
+        }
+        if branch:
+            payload["branch"] = branch.strip()
+        if root_dir:
+            payload["rootDir"] = root_dir.strip()
+        if env_vars:
+            payload["serviceDetails"]["envVars"] = env_vars
+
+        # 3. Create service via Render API
+        create_res = requests.post("https://api.render.com/v1/services", headers=headers, json=payload, timeout=20)
+        if create_res.status_code not in (200, 201):
+            err_msg = create_res.json().get("message", f"HTTP {create_res.status_code}")
+            raise Exception(f"Failed to create Render Web Service: {err_msg}")
+
+        s_data = create_res.json().get("service", {})
+        s_id = s_data.get("id", "")
+        s_url = s_data.get("serviceDetails", {}).get("url", f"https://{clean_name}.onrender.com")
+
+        return {
+            "success": True,
+            "service_id": s_id,
+            "service_name": clean_name,
+            "cloud_backend_url": s_url,
+            "dashboard_url": f"https://dashboard.render.com/web/{s_id}",
+            "message": f"Cloud Web Service '{clean_name}' created on Render. Auto-build initiated from repository!"
+        }
+

@@ -375,7 +375,72 @@ export const api = {
       throw new Error(err.detail || 'Re-probe request failed.');
     }
     return await res.json();
+  },
+
+  // Auto-detect active live cloud bridge (e.g. ngrok tunnel)
+  async getCloudBridge() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/cloud/bridge`);
+      if (res.ok) return await res.json();
+    } catch {
+      // fallback
+    }
+    return { active: false, public_url: null };
+  },
+
+  // Inspect local backend and generate Dockerfile & render.yaml
+  async packageBackend({ backendPath, writeFiles = false }) {
+    const res = await fetch(`${API_BASE_URL}/cloud/package-backend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backend_path: backendPath, write_files: writeFiles })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to package backend for cloud deployment.');
+    }
+    return await res.json();
+  },
+
+  // Create Render Web Service for backend via Render API
+  async createRenderService({ token, repoUrl, serviceName, branch = 'main', rootDir = null }) {
+    const res = await fetch(`${API_BASE_URL}/cloud/create-service`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        repo_url: repoUrl,
+        service_name: serviceName,
+        branch,
+        root_dir: rootDir
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to create Render cloud service.');
+    }
+    return await res.json();
+  },
+
+  // Link frontend repository to cloud backend via vercel.json rewrites
+  async linkBackendToFrontend({ frontendRepoUrl, githubToken, backendUrl, targetBranch = 'main' }) {
+    const res = await fetch(`${API_BASE_URL}/cloud/link-backend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        frontend_repo_url: frontendRepoUrl,
+        github_token: githubToken,
+        backend_url: backendUrl,
+        target_branch: targetBranch
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to link backend to frontend.');
+    }
+    return await res.json();
   }
 };
+
 
 
