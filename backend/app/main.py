@@ -16,6 +16,7 @@ from .services.codedoctor import CodeDoctorService
 from .services.email_service import send_verification_email
 from .services.project_ai_service import ProjectAIService
 from .services.live_url_service import LiveUrlService
+from .services.cloud_deploy_service import CloudDeployService
 
 app = FastAPI(
     title="CodeLens AI Backend",
@@ -43,6 +44,7 @@ static_analyzer = StaticAnalyzer()
 codedoctor_service = CodeDoctorService()
 project_ai_service = ProjectAIService()
 live_url_service = LiveUrlService()
+cloud_deploy_service = CloudDeployService()
 
 @app.on_event("startup")
 def on_startup():
@@ -698,4 +700,56 @@ def apply_fixes_to_github(req: GitHubApplyFixesRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# -------------------------------------------------------------
+# CLOUD PLATFORM DIRECT AUTO-DEPLOY & RE-PROBE ENDPOINTS
+# -------------------------------------------------------------
+class CloudVerifyTokenRequest(BaseModel):
+    platform: str
+    token: str
+    live_url: Optional[str] = None
+
+@app.post("/api/cloud/verify-token")
+def verify_cloud_token(req: CloudVerifyTokenRequest):
+    if not req.token or not req.token.strip():
+        raise HTTPException(status_code=400, detail="Cloud API token is required.")
+    result = cloud_deploy_service.verify_cloud_token(req.platform, req.token.strip(), req.live_url)
+    return result
+
+class CloudRedeployRequest(BaseModel):
+    platform: str
+    token: str
+    service_id: str
+    clear_cache: Optional[bool] = True
+
+@app.post("/api/cloud/redeploy")
+def trigger_cloud_redeploy(req: CloudRedeployRequest):
+    if not req.token or not req.token.strip():
+        raise HTTPException(status_code=400, detail="Cloud API token is required.")
+    if not req.service_id or not req.service_id.strip():
+        raise HTTPException(status_code=400, detail="Target Service or Project ID is required.")
+    try:
+        result = cloud_deploy_service.trigger_cloud_redeploy(
+            platform=req.platform,
+            token=req.token.strip(),
+            service_or_project_id=req.service_id.strip(),
+            clear_cache=req.clear_cache if req.clear_cache is not None else True
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class CloudReprobeRequest(BaseModel):
+    url: str
+
+@app.post("/api/cloud/reprobe")
+def reprobe_live_url(req: CloudReprobeRequest):
+    if not req.url or not req.url.strip():
+        raise HTTPException(status_code=400, detail="Target deployment URL is required.")
+    try:
+        result = cloud_deploy_service.reprobe_live_url(req.url.strip())
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 

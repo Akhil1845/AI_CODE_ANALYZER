@@ -346,6 +346,49 @@ export const api = {
       throw new Error(err.detail || 'Failed to apply fixes to GitHub repository.');
     }
     return await res.json();
+  },
+
+  // Verify Vercel / Render cloud deployment token
+  async verifyCloudToken({ platform, token, liveUrl = null }) {
+    const res = await fetch(`${API_BASE_URL}/cloud/verify-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, token, live_url: liveUrl })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Cloud token verification failed.');
+    }
+    return await res.json();
+  },
+
+  // Trigger instant redeployment on Vercel or Render
+  async triggerCloudRedeploy({ platform, token, serviceId, clearCache = true }) {
+    const res = await fetch(`${API_BASE_URL}/cloud/redeploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, token, service_id: serviceId, clear_cache: clearCache })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Redeployment request failed.');
+    }
+    return await res.json();
+  },
+
+  // High-speed re-probe of live deployment URL to verify fixes
+  async reprobeLiveUrl(url) {
+    const res = await fetch(`${API_BASE_URL}/cloud/reprobe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Re-probe request failed.');
+    }
+    return await res.json();
   }
 };
+
 
