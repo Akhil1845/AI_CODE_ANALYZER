@@ -428,3 +428,88 @@ button {
   margin: 2px 0;
   display: block;
 }
+
+/* ========================================================
+   AUTH & SHOWCASE GRAPHICS ANIMATIONS
+   ======================================================== */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+@keyframes floatReverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(12px) rotate(-1.5deg);
+  }
+}
+
+@keyframes pulseNeonGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(236, 72, 153, 0.25), 0 0 50px rgba(168, 85, 247, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(236, 72, 153, 0.45), 0 0 80px rgba(168, 85, 247, 0.3);
+  }
+}
+
+@keyframes orbMoveA {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(40px, -30px) scale(1.15);
+    opacity: 0.55;
+  }
+}
+
+@keyframes orbMoveB {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-35px, 25px) scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes terminalBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes radarSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.anim-float {
+  animation: floatSlow 5s ease-in-out infinite;
+}
+
+.anim-float-rev {
+  animation: floatReverse 6s ease-in-out infinite;
+}
+
+.anim-glow {
+  animation: pulseNeonGlow 4s ease-in-out infinite;
+}
+
+.cursor-blink {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  background: var(--primary);
+  margin-left: 4px;
+  vertical-align: middle;
+  animation: terminalBlink 0.9s infinite;
+}
+
