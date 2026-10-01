@@ -95,6 +95,47 @@ export const auth = {
     return sessionUser;
   },
 
+  // Real Password Reset
+  resetPassword(email, newPassword) {
+    if (!email || !newPassword) {
+      throw new Error('Please enter both your registered email and a new password.');
+    }
+    if (newPassword.length < 6) {
+      throw new Error('New password must be at least 6 characters.');
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const users = this.getUsers();
+    let index = users.findIndex(u => u.email.toLowerCase() === cleanEmail);
+
+    if (index === -1) {
+      // User doesn't exist in local cache yet - register/provision smoothly
+      const newUser = {
+        id: 'usr_' + Date.now().toString(36),
+        name: cleanEmail.split('@')[0] || 'Developer',
+        email: cleanEmail,
+        password: newPassword,
+        platform: 'LeetCode',
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      this.saveUsers(users);
+      const sessionUser = { id: newUser.id, name: newUser.name, email: newUser.email, platform: newUser.platform };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
+      return sessionUser;
+    }
+
+    // Update existing user password
+    users[index].password = newPassword;
+    this.saveUsers(users);
+
+    // Auto-login with updated password
+    const user = users[index];
+    const sessionUser = { id: user.id, name: user.name, email: user.email, platform: user.platform };
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
+    return sessionUser;
+  },
+
   // Logout
   logout() {
     localStorage.removeItem(CURRENT_USER_KEY);

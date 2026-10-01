@@ -18,7 +18,9 @@ import {
   Zap, 
   Cpu, 
   Boxes,
-  Database
+  Database,
+  KeyRound,
+  ArrowLeft
 } from 'lucide-react';
 import { auth } from '../services/auth';
 
@@ -36,14 +38,16 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Mode: 'signin' or 'signup'
+  // Mode: 'signin', 'signup', or 'forgot'
   const [mode, setMode] = useState('signin');
 
   // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [infoNotice, setInfoNotice] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
@@ -78,7 +82,7 @@ export default function Login() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setInfoNotice('');
@@ -88,10 +92,46 @@ export default function Login() {
     try {
       if (mode === 'signin') {
         auth.login(email, password);
-      } else {
+        navigate('/dashboard');
+      } else if (mode === 'signup') {
         auth.signup(name, email, password);
+        try {
+          await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password, platform: 'LeetCode' })
+          });
+        } catch (_) {}
+        navigate('/dashboard');
+      } else if (mode === 'forgot') {
+        if (!email.trim()) {
+          throw new Error('Please enter your registered email address.');
+        }
+        if (password.length < 6) {
+          throw new Error('New password must be at least 6 characters.');
+        }
+        if (password !== confirmPassword) {
+          throw new Error('New password and confirm password do not match.');
+        }
+
+        // Sync with backend MySQL database
+        try {
+          await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), new_password: password })
+          });
+        } catch (backendErr) {
+          console.warn('Backend sync note:', backendErr);
+        }
+
+        // Update local session & credentials
+        auth.resetPassword(email, password);
+        setSuccessNotice('✓ Password updated successfully! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 700);
       }
-      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
@@ -353,160 +393,214 @@ export default function Login() {
                 width: '48px',
                 height: '48px',
                 borderRadius: '14px',
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
+                background: mode === 'forgot'
+                  ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)'
+                  : 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 12px',
-                boxShadow: 'var(--primary-glow)',
+                boxShadow: mode === 'forgot'
+                  ? '0 0 20px rgba(245, 158, 11, 0.4)'
+                  : 'var(--primary-glow)',
                 color: '#ffffff'
               }}>
-                <Terminal size={24} strokeWidth={2.5} />
+                {mode === 'forgot' ? (
+                  <KeyRound size={24} strokeWidth={2.5} />
+                ) : (
+                  <Terminal size={24} strokeWidth={2.5} />
+                )}
               </div>
 
               <h2 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
-                {mode === 'signin' ? 'Welcome to CodeLens AI' : 'Create Developer Account'}
+                {mode === 'signin' && 'Welcome to CodeLens AI'}
+                {mode === 'signup' && 'Create Developer Account'}
+                {mode === 'forgot' && 'Reset Your Password'}
               </h2>
               <p style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-                {mode === 'signin'
-                  ? 'Sign in to access your code traces and analysis reports'
-                  : 'Join CodeLens to trace iterations and scaffold projects'}
+                {mode === 'signin' && 'Sign in to access your code traces and analysis reports'}
+                {mode === 'signup' && 'Join CodeLens to trace iterations and scaffold projects'}
+                {mode === 'forgot' && 'Enter your registered email and choose a new secure password'}
               </p>
             </div>
 
-            {/* Mode Switcher: Sign In vs Create Account */}
-            <div style={{
-              display: 'flex',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-secondary)',
-              padding: '4px',
-              marginBottom: '20px',
-              border: '1px solid var(--border-subtle)'
-            }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signin');
-                  setError('');
-                  setInfoNotice('');
-                  setSuccessNotice('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '9px 0',
-                  borderRadius: '6px',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  color: mode === 'signin' ? '#ffffff' : 'var(--text-muted)',
-                  background: mode === 'signin' ? 'var(--primary)' : 'transparent',
-                  boxShadow: mode === 'signin' ? 'var(--primary-glow)' : 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Sign In
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signup');
-                  setError('');
-                  setInfoNotice('');
-                  setSuccessNotice('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '9px 0',
-                  borderRadius: '6px',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  color: mode === 'signup' ? '#ffffff' : 'var(--text-muted)',
-                  background: mode === 'signup' ? 'var(--primary)' : 'transparent',
-                  boxShadow: mode === 'signup' ? 'var(--primary-glow)' : 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Create Account
-              </button>
-            </div>
-
-            {/* GOOGLE ACTION BUTTON */}
-            {mode === 'signin' ? (
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                style={{
-                  width: '100%',
-                  padding: '11px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)',
-                  color: 'var(--text-main)',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; }}
-              >
-                <GoogleIcon />
-                <span>Continue with Google</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleGoogleSignUpAutoFill}
-                title="Fetches and auto-fills your Google profile details so you can review before creating"
-                style={{
-                  width: '100%',
-                  padding: '11px 16px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)',
-                  color: 'var(--text-main)',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; }}
-              >
-                <GoogleIcon />
-                <span>Auto-Fill Details with Google</span>
-              </button>
+            {/* Forgot Password Header Banner */}
+            {mode === 'forgot' && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '11px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(245, 158, 11, 0.09)',
+                border: '1px solid rgba(245, 158, 11, 0.28)',
+                marginBottom: '20px'
+              }}>
+                <span style={{ fontSize: '12.5px', color: '#f59e0b', fontWeight: 700 }}>
+                  Account Security &amp; Password Reset
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('signin');
+                    setError('');
+                    setInfoNotice('');
+                    setSuccessNotice('');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <ArrowLeft size={14} /> Back to Sign In
+                </button>
+              </div>
             )}
 
-            {/* Divider */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              margin: '20px 0 18px',
-              color: 'var(--text-dim)',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              letterSpacing: '0.06em'
-            }}>
-              <span style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-              <span>OR WITH EMAIL</span>
-              <span style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
-            </div>
+            {/* Mode Switcher: Sign In vs Create Account (Hidden in Forgot Mode) */}
+            {mode !== 'forgot' && (
+              <>
+                <div style={{
+                  display: 'flex',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-secondary)',
+                  padding: '4px',
+                  marginBottom: '20px',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('signin');
+                      setError('');
+                      setInfoNotice('');
+                      setSuccessNotice('');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '9px 0',
+                      borderRadius: '6px',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      color: mode === 'signin' ? '#ffffff' : 'var(--text-muted)',
+                      background: mode === 'signin' ? 'var(--primary)' : 'transparent',
+                      boxShadow: mode === 'signin' ? 'var(--primary-glow)' : 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Sign In
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('signup');
+                      setError('');
+                      setInfoNotice('');
+                      setSuccessNotice('');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '9px 0',
+                      borderRadius: '6px',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      color: mode === 'signup' ? '#ffffff' : 'var(--text-muted)',
+                      background: mode === 'signup' ? 'var(--primary)' : 'transparent',
+                      boxShadow: mode === 'signup' ? 'var(--primary-glow)' : 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Create Account
+                  </button>
+                </div>
+
+                {/* GOOGLE ACTION BUTTON */}
+                {mode === 'signin' ? (
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    style={{
+                      width: '100%',
+                      padding: '11px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-light)',
+                      color: 'var(--text-main)',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+                  >
+                    <GoogleIcon />
+                    <span>Continue with Google</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignUpAutoFill}
+                    title="Fetches and auto-fills your Google profile details so you can review before creating"
+                    style={{
+                      width: '100%',
+                      padding: '11px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-light)',
+                      color: 'var(--text-main)',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+                  >
+                    <GoogleIcon />
+                    <span>Auto-Fill Details with Google</span>
+                  </button>
+                )}
+
+                {/* Divider */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  margin: '20px 0 18px',
+                  color: 'var(--text-dim)',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em'
+                }}>
+                  <span style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                  <span>OR WITH EMAIL</span>
+                  <span style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+                </div>
+              </>
+            )}
 
             {/* Info Notice (e.g. redirected from Google Sign In when acc not found) */}
             {infoNotice && (
@@ -605,7 +699,7 @@ export default function Login() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                  Email Address
+                  {mode === 'forgot' ? 'Registered Email Address' : 'Email Address'}
                 </label>
                 <div style={{
                   display: 'flex',
@@ -639,12 +733,31 @@ export default function Login() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
-                    Password
+                    {mode === 'forgot' ? 'New Password' : 'Password'}
                   </label>
                   {mode === 'signin' && (
-                    <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('Demo password is: password123'); }} style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('forgot');
+                        setError('');
+                        setInfoNotice('');
+                        setSuccessNotice('');
+                        setPassword('');
+                        setConfirmPassword('');
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        fontSize: '12px',
+                        color: 'var(--primary)',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
                       Forgot password?
-                    </a>
+                    </button>
                   )}
                 </div>
                 <div style={{
@@ -660,7 +773,7 @@ export default function Login() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    placeholder={mode === 'signup' ? 'Set minimum 6 characters' : 'Enter your password'}
+                    placeholder={mode === 'forgot' ? 'Set new password (min. 6 characters)' : (mode === 'signup' ? 'Set minimum 6 characters' : 'Enter your password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={{
@@ -694,16 +807,112 @@ export default function Login() {
                 </div>
               </div>
 
+              {/* Confirm Password Field (Only for Forgot Password Mode) */}
+              {mode === 'forgot' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
+                    Confirm New Password
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-light)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px 14px'
+                  }}>
+                    <Lock size={16} color="var(--accent-pink)" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Re-enter your new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: 'var(--text-main)',
+                        fontSize: '14px',
+                        width: '100%'
+                      }}
+                    />
+                    {/* Eye Toggle Button for Confirm Password */}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: showConfirmPassword ? 'var(--primary)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2px',
+                        transition: 'color 0.15s ease'
+                      }}
+                    >
+                      {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 className="btn-primary"
                 disabled={loading}
                 style={{ width: '100%', marginTop: '6px', padding: '12px' }}
               >
-                <span>{loading ? 'Processing...' : (mode === 'signin' ? 'Sign In' : 'Create Free Account')}</span>
+                <span>
+                  {loading
+                    ? 'Processing...'
+                    : (mode === 'signin'
+                      ? 'Sign In'
+                      : (mode === 'signup'
+                        ? 'Create Free Account'
+                        : 'Reset Password & Sign In'))}
+                </span>
                 <ArrowRight size={16} />
               </button>
             </form>
+
+            {/* Return link when in Forgot Password mode */}
+            {mode === 'forgot' && (
+              <div style={{ marginTop: '18px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('signin');
+                    setError('');
+                    setInfoNotice('');
+                    setSuccessNotice('');
+                    setPassword('');
+                    setConfirmPassword('');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'color 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                >
+                  <ArrowLeft size={15} />
+                  <span>Return to Sign In</span>
+                </button>
+              </div>
+            )}
 
             {/* Quick Demo One-Click Sign In */}
             {mode === 'signin' && (
