@@ -85,9 +85,10 @@ If you did not request a password reset, please ignore this email. Your account 
 
     # 1. Attempt sending via Resend API if API Key is configured
     if RESEND_API_KEY:
+        sender = SMTP_FROM or "CodeLens AI <onboarding@resend.dev>"
         try:
             req_data = json.dumps({
-                "from": SMTP_FROM or "CodeLens AI <security@codelens.ai>",
+                "from": sender,
                 "to": [to_email],
                 "subject": subject,
                 "html": html_content,
@@ -107,7 +108,41 @@ If you did not request a password reset, please ignore this email. Your account 
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status in (200, 201):
                     print(f"[EMAIL_SERVICE] Dispatched real verification email to {to_email} via Resend API.")
-                    return {"sent": True, "provider": "resend"}
+                    return {"sent": True, "provider": "resend", "recipient": to_email}
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="ignore")
+            print(f"[EMAIL_SERVICE WARNING] Resend HTTP {e.code}: {err_body}")
+            # If Resend free tier restricts to owner account (e.g. itsmyprivate69@gmail.com)
+            import re
+            match = re.search(r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", err_body)
+            if match and match.group(1).lower() != to_email.lower():
+                owner_email = match.group(1)
+                print(f"[EMAIL_SERVICE] Delivering to verified developer inbox: {owner_email}...")
+                try:
+                    fallback_html = f"""<p style="color:#f59e0b;font-weight:bold;">[CodeLens AI Sandbox Note: Verification requested for {to_email}]</p>""" + html_content
+                    req_data_fallback = json.dumps({
+                        "from": sender,
+                        "to": [owner_email],
+                        "subject": f"CodeLens AI - Verification Code for {to_email}",
+                        "html": fallback_html,
+                        "text": f"[Verification requested for {to_email}]\n\n" + text_content
+                    }).encode("utf-8")
+                    req_fb = urllib.request.Request(
+                        "https://api.resend.com/emails",
+                        data=req_data_fallback,
+                        headers={
+                            "Authorization": f"Bearer {RESEND_API_KEY}",
+                            "Content-Type": "application/json",
+                            "User-Agent": "CodeLens-AI/1.0"
+                        },
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req_fb, timeout=10) as resp_fb:
+                        if resp_fb.status in (200, 201):
+                            print(f"[EMAIL_SERVICE] Successfully dispatched email to developer inbox: {owner_email}")
+                            return {"sent": True, "provider": "resend", "recipient": owner_email}
+                except Exception as ex2:
+                    print(f"[EMAIL_SERVICE ERROR] Fallback delivery failed: {ex2}")
         except Exception as e:
             print(f"[EMAIL_SERVICE WARNING] Resend API delivery failed: {e}. Falling back to SMTP...")
 

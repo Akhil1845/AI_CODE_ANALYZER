@@ -366,12 +366,14 @@ def send_forgot_password_code(req: ForgotPasswordCodeRequest):
 
     # Dispatch real email to user's inbox
     email_res = send_verification_email(clean_email, code)
+    recipient = email_res.get("recipient", clean_email)
 
     return {
         "success": True,
-        "message": f"A 6-digit security verification code has been dispatched to {clean_email}. Please check your email inbox and spam folder.",
+        "message": f"A 6-digit security verification code has been dispatched to {recipient}. Please check your email inbox and spam folder.",
         "expires_in_seconds": 600,
-        "email_dispatched": email_res.get("sent", False)
+        "email_dispatched": email_res.get("sent", False),
+        "recipient": recipient
     }
 
 class VerifyCodeRequest(BaseModel):
