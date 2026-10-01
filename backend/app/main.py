@@ -512,12 +512,24 @@ class GenerateSinglePageRequest(BaseModel):
     prompt: str
     framework: Optional[str] = "react"
     style: Optional[str] = "modern-dark"
+    page_type: Optional[str] = "auto"
+    sections: Optional[List[str]] = None
+    brand_name: Optional[str] = None
+    color_accent: Optional[str] = "pink-indigo"
 
 @app.post("/api/generate/single-page")
 def generate_single_page(req: GenerateSinglePageRequest):
     if not req.prompt or not req.prompt.strip():
         raise HTTPException(status_code=400, detail="Please provide a prompt or idea for the single page.")
-    result = project_ai_service.generate_single_page(req.prompt.strip(), req.framework or "react", req.style or "modern-dark")
+    result = project_ai_service.generate_single_page(
+        prompt=req.prompt.strip(),
+        framework=req.framework or "react",
+        style=req.style or "modern-dark",
+        page_type=req.page_type or "auto",
+        sections=req.sections,
+        color_accent=req.color_accent or "pink-indigo",
+        brand_name=req.brand_name
+    )
     return {"success": True, "data": result}
 
 class GenerateFullProjectRequest(BaseModel):

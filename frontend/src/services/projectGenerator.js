@@ -440,11 +440,25 @@ Refer to the manifest files to install dependencies and run locally.
   },
 
   // AI Single Page Generator
-  async generateAISinglePage(prompt, framework = 'react', style = 'modern-dark') {
+  async generateAISinglePage(optionsOrPrompt, framework = 'react', style = 'modern-dark') {
+    let payload = {};
+    if (typeof optionsOrPrompt === 'object' && optionsOrPrompt !== null) {
+      payload = {
+        prompt: optionsOrPrompt.prompt,
+        framework: optionsOrPrompt.framework || framework,
+        style: optionsOrPrompt.style || style,
+        page_type: optionsOrPrompt.page_type || optionsOrPrompt.pageType || 'auto',
+        sections: optionsOrPrompt.sections || [],
+        brand_name: optionsOrPrompt.brand_name || optionsOrPrompt.brandName || '',
+        color_accent: optionsOrPrompt.color_accent || optionsOrPrompt.colorAccent || 'pink-indigo'
+      };
+    } else {
+      payload = { prompt: optionsOrPrompt, framework, style };
+    }
     const res = await fetch('/api/generate/single-page', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, framework, style })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

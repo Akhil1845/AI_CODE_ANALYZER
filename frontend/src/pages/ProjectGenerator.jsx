@@ -8,15 +8,10 @@ import {
   FileCode, 
   Check, 
   Sparkles, 
-  FolderTree, 
   ArrowRight, 
-  Layers, 
-  Cpu, 
-  CheckCircle2, 
   Play,
   Copy,
   Layout,
-  Globe,
   Palette,
   Wand2,
   RefreshCw,
@@ -28,12 +23,10 @@ import {
   CheckCheck,
   ChevronRight,
   Database,
-  Terminal,
-  Clock,
   History,
-  FileText,
   Sliders,
-  ChevronDown
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 import { projectGenerator } from '../services/projectGenerator';
 import { api } from '../services/api';
@@ -52,18 +45,80 @@ const SINGLE_PAGE_FRAMEWORKS = [
   { id: 'vue', name: 'Vue 3 Single File', desc: 'Composition API component' }
 ];
 
-const STYLES = [
-  { id: 'modern-dark', name: 'Dark Glassmorphism', desc: 'Deep cosmic backdrop with glowing neon glass cards' },
-  { id: 'clean-saas', name: 'Modern SaaS Minimal', desc: 'High-contrast typography with clean borders & metrics' },
-  { id: 'cyberpunk', name: 'Cyberpunk Grid', desc: 'Electric pink & cyan accents with terminal aesthetic' }
+const PAGE_ARCHETYPES = [
+  { 
+    id: 'auth', 
+    name: 'Auth & Sign In', 
+    icon: '🔐', 
+    desc: 'Dual-tab Login, Sign Up, OAuth & 2FA',
+    defaultSections: ['navbar', 'hero', 'footer'],
+    defaultPrompt: 'Build a creative login and signup page with a sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle, and social sign in buttons.'
+  },
+  { 
+    id: 'landing', 
+    name: 'SaaS Landing Page', 
+    icon: '🚀', 
+    desc: 'Hero showcase, bento grid & conversion CTA',
+    defaultSections: ['navbar', 'hero', 'features', 'pricing', 'footer'],
+    defaultPrompt: 'Create a high-converting, dark-themed SaaS landing page for an AI code observability platform with sticky navbar, hero section, 3 feature cards, pricing tiers, and FAQ accordion.'
+  },
+  { 
+    id: 'dashboard', 
+    name: 'Analytics Dashboard', 
+    icon: '📊', 
+    desc: 'Telemetry KPI cards, SVG charts & logs',
+    defaultSections: ['navbar', 'kpi', 'features', 'footer'],
+    defaultPrompt: 'Build a dark glassmorphic observability analytics dashboard with a cluster telemetry overview, 4 real-time KPI metric cards, and a recent deployment activity table.'
+  },
+  { 
+    id: 'ecommerce', 
+    name: 'E-Commerce Store', 
+    icon: '🛒', 
+    desc: 'Product cards, filter tags & cart counter',
+    defaultSections: ['navbar', 'features', 'footer'],
+    defaultPrompt: 'Generate a modern e-commerce storefront for developer hardware gear with category filter pills, product grid with price tags, star ratings, and an interactive Add to Cart counter.'
+  },
+  { 
+    id: 'pricing', 
+    name: 'Pricing Matrix', 
+    icon: '💎', 
+    desc: '3 Tier cards, billing switch & features',
+    defaultSections: ['navbar', 'pricing', 'faq', 'footer'],
+    defaultPrompt: 'Build a high-conversion pricing comparison matrix with monthly and annual billing toggle, 3 tier cards with a highlighted Pro plan, and comprehensive feature checklists.'
+  },
+  { 
+    id: 'portfolio', 
+    name: 'Developer Portfolio', 
+    icon: '💼', 
+    desc: 'Hero bio, tech stack tags & project cards',
+    defaultSections: ['hero', 'features', 'footer'],
+    defaultPrompt: 'Create an ultra-sleek developer portfolio with an animated hero statement, interactive tech stack tags, project showcase cards with live demo links, and a clean contact form.'
+  }
 ];
 
-const PROMPT_INSPIRATIONS = [
-  { label: '✨ AI SaaS Landing Page', prompt: 'Create a high-converting, dark-themed SaaS landing page for an AI code observability platform. Include a sticky navbar, interactive hero with code preview, 3 feature cards, pricing tiers (Starter, Pro, Enterprise), and FAQ accordion.' },
-  { label: '📊 Crypto Portfolio Dashboard', prompt: 'Build a dark glassmorphic cryptocurrency analytics dashboard with a portfolio balance card, live BTC/ETH price tickers with 24h change indicators, a recent transaction list, and quick buy/sell action buttons.' },
-  { label: '🛍️ E-Commerce Product Showcase', prompt: 'Generate a modern e-commerce product detail page for premium mechanical keyboards. Include an interactive image gallery, color variant selector, stock status, reviews breakdown, and an animated Add to Cart drawer.' },
-  { label: '🔐 Glassmorphic Auth Portal', prompt: 'Build a modern dual-tab authentication screen (Sign In & Sign Up) with floating ambient background orbs, social login buttons (Google & GitHub), password strength meter, and terms agreement toggle.' },
-  { label: '💼 Developer Portfolio', prompt: 'Create an ultra-sleek developer portfolio for a Full-Stack & AI Engineer. Features an animated hero introduction, interactive tech stack tags, project showcase cards with github links, and a contact form.' }
+const AVAILABLE_SECTIONS = [
+  { id: 'navbar', label: 'Sticky Glass Navbar' },
+  { id: 'hero', label: 'Hero Banner' },
+  { id: 'features', label: 'Feature Bento Grid' },
+  { id: 'kpi', label: 'KPI Metric Cards' },
+  { id: 'pricing', label: 'Pricing Table' },
+  { id: 'testimonials', label: 'Social Proof' },
+  { id: 'faq', label: 'FAQ Accordion' },
+  { id: 'footer', label: 'Modern Footer' }
+];
+
+const STYLES = [
+  { id: 'modern-dark', name: 'Dark Glassmorphism' },
+  { id: 'cyberpunk', name: 'Cyberpunk Neon' },
+  { id: 'clean-saas', name: 'Clean Modern Minimal' },
+  { id: 'light-enterprise', name: 'Light Enterprise' }
+];
+
+const COLOR_THEMES = [
+  { id: 'pink-indigo', name: 'Electric Pink', gradient: 'linear-gradient(135deg, #ec4899, #8b5cf6)' },
+  { id: 'cyan-blue', name: 'Cyber Cyan', gradient: 'linear-gradient(135deg, #06b6d4, #3b82f6)' },
+  { id: 'emerald-mint', name: 'Emerald Matrix', gradient: 'linear-gradient(135deg, #10b981, #34d399)' },
+  { id: 'amber-orange', name: 'Sunset Amber', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' }
 ];
 
 export default function ProjectGenerator() {
@@ -72,8 +127,14 @@ export default function ProjectGenerator() {
   // Mode: 'single' (Single Page / Component) or 'project' (Full Project Repository)
   const [genMode, setGenMode] = useState('single');
 
+  // Archetype & Options
+  const [pageArchetype, setPageArchetype] = useState('auth');
+  const [selectedSections, setSelectedSections] = useState(['navbar', 'hero', 'footer']);
+  const [colorAccent, setColorAccent] = useState('pink-indigo');
+  const [brandName, setBrandName] = useState('');
+
   // Prompt / Idea
-  const [prompt, setPrompt] = useState('Create a high-converting, dark-themed SaaS landing page for an AI code observability platform with sticky navbar, hero section, 3 feature cards, pricing tiers, and FAQ accordion.');
+  const [prompt, setPrompt] = useState('Build a creative login and signup page with a sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle, and social sign in buttons.');
 
   // Single Page Configs
   const [singleFramework, setSingleFramework] = useState('react');
@@ -111,15 +172,15 @@ export default function ProjectGenerator() {
   // Build History (Pages & Projects Built)
   const [buildHistory, setBuildHistory] = useState([
     {
-      id: 'build-1',
+      id: 'build-init',
       mode: 'single',
-      title: 'AI SaaS Landing Page',
-      timestamp: 'Just now',
-      tag: 'React 19 + Tailwind',
-      prompt: 'SaaS landing page with sticky navbar, hero section, 3 feature cards, and pricing tiers.'
+      title: 'NexusAuth Portal',
+      timestamp: 'Initial load',
+      tag: 'AUTH (React)',
+      prompt: 'Build a creative login and signup page with sticky glass navbar.'
     }
   ]);
-  const [activeBuildId, setActiveBuildId] = useState('build-1');
+  const [activeBuildId, setActiveBuildId] = useState('build-init');
 
   const fileKeys = Object.keys(projectFiles);
   const activeFile = selectedFile && projectFiles[selectedFile] ? selectedFile : fileKeys[0];
@@ -131,24 +192,49 @@ export default function ProjectGenerator() {
     }
   }, []);
 
+  // When user selects an archetype card
+  const handleSelectArchetype = (arch) => {
+    setPageArchetype(arch.id);
+    setPrompt(arch.defaultPrompt);
+    if (arch.defaultSections) {
+      setSelectedSections(arch.defaultSections);
+    }
+  };
+
+  // Toggle section checkbox
+  const handleToggleSection = (secId) => {
+    setSelectedSections(prev => 
+      prev.includes(secId) ? prev.filter(s => s !== secId) : [...prev, secId]
+    );
+  };
+
   // Handle AI Single Page Generation
   const handleGenerateSinglePage = async (withAI = true) => {
     setGenerating(true);
-    setGenStatusText('1. Synthesizing component layout...');
+    setGenStatusText('1. Designing UI architecture...');
     try {
       let result = null;
       if (withAI) {
-        setTimeout(() => setGenStatusText('2. Applying modern Tailwind styles...'), 1200);
-        setTimeout(() => setGenStatusText('3. Assembling interactive live canvas...'), 2400);
-        result = await projectGenerator.generateAISinglePage(prompt, singleFramework, singleStyle);
+        setTimeout(() => setGenStatusText('2. Applying Tailwind styles & interactions...'), 1100);
+        setTimeout(() => setGenStatusText('3. Assembling live responsive preview...'), 2200);
+        result = await projectGenerator.generateAISinglePage({
+          prompt,
+          framework: singleFramework,
+          style: singleStyle,
+          page_type: pageArchetype,
+          sections: selectedSections,
+          color_accent: colorAccent,
+          brand_name: brandName
+        });
       } else {
+        // High-end default starter
         result = {
-          title: 'CodeLens AI SaaS Landing Page',
-          description: 'High-converting dark glassmorphic landing page with hero, features, and pricing.',
-          filename: singleFramework === 'html' ? 'index.html' : 'LandingPage.jsx',
-          features: ['Sticky Glass Header', 'Dynamic Hero Section', '3-Column Metric Cards', 'Pricing Tiers'],
-          code: `import React, { useState } from 'react';\n\nexport default function LandingPage() {\n  return (\n    <div className="min-h-screen bg-[#070913] text-white flex flex-col justify-between">\n      <header className="border-b border-white/10 px-8 py-5 flex items-center justify-between backdrop-blur-md">\n        <div className="flex items-center gap-3">\n          <div className="w-9 h-9 rounded-lg bg-pink-500 flex items-center justify-center font-bold">⚡</div>\n          <span className="font-extrabold text-lg">CodeLens<span className="text-pink-500">.ai</span></span>\n        </div>\n        <button className="bg-pink-600 px-5 py-2 rounded-lg font-bold hover:bg-pink-500 transition">Get Started</button>\n      </header>\n      <main className="max-w-5xl mx-auto px-6 py-20 text-center">\n        <h1 className="text-6xl font-black mb-6">Build Faster with <span className="text-pink-500">Neural Precision</span></h1>\n        <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-8">Scaffold full-stack repositories and standalone interfaces with AI acceleration.</p>\n        <button className="bg-gradient-to-r from-pink-500 to-indigo-600 px-8 py-4 rounded-xl font-extrabold text-lg shadow-xl shadow-pink-500/25">Launch Studio &rarr;</button>\n      </main>\n      <footer className="border-t border-white/10 py-6 text-center text-xs text-slate-500">\n        © 2026 CodeLens AI. All rights reserved.\n      </footer>\n    </div>\n  );\n}`,
-          preview_html: `<!DOCTYPE html><html><head><meta charset="utf-8"><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;900&display=swap" rel="stylesheet"><style>body{font-family:'Plus Jakarta Sans',sans-serif;background:#070913;color:#fff;}.glass{background:rgba(17,24,39,0.7);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);}</style></head><body class="min-h-screen flex flex-col justify-between"><header class="border-b border-white/10 glass sticky top-0 px-8 py-5 flex items-center justify-between z-50"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-indigo-600 flex items-center justify-center font-black shadow-lg shadow-pink-500/30">⚡</div><span class="font-extrabold text-xl">CodeLens<span class="text-pink-500">.ai</span></span></div><div class="flex items-center gap-4"><button class="text-sm font-bold text-slate-300 hover:text-white px-3 py-1.5">Sign In</button><button class="text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white px-5 py-2.5 rounded-lg shadow-lg shadow-pink-500/25 hover:opacity-95 transition">Get Started</button></div></header><main class="max-w-5xl mx-auto px-6 py-20 text-center"><div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border border-pink-500/30 text-pink-400 text-xs font-bold uppercase mb-8">✨ INTELLIGENT COMPONENT ENGINE</div><h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">Build Faster with <span class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent">Neural Velocity.</span></h1><p class="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">Scaffold full-stack repositories and standalone interfaces with AI acceleration in seconds.</p><button class="px-8 py-4 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 font-extrabold text-white text-base shadow-xl shadow-pink-500/30 hover:scale-105 transition transform">Launch Workspace &rarr;</button><div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mt-16"><div class="glass p-6 rounded-2xl"><div class="text-2xl mb-3">⚡</div><h3 class="font-extrabold text-lg text-white mb-2">Instant Scaffolding</h3><p class="text-sm text-slate-400">Generate full projects and single page apps from plain English ideas.</p></div><div class="glass p-6 rounded-2xl"><div class="text-2xl mb-3">🛡️</div><h3 class="font-extrabold text-lg text-white mb-2">2FA Security</h3><p class="text-sm text-slate-400">Production-ready cryptographic verification flow built right in.</p></div><div class="glass p-6 rounded-2xl"><div class="text-2xl mb-3">📊</div><h3 class="font-extrabold text-lg text-white mb-2">AST Code Doctor</h3><p class="text-sm text-slate-400">Inspect code iteratively with zero syntax regressions.</p></div></div></main><footer class="border-t border-white/10 glass py-6 text-center text-xs text-slate-500">© 2026 CodeLens AI. All rights reserved.</footer></body></html>`
+          title: 'NexusAuth Portal',
+          description: 'Modern dual-tab authentication portal with glassmorphism, social sign-in, and password toggle.',
+          filename: singleFramework === 'html' ? 'index.html' : 'AuthPortal.jsx',
+          features: ['Dual-Tab Sign In & Sign Up', 'Sticky Glass Navbar', 'Social OAuth (Google & GitHub)', 'Password Visibility Toggle', 'Ambient Background Orbs'],
+          code: `import React, { useState } from 'react';\n\nexport default function AuthPortal() {\n  const [tab, setTab] = useState('login');\n  const [showPassword, setShowPassword] = useState(false);\n  return (\n    <div className="min-h-screen bg-[#070913] text-white flex flex-col justify-between relative overflow-hidden">\n      {/* Navbar */}\n      <header className="sticky top-0 z-50 px-6 py-4 backdrop-blur-xl border-b border-white/10 flex justify-between items-center">\n        <div className="flex items-center gap-2 font-black text-xl">\n          <span className="w-8 h-8 rounded-lg bg-pink-500 flex items-center justify-center text-sm">⚡</span>\n          Nexus<span className="text-pink-500">Auth</span>\n        </div>\n        <span className="text-xs text-emerald-400 font-semibold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">256-Bit SSL</span>\n      </header>\n      {/* Center Auth Card */}\n      <main className="flex-1 flex items-center justify-center p-6">\n        <div className="w-full max-w-md bg-slate-900/80 border border-white/10 backdrop-blur-2xl rounded-2xl p-8 shadow-2xl">\n          <div className="flex bg-slate-950/80 p-1 rounded-xl mb-6">\n            <button onClick={() => setTab('login')} className={\`flex-1 py-2 font-bold text-sm rounded-lg \${tab === 'login' ? 'bg-pink-600 text-white' : 'text-slate-400'}\`}>Sign In</button>\n            <button onClick={() => setTab('signup')} className={\`flex-1 py-2 font-bold text-sm rounded-lg \${tab === 'signup' ? 'bg-pink-600 text-white' : 'text-slate-400'}\`}>Sign Up</button>\n          </div>\n          <h2 className="text-2xl font-black mb-2">{tab === 'login' ? 'Welcome Back' : 'Create Account'}</h2>\n          <p className="text-xs text-slate-400 mb-6">Enter your details to access your workspace</p>\n          <form className="space-y-4">\n            <div>\n              <label className="block text-xs font-bold mb-1">Email</label>\n              <input type="email" placeholder="alex@company.com" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white" />\n            </div>\n            <div>\n              <label className="block text-xs font-bold mb-1">Password</label>\n              <div className="relative">\n                <input type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white pr-10" />\n                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-xs text-slate-400">👁️</button>\n              </div>\n            </div>\n            <button type="button" className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-indigo-600 rounded-xl font-black text-sm text-white shadow-lg">Continue &rarr;</button>\n          </form>\n        </div>\n      </main>\n      <footer className="py-4 text-center text-xs text-slate-500 border-t border-white/10">\n        © 2026 NexusAuth Systems Inc. All rights reserved.\n      </footer>\n    </div>\n  );\n}`,
+          preview_html: `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>NexusAuth Portal</title><script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>body{font-family:'Plus Jakarta Sans',sans-serif;background:#070913;color:#f8fafc;}.glass{background:rgba(17,24,39,0.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);}</style></head><body class="min-h-screen flex flex-col justify-between relative overflow-hidden selection:bg-pink-500 selection:text-white"><div class="absolute w-[500px] h-[500px] bg-pink-500/15 -top-20 -left-20 rounded-full blur-[120px] pointer-events-none"></div><div class="absolute w-[500px] h-[500px] bg-indigo-600/15 -bottom-20 -right-20 rounded-full blur-[120px] pointer-events-none"></div><header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b border-white/10"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-pink-500/30">⚡</div><span class="text-xl font-extrabold text-white">Nexus<span class="text-pink-500">Auth</span></span></div><span class="text-xs font-bold text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30">256-Bit SSL Secured</span></header><main class="flex-grow flex items-center justify-center px-4 py-12 relative z-10"><div class="w-full max-w-md glass rounded-2xl p-8 shadow-2xl"><div class="flex rounded-xl bg-slate-900 p-1 border border-white/5 mb-6"><button id="tab-login" onclick="setTab('login')" class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow">Sign In</button><button id="tab-signup" onclick="setTab('signup')" class="flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-400 hover:text-white">Sign Up</button></div><div id="view-login"><h2 class="text-2xl font-black text-white mb-1">Welcome Back</h2><p class="text-xs text-slate-400 mb-6">Enter your credentials to access your account</p><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-300 mb-1">Email</label><input type="email" placeholder="alex@company.com" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-pink-500"></div><div><label class="block text-xs font-bold text-slate-300 mb-1">Password</label><div class="relative"><input id="p-login" type="password" placeholder="••••••••" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-pink-500 pr-10"><button type="button" onclick="togglePass('p-login')" class="absolute right-3 top-3.5 text-xs text-slate-400">👁️</button></div></div><button onclick="alert('Signed In (Demo)')" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 font-extrabold text-sm text-white shadow-lg shadow-pink-500/25 hover:opacity-95 transition">Sign In &rarr;</button></div></div><div id="view-signup" class="hidden"><h2 class="text-2xl font-black text-white mb-1">Create Account</h2><p class="text-xs text-slate-400 mb-6">Start your 14-day free trial</p><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-300 mb-1">Full Name</label><input type="text" placeholder="Alex Mercer" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white"></div><div><label class="block text-xs font-bold text-slate-300 mb-1">Work Email</label><input type="email" placeholder="alex@company.com" class="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white"></div><button onclick="alert('Account Created (Demo)')" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-600 font-extrabold text-sm text-white shadow-lg shadow-pink-500/25 hover:opacity-95 transition">Create Account &rarr;</button></div></div></div></main><footer class="border-t border-white/10 glass py-4 text-center text-xs text-slate-500">© 2026 NexusAuth Systems Inc. All rights reserved.</footer><script>function setTab(t){if(t==='login'){document.getElementById('view-login').classList.remove('hidden');document.getElementById('view-signup').classList.add('hidden');document.getElementById('tab-login').className='flex-1 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow';document.getElementById('tab-signup').className='flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-400 hover:text-white';}else{document.getElementById('view-login').classList.add('hidden');document.getElementById('view-signup').classList.remove('hidden');document.getElementById('tab-signup').className='flex-1 py-2.5 rounded-lg text-sm font-bold bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow';document.getElementById('tab-login').className='flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-400 hover:text-white';}}function togglePass(id){var el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}</script></body></html>`
         };
       }
 
@@ -161,10 +247,10 @@ export default function ProjectGenerator() {
         {
           id: newBuildId,
           mode: 'single',
-          title: result.title || 'Generated Single Page',
+          title: result.title || 'Generated UI',
           timestamp: 'Just now',
-          tag: singleFramework.toUpperCase(),
-          prompt: prompt.slice(0, 75) + '...',
+          tag: `${pageArchetype.toUpperCase()} (${singleFramework.toUpperCase()})`,
+          prompt: prompt.slice(0, 65) + '...',
           result: result
         },
         ...prev.filter(b => b.id !== newBuildId).slice(0, 7)
@@ -172,6 +258,7 @@ export default function ProjectGenerator() {
       setActiveBuildId(newBuildId);
     } catch (err) {
       console.error(err);
+      alert('Generation error: ' + err.message);
     } finally {
       setGenerating(false);
     }
@@ -182,7 +269,7 @@ export default function ProjectGenerator() {
     setGenerating(true);
     setGenStatusText('1. Scaffolding project directory tree...');
     try {
-      setTimeout(() => setGenStatusText('2. Injecting domain models & routes with AI...'), 1500);
+      setTimeout(() => setGenStatusText('2. Injecting domain models & routes with AI...'), 1400);
       const baseFiles = projectGenerator.generateFiles({
         name,
         stack,
@@ -210,7 +297,7 @@ export default function ProjectGenerator() {
           title: name || 'Custom Project',
           timestamp: 'Just now',
           tag: stack.toUpperCase(),
-          prompt: prompt.slice(0, 75) + '...',
+          prompt: prompt.slice(0, 65) + '...',
           files: combined
         },
         ...prev.filter(b => b.id !== newBuildId).slice(0, 7)
@@ -252,6 +339,14 @@ export default function ProjectGenerator() {
     setTimeout(() => setDownloadSuccess(false), 2500);
   };
 
+  // Open Preview in Full Window
+  const handleOpenInNewWindow = () => {
+    if (!singlePageResult?.preview_html) return;
+    const blob = new Blob([singlePageResult.preview_html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  };
+
   // Download Full Project ZIP
   const handleDownloadZip = async () => {
     setGenerating(true);
@@ -274,21 +369,6 @@ export default function ProjectGenerator() {
     }
   };
 
-  // Send to CodeLens Project Analyzer
-  const handleSendToAnalyzer = async () => {
-    setGenerating(true);
-    try {
-      const blob = await projectGenerator.createZipBlob(projectFiles);
-      const zipFile = new File([blob], `${name}.zip`, { type: 'application/zip' });
-      await api.uploadProject(zipFile);
-      navigate('/analyzer');
-    } catch (err) {
-      navigate('/analyzer');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   // Copy Code
   const handleCopyCode = (textToCopy) => {
     navigator.clipboard.writeText(textToCopy);
@@ -300,9 +380,9 @@ export default function ProjectGenerator() {
   const handleEnhancePrompt = () => {
     if (!prompt.trim()) return;
     const enhancements = [
-      'Include dark glassmorphic cards, glowing neon hover states, and smooth CSS micro-interactions.',
+      'Incorporate dark glassmorphic cards, glowing neon hover states, and smooth CSS micro-interactions.',
       'Add a sticky glass navbar, dynamic hero with gradient typography, 3 feature showcase cards, and interactive CTA buttons.',
-      'Incorporate clean TypeScript interfaces, state management hooks, and production-grade accessibility attributes.'
+      'Include responsive form inputs, password reveal toggle, social OAuth buttons, and clean TypeScript-ready JSX.'
     ];
     setPrompt(prev => `${prev.trim()} ${enhancements[Math.floor(Math.random() * enhancements.length)]}`);
   };
@@ -314,13 +394,13 @@ export default function ProjectGenerator() {
       {/* Dynamic Ambient Background Glows */}
       <div style={{
         position: 'absolute',
-        top: '6%',
-        left: '20%',
-        width: '550px',
-        height: '550px',
+        top: '4%',
+        left: '18%',
+        width: '500px',
+        height: '500px',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, rgba(99, 102, 241, 0.03) 70%, transparent 100%)',
-        filter: 'blur(95px)',
+        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, rgba(99, 102, 241, 0.02) 70%, transparent 100%)',
+        filter: 'blur(90px)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
@@ -328,7 +408,7 @@ export default function ProjectGenerator() {
       <main style={{ flexGrow: 1, padding: '24px 0 60px', position: 'relative', zIndex: 1 }}>
         <div style={{ width: '100%', maxWidth: '1720px', margin: '0 auto', padding: '0 24px' }}>
 
-          {/* TOP BAR / STUDIO TITLE */}
+          {/* TOP BAR / STUDIO HEADER */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -339,8 +419,8 @@ export default function ProjectGenerator() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
-                width: '38px',
-                height: '38px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '10px',
                 background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
                 display: 'flex',
@@ -352,16 +432,16 @@ export default function ProjectGenerator() {
                 <Wand2 size={20} />
               </div>
               <div>
-                <h1 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
-                  Project &amp; Page Studio
+                <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+                  Project &amp; Single Page Studio
                 </h1>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Prompt-driven AI code generator &bull; Side-by-side live canvas
+                  Architect UI pages &amp; repositories &bull; Live side-by-side interactive canvas
                 </div>
               </div>
             </div>
 
-            {/* Top Scope Switcher Pills */}
+            {/* Scope Switcher Pills: Single Page vs Full Project */}
             <div style={{
               display: 'flex',
               background: 'var(--bg-secondary)',
@@ -389,7 +469,7 @@ export default function ProjectGenerator() {
                 }}
               >
                 <Layout size={15} />
-                <span>Single Page Component</span>
+                <span>Single Page Builder</span>
               </button>
 
               <button
@@ -417,106 +497,181 @@ export default function ProjectGenerator() {
             </div>
           </div>
 
-          {/* DUAL-PANE SIDE-BY-SIDE STUDIO WORKSPACE */}
+          {/* DUAL-PANE WORKSPACE */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(380px, 460px) 1fr',
+            gridTemplateColumns: 'minmax(420px, 480px) 1fr',
             gap: '24px',
             alignItems: 'start'
           }}>
 
             {/* ======================================================== */}
-            {/* LEFT COLUMN: Controls, Prompt Input, Options, & Builds   */}
+            {/* LEFT COLUMN: Controls, Modular Options, Prompt & History */}
             {/* ======================================================== */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               
-              {/* Prompt Input Deck */}
+              {/* MAIN CONFIGURATION CARD */}
               <div className="glass-card" style={{
                 padding: '20px',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-light)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={14} color="var(--primary)" />
-                    <span>Your Prompt or Idea</span>
-                  </label>
 
-                  <button
-                    type="button"
-                    onClick={handleEnhancePrompt}
-                    title="Enhance prompt with AI architectural specs"
-                    style={{
-                      background: 'rgba(236, 72, 153, 0.1)',
-                      border: '1px solid rgba(236, 72, 153, 0.3)',
-                      color: 'var(--accent-pink)',
-                      padding: '3px 9px',
-                      borderRadius: '5px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Wand2 size={11} />
-                    <span>Enhance</span>
-                  </button>
-                </div>
+                {/* 1. Page Archetype Selection (If Single Page Mode) */}
+                {genMode === 'single' && (
+                  <div style={{ marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        1. Select Page Archetype
+                      </label>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Choose layout style</span>
+                    </div>
 
-                <textarea
-                  rows={4}
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g. Dark-themed crypto portfolio dashboard with live tickers, chart container, and transaction history..."
-                  style={{
-                    width: '100%',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '12px 14px',
-                    color: 'var(--text-main)',
-                    fontSize: '13.5px',
-                    lineHeight: 1.5,
-                    outline: 'none',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                    marginBottom: '12px'
-                  }}
-                />
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '8px'
+                    }}>
+                      {PAGE_ARCHETYPES.map((arch) => {
+                        const isSelected = pageArchetype === arch.id;
+                        return (
+                          <button
+                            key={arch.id}
+                            type="button"
+                            onClick={() => handleSelectArchetype(arch)}
+                            style={{
+                              padding: '10px 8px',
+                              borderRadius: '8px',
+                              background: isSelected ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
+                              border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                              color: isSelected ? '#fff' : 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '4px',
+                              textAlign: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <span style={{ fontSize: '18px' }}>{arch.icon}</span>
+                            <span style={{ fontSize: '11.5px', fontWeight: isSelected ? 800 : 600 }}>{arch.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                {/* Quick Inspiration Pills */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-                  {PROMPT_INSPIRATIONS.map((item, idx) => (
+                {/* 2. Prompt or Idea Input */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={13} color="var(--primary)" />
+                      <span>{genMode === 'single' ? '2. Your Prompt or Idea' : '1. Project Specification'}</span>
+                    </label>
+
                     <button
-                      key={idx}
                       type="button"
-                      onClick={() => setPrompt(item.prompt)}
+                      onClick={handleEnhancePrompt}
+                      title="Enrich prompt with production architectural details"
                       style={{
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: '9999px',
-                        padding: '4px 9px',
-                        color: 'var(--text-muted)',
+                        background: 'rgba(236, 72, 153, 0.1)',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        color: 'var(--accent-pink)',
+                        padding: '3px 8px',
+                        borderRadius: '5px',
                         fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--text-main)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                     >
-                      {item.label}
+                      <Wand2 size={11} />
+                      <span>AI Enhance</span>
                     </button>
-                  ))}
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="Describe what to build or customize (e.g. Creative login with glass card, sticky navbar, show/hide password, and ambient background)..."
+                    style={{
+                      width: '100%',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '10px 12px',
+                      color: 'var(--text-main)',
+                      fontSize: '13px',
+                      lineHeight: 1.5,
+                      outline: 'none',
+                      resize: 'vertical',
+                      fontFamily: 'inherit'
+                    }}
+                  />
                 </div>
 
-                {/* Configuration Options */}
+                {/* 3. Modular Sections Checkboxes (If Single Page Mode) */}
+                {genMode === 'single' && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                      3. Modular Sections to Include
+                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {AVAILABLE_SECTIONS.map((sec) => {
+                        const isChecked = selectedSections.includes(sec.id);
+                        return (
+                          <button
+                            key={sec.id}
+                            type="button"
+                            onClick={() => handleToggleSection(sec.id)}
+                            style={{
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              background: isChecked ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
+                              border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-subtle)'}`,
+                              color: isChecked ? '#fff' : 'var(--text-muted)',
+                              transition: 'all 0.12s ease'
+                            }}
+                          >
+                            <span style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '3px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: isChecked ? 'var(--primary)' : 'transparent',
+                              border: `1px solid ${isChecked ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
+                              color: '#fff',
+                              fontSize: '9px'
+                            }}>
+                              {isChecked && '✓'}
+                            </span>
+                            <span>{sec.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Fine-Tuning Options Grid */}
                 {genMode === 'single' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '18px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                         Framework
                       </label>
                       <select
@@ -527,9 +682,9 @@ export default function ProjectGenerator() {
                           background: 'var(--bg-secondary)',
                           border: '1px solid var(--border-subtle)',
                           borderRadius: '6px',
-                          padding: '8px 10px',
+                          padding: '7px 9px',
                           color: 'var(--text-main)',
-                          fontSize: '12.5px',
+                          fontSize: '12px',
                           outline: 'none',
                           cursor: 'pointer'
                         }}
@@ -541,7 +696,7 @@ export default function ProjectGenerator() {
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                         Design Theme
                       </label>
                       <select
@@ -552,9 +707,9 @@ export default function ProjectGenerator() {
                           background: 'var(--bg-secondary)',
                           border: '1px solid var(--border-subtle)',
                           borderRadius: '6px',
-                          padding: '8px 10px',
+                          padding: '7px 9px',
                           color: 'var(--text-main)',
-                          fontSize: '12.5px',
+                          fontSize: '12px',
                           outline: 'none',
                           cursor: 'pointer'
                         }}
@@ -564,12 +719,60 @@ export default function ProjectGenerator() {
                         ))}
                       </select>
                     </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                        Color Accent
+                      </label>
+                      <select
+                        value={colorAccent}
+                        onChange={(e) => setColorAccent(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          padding: '7px 9px',
+                          color: 'var(--text-main)',
+                          fontSize: '12px',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {COLOR_THEMES.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                        Custom Brand Name
+                      </label>
+                      <input
+                        type="text"
+                        value={brandName}
+                        onChange={(e) => setBrandName(e.target.value)}
+                        placeholder="e.g. NexusAuth (Optional)"
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          padding: '7px 9px',
+                          color: 'var(--text-main)',
+                          fontSize: '12px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                  /* Full Project Configuration Options */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                           Tech Stack
                         </label>
                         <select
@@ -580,9 +783,9 @@ export default function ProjectGenerator() {
                             background: 'var(--bg-secondary)',
                             border: '1px solid var(--border-subtle)',
                             borderRadius: '6px',
-                            padding: '8px 10px',
+                            padding: '7px 9px',
                             color: 'var(--text-main)',
-                            fontSize: '12.5px',
+                            fontSize: '12px',
                             outline: 'none',
                             cursor: 'pointer'
                           }}
@@ -594,7 +797,7 @@ export default function ProjectGenerator() {
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
                           Database
                         </label>
                         <select
@@ -605,9 +808,9 @@ export default function ProjectGenerator() {
                             background: 'var(--bg-secondary)',
                             border: '1px solid var(--border-subtle)',
                             borderRadius: '6px',
-                            padding: '8px 10px',
+                            padding: '7px 9px',
                             color: 'var(--text-main)',
-                            fontSize: '12.5px',
+                            fontSize: '12px',
                             outline: 'none',
                             cursor: 'pointer'
                           }}
@@ -621,19 +824,22 @@ export default function ProjectGenerator() {
                     </div>
 
                     <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
+                        Repository / Service Name
+                      </label>
                       <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Project name (e.g. user-service)"
+                        placeholder="Project name (e.g. auth-gateway)"
                         style={{
                           width: '100%',
                           background: 'var(--bg-secondary)',
                           border: '1px solid var(--border-subtle)',
                           borderRadius: '6px',
-                          padding: '8px 12px',
+                          padding: '7px 10px',
                           color: 'var(--text-main)',
-                          fontSize: '12.5px',
+                          fontSize: '12px',
                           outline: 'none'
                         }}
                       />
@@ -647,12 +853,12 @@ export default function ProjectGenerator() {
                   onClick={genMode === 'single' ? () => handleGenerateSinglePage(true) : handleGenerateFullProject}
                   disabled={generating || !prompt.trim()}
                   className="btn-primary"
-                  style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: 800, borderRadius: 'var(--radius-sm)' }}
+                  style={{ width: '100%', padding: '12px', fontSize: '13.5px', fontWeight: 800, borderRadius: 'var(--radius-sm)' }}
                 >
                   {generating ? (
                     <>
                       <RefreshCw size={15} className="animate-spin" />
-                      <span>{genStatusText || 'Synthesizing with AI...'}</span>
+                      <span>{genStatusText || 'Generating with AI...'}</span>
                     </>
                   ) : (
                     <>
@@ -666,20 +872,20 @@ export default function ProjectGenerator() {
 
               {/* BUILT PAGES & PROJECTS SIDE-LIST */}
               <div className="glass-card" style={{
-                padding: '18px 20px',
+                padding: '16px 18px',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-light)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <History size={14} color="var(--primary)" />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <History size={13} color="var(--primary)" />
                     <span>Pages &amp; Projects Built ({buildHistory.length})</span>
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Click to view</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>1-click view</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {buildHistory.map((item) => {
                     const isSelected = activeBuildId === item.id;
                     return (
@@ -687,7 +893,7 @@ export default function ProjectGenerator() {
                         key={item.id}
                         onClick={() => handleSelectBuild(item)}
                         style={{
-                          padding: '10px 12px',
+                          padding: '9px 12px',
                           borderRadius: 'var(--radius-sm)',
                           background: isSelected ? 'var(--bg-secondary)' : 'rgba(255,255,255,0.02)',
                           border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
@@ -700,8 +906,8 @@ export default function ProjectGenerator() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
                           <div style={{
-                            width: '28px',
-                            height: '28px',
+                            width: '26px',
+                            height: '26px',
                             borderRadius: '6px',
                             background: item.mode === 'single' ? 'rgba(236,72,153,0.15)' : 'rgba(99,102,241,0.15)',
                             color: item.mode === 'single' ? 'var(--accent-pink)' : 'var(--primary)',
@@ -710,19 +916,19 @@ export default function ProjectGenerator() {
                             justifyContent: 'center',
                             flexShrink: 0
                           }}>
-                            {item.mode === 'single' ? <Layout size={14} /> : <Box size={14} />}
+                            {item.mode === 'single' ? <Layout size={13} /> : <Box size={13} />}
                           </div>
                           <div style={{ overflow: 'hidden' }}>
-                            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.title}
                             </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
                               {item.tag} &bull; {item.timestamp}
                             </div>
                           </div>
                         </div>
 
-                        <ChevronRight size={14} color={isSelected ? 'var(--primary)' : 'var(--text-dim)'} />
+                        <ChevronRight size={13} color={isSelected ? 'var(--primary)' : 'var(--text-dim)'} />
                       </div>
                     );
                   })}
@@ -734,7 +940,7 @@ export default function ProjectGenerator() {
             {/* ======================================================== */}
             {/* RIGHT COLUMN: The Built Canvas / Live View / Code Studio */}
             {/* ======================================================== */}
-            <div style={{ position: 'sticky', top: '90px' }}>
+            <div style={{ position: 'sticky', top: '80px' }}>
               <div className="glass-card" style={{
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-light)',
@@ -748,41 +954,41 @@ export default function ProjectGenerator() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '14px 20px',
+                  padding: '12px 18px',
                   borderBottom: '1px solid var(--border-subtle)',
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  background: 'rgba(15, 23, 42, 0.65)',
                   flexWrap: 'wrap',
-                  gap: '12px'
+                  gap: '10px'
                 }}>
-                  {/* Left Title Badge */}
+                  {/* Left: Window Chrome & Title */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f43f5e' }} />
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
+                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#f43f5e' }} />
+                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#f59e0b' }} />
+                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#10b981' }} />
                     </div>
 
-                    <div style={{ height: '16px', width: '1px', background: 'var(--border-subtle)', margin: '0 4px' }} />
+                    <div style={{ height: '14px', width: '1px', background: 'var(--border-subtle)', margin: '0 2px' }} />
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge badge-medium" style={{ fontSize: '10px', padding: '2px 6px' }}>
-                        {genMode === 'single' ? 'SINGLE PAGE' : 'FULL REPO'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <span className="badge badge-medium" style={{ fontSize: '9.5px', padding: '2px 6px' }}>
+                        {genMode === 'single' ? pageArchetype.toUpperCase() : 'REPO'}
                       </span>
-                      <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
                         {genMode === 'single' ? (singlePageResult?.title || 'Preview Canvas') : (name || 'Project Scaffold')}
                       </span>
                     </div>
                   </div>
 
                   {/* Right Actions & Viewport Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     
                     {/* If Single Page: Toggle Live Preview vs Source Code */}
                     {genMode === 'single' && (
                       <div style={{
                         display: 'flex',
                         background: 'var(--bg-secondary)',
-                        padding: '3px',
+                        padding: '2px',
                         borderRadius: '6px',
                         border: '1px solid var(--border-subtle)'
                       }}>
@@ -790,39 +996,39 @@ export default function ProjectGenerator() {
                           type="button"
                           onClick={() => setPreviewTab('preview')}
                           style={{
-                            padding: '5px 11px',
+                            padding: '4px 10px',
                             borderRadius: '4px',
                             background: previewTab === 'preview' ? 'var(--primary)' : 'transparent',
                             color: previewTab === 'preview' ? '#fff' : 'var(--text-muted)',
                             border: 'none',
-                            fontSize: '11.5px',
+                            fontSize: '11px',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '5px'
+                            gap: '4px'
                           }}
                         >
-                          <Eye size={13} /> Live Preview
+                          <Eye size={12} /> Live Preview
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewTab('code')}
                           style={{
-                            padding: '5px 11px',
+                            padding: '4px 10px',
                             borderRadius: '4px',
                             background: previewTab === 'code' ? 'var(--primary)' : 'transparent',
                             color: previewTab === 'code' ? '#fff' : 'var(--text-muted)',
                             border: 'none',
-                            fontSize: '11.5px',
+                            fontSize: '11px',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '5px'
+                            gap: '4px'
                           }}
                         >
-                          <Code2 size={13} /> Source Code
+                          <Code2 size={12} /> Source Code
                         </button>
                       </div>
                     )}
@@ -835,7 +1041,7 @@ export default function ProjectGenerator() {
                           onClick={() => setViewportMode('desktop')}
                           title="Desktop (100%)"
                           style={{
-                            padding: '5px 8px',
+                            padding: '4px 7px',
                             background: viewportMode === 'desktop' ? 'var(--bg-surface)' : 'transparent',
                             color: viewportMode === 'desktop' ? 'var(--primary)' : 'var(--text-muted)',
                             border: 'none',
@@ -843,14 +1049,14 @@ export default function ProjectGenerator() {
                             cursor: 'pointer'
                           }}
                         >
-                          <Monitor size={14} />
+                          <Monitor size={13} />
                         </button>
                         <button
                           type="button"
                           onClick={() => setViewportMode('tablet')}
                           title="Tablet (768px)"
                           style={{
-                            padding: '5px 8px',
+                            padding: '4px 7px',
                             background: viewportMode === 'tablet' ? 'var(--bg-surface)' : 'transparent',
                             color: viewportMode === 'tablet' ? 'var(--primary)' : 'var(--text-muted)',
                             border: 'none',
@@ -858,14 +1064,14 @@ export default function ProjectGenerator() {
                             cursor: 'pointer'
                           }}
                         >
-                          <Tablet size={14} />
+                          <Tablet size={13} />
                         </button>
                         <button
                           type="button"
                           onClick={() => setViewportMode('mobile')}
                           title="Mobile (375px)"
                           style={{
-                            padding: '5px 8px',
+                            padding: '4px 7px',
                             background: viewportMode === 'mobile' ? 'var(--bg-surface)' : 'transparent',
                             color: viewportMode === 'mobile' ? 'var(--primary)' : 'var(--text-muted)',
                             border: 'none',
@@ -873,9 +1079,34 @@ export default function ProjectGenerator() {
                             cursor: 'pointer'
                           }}
                         >
-                          <Smartphone size={14} />
+                          <Smartphone size={13} />
                         </button>
                       </div>
+                    )}
+
+                    {/* Open In New Tab Button */}
+                    {genMode === 'single' && (
+                      <button
+                        type="button"
+                        onClick={handleOpenInNewWindow}
+                        title="Open full page in new browser window"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-light)',
+                          color: 'var(--text-muted)',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <ExternalLink size={12} />
+                        <span>Pop Out</span>
+                      </button>
                     )}
 
                     {/* Copy Button */}
@@ -885,18 +1116,18 @@ export default function ProjectGenerator() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '5px',
-                        padding: '6px 12px',
+                        gap: '4px',
+                        padding: '5px 10px',
                         borderRadius: '6px',
                         background: 'var(--bg-surface)',
                         border: '1px solid var(--border-light)',
                         color: 'var(--text-main)',
-                        fontSize: '12px',
+                        fontSize: '11.5px',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}
                     >
-                      {copied ? <CheckCheck size={13} color="var(--accent-emerald)" /> : <Copy size={13} />}
+                      {copied ? <CheckCheck size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
                     </button>
 
@@ -906,9 +1137,9 @@ export default function ProjectGenerator() {
                         type="button"
                         onClick={handleDownloadSinglePage}
                         className="btn-primary"
-                        style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '6px' }}
+                        style={{ padding: '5px 12px', fontSize: '11.5px', borderRadius: '6px' }}
                       >
-                        <Download size={13} />
+                        <Download size={12} />
                         <span>{downloadSuccess ? 'Downloaded!' : 'Download File'}</span>
                       </button>
                     ) : (
@@ -917,24 +1148,10 @@ export default function ProjectGenerator() {
                         onClick={handleDownloadZip}
                         disabled={generating}
                         className="btn-primary"
-                        style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '6px' }}
+                        style={{ padding: '5px 12px', fontSize: '11.5px', borderRadius: '6px' }}
                       >
-                        <Download size={13} />
+                        <Download size={12} />
                         <span>{downloadSuccess ? 'Downloaded .ZIP!' : 'Download .ZIP'}</span>
-                      </button>
-                    )}
-
-                    {/* Send to Analyzer Button (For Projects) */}
-                    {genMode === 'project' && (
-                      <button
-                        type="button"
-                        onClick={handleSendToAnalyzer}
-                        disabled={generating}
-                        className="btn-secondary"
-                        style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px' }}
-                      >
-                        <Play size={12} fill="currentColor" color="var(--primary)" />
-                        <span>Analyze</span>
                       </button>
                     )}
                   </div>
@@ -948,8 +1165,8 @@ export default function ProjectGenerator() {
                       display: 'flex',
                       justifyContent: 'center',
                       background: '#04060d',
-                      padding: '16px 0',
-                      minHeight: '660px',
+                      padding: '12px 0',
+                      minHeight: '680px',
                       overflowX: 'auto'
                     }}>
                       <iframe
@@ -958,11 +1175,11 @@ export default function ProjectGenerator() {
                         style={{
                           width: viewportMode === 'mobile' ? '375px' : (viewportMode === 'tablet' ? '768px' : '100%'),
                           maxWidth: '100%',
-                          height: '660px',
+                          height: '680px',
                           borderRadius: viewportMode === 'desktop' ? '0' : '8px',
                           border: viewportMode === 'desktop' ? 'none' : '1px solid rgba(255,255,255,0.15)',
                           boxShadow: viewportMode === 'desktop' ? 'none' : '0 20px 50px rgba(0,0,0,0.8)',
-                          background: '#ffffff',
+                          background: '#070913',
                           transition: 'width 0.3s ease'
                         }}
                         sandbox="allow-scripts"
@@ -973,10 +1190,10 @@ export default function ProjectGenerator() {
                       background: 'var(--bg-code)',
                       padding: '20px',
                       fontFamily: 'var(--font-mono)',
-                      fontSize: '13px',
+                      fontSize: '12.5px',
                       lineHeight: 1.6,
                       color: 'var(--text-main)',
-                      height: '660px',
+                      height: '680px',
                       overflowY: 'auto',
                       margin: 0
                     }}>
@@ -988,14 +1205,14 @@ export default function ProjectGenerator() {
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: '260px 1fr',
-                    minHeight: '660px'
+                    minHeight: '680px'
                   }}>
                     {/* Left: Project File Tree */}
                     <div style={{
                       background: 'rgba(10, 15, 29, 0.7)',
                       borderRight: '1px solid var(--border-subtle)',
                       padding: '12px',
-                      maxHeight: '660px',
+                      maxHeight: '680px',
                       overflowY: 'auto',
                       display: 'flex',
                       flexDirection: 'column',
@@ -1040,10 +1257,10 @@ export default function ProjectGenerator() {
                       background: 'var(--bg-code)',
                       padding: '20px',
                       fontFamily: 'var(--font-mono)',
-                      fontSize: '13px',
+                      fontSize: '12.5px',
                       lineHeight: 1.6,
                       color: 'var(--text-main)',
-                      maxHeight: '660px',
+                      maxHeight: '680px',
                       overflowY: 'auto',
                       margin: 0
                     }}>
