@@ -318,34 +318,6 @@ export default function Navbar() {
                 >
                   <span>Sign In</span>
                 </Link>
-
-                <Link
-                  to="/logout"
-                  title="Go to Log Out Page"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--text-muted)',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--accent-pink)';
-                    e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-muted)';
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <LogOut size={16} />
-                  <span>Log Out</span>
-                </Link>
               </div>
             )}
           </div>
