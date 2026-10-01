@@ -653,3 +653,49 @@ def generate_full_project(req: GenerateFullProjectRequest):
     )
     return {"success": True, "files": files}
 
+# -------------------------------------------------------------
+# GITHUB SECURE AUTO-FIX & DIRECT PR / COMMIT ENDPOINTS
+# -------------------------------------------------------------
+class GitHubVerifyTokenRequest(BaseModel):
+    token: str
+    repo_url: Optional[str] = None
+
+@app.post("/api/github/verify-token")
+def verify_github_token(req: GitHubVerifyTokenRequest):
+    if not req.token or not req.token.strip():
+        raise HTTPException(status_code=400, detail="Please provide a GitHub Personal Access Token.")
+    result = github_service.verify_token(req.token.strip(), req.repo_url)
+    return result
+
+class GitHubApplyFixesRequest(BaseModel):
+    repo_url: str
+    token: str
+    fixes: List[Dict[str, str]]
+    branch_mode: Optional[str] = "pr"
+    target_branch: Optional[str] = None
+    pr_title: Optional[str] = None
+    commit_message: Optional[str] = None
+
+@app.post("/api/github/apply-fixes")
+def apply_fixes_to_github(req: GitHubApplyFixesRequest):
+    if not req.repo_url or not req.repo_url.strip():
+        raise HTTPException(status_code=400, detail="Target GitHub repository URL is required.")
+    if not req.token or not req.token.strip():
+        raise HTTPException(status_code=400, detail="GitHub Personal Access Token is required.")
+    if not req.fixes or len(req.fixes) == 0:
+        raise HTTPException(status_code=400, detail="At least one solution fix file is required.")
+
+    try:
+        result = github_service.apply_fixes(
+            repo_url=req.repo_url.strip(),
+            token=req.token.strip(),
+            fixes=req.fixes,
+            branch_mode=req.branch_mode or "pr",
+            target_branch=req.target_branch,
+            pr_title=req.pr_title,
+            commit_message=req.commit_message
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

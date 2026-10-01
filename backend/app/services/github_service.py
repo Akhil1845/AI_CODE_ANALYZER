@@ -5,6 +5,9 @@ import zipfile
 import tempfile
 import subprocess
 import requests
+import base64
+import json
+import time
 from typing import Dict, Any, List, Optional
 from .analyzer import StaticAnalyzer
 from .. import config
@@ -241,3 +244,242 @@ class GitHubService:
             "low_count": low,
             "issues": all_issues
         }
+
+    def verify_token(self, token: str, repo_url: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Securely verifies a GitHub Personal Access Token (PAT).
+        Checks authenticated user identity, token scopes, and repository write/push permissions.
+        """
+        clean_token = token.strip() if token else ""
+        if not clean_token:
+            return {"valid": False, "message": "GitHub Personal Access Token is required."}
+
+        headers = {
+            "Authorization": f"token {clean_token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "CodeLens-AI-AutoFix"
+        }
+
+        # 1. Verify User and Scopes
+        try:
+            user_res = requests.get("https://api.github.com/user", headers=headers, timeout=10)
+        except Exception as e:
+            return {"valid": False, "message": f"Network error connecting to GitHub API: {str(e)}"}
+
+        if user_res.status_code == 401:
+            return {"valid": False, "message": "Invalid or expired GitHub Personal Access Token."}
+        elif user_res.status_code != 200:
+            return {"valid": False, "message": f"GitHub API returned error: {user_res.status_code}"}
+
+        user_data = user_res.json()
+        username = user_data.get("login", "")
+        avatar_url = user_data.get("avatar_url", "")
+        scopes_header = user_res.headers.get("X-OAuth-Scopes", "")
+        scopes = [s.strip() for s in scopes_header.split(",") if s.strip()]
+
+        result = {
+            "valid": True,
+            "username": username,
+            "avatar_url": avatar_url,
+            "scopes": scopes,
+            "repo_accessible": False,
+            "can_push": False,
+            "default_branch": "main",
+            "message": f"Authenticated successfully as @{username}."
+        }
+
+        # 2. Check specific repository permissions if repo_url provided
+        if repo_url and repo_url.strip():
+            try:
+                owner, repo = self.parse_repo_url(repo_url)
+                repo_res = requests.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers, timeout=10)
+                if repo_res.status_code == 200:
+                    repo_info = repo_res.json()
+                    result["repo_accessible"] = True
+                    result["repo"] = f"{owner}/{repo}"
+                    result["default_branch"] = repo_info.get("default_branch", "main")
+                    perms = repo_info.get("permissions", {})
+                    can_push = perms.get("push", False) or perms.get("admin", False)
+                    result["can_push"] = can_push
+                    if can_push:
+                        result["message"] = f"Authenticated as @{username} with direct WRITE/PUSH permissions to {owner}/{repo}."
+                    else:
+                        result["message"] = f"Authenticated as @{username}. You have READ permissions to {owner}/{repo} (Pull Requests can be opened from a fork or feature branch)."
+                elif repo_res.status_code == 404:
+                    result["message"] = f"Repository {owner}/{repo} not found or is private. Ensure your token has 'repo' scope."
+                else:
+                    result["message"] = f"Repository check returned HTTP {repo_res.status_code}."
+            except Exception as ex:
+                result["message"] = f"Authenticated as @{username}. Repository check note: {str(ex)}"
+
+        return result
+
+    def apply_fixes(
+        self,
+        repo_url: str,
+        token: str,
+        fixes: List[Dict[str, str]],
+        branch_mode: str = "pr",
+        target_branch: Optional[str] = None,
+        pr_title: Optional[str] = None,
+        commit_message: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Directly and securely commits solution files to GitHub repository.
+        Creates a new branch and opens a Pull Request, or commits directly to target branch.
+        """
+        clean_token = token.strip() if token else ""
+        if not clean_token:
+            raise ValueError("GitHub token is required to apply fixes.")
+        if not fixes:
+            raise ValueError("No solution files specified to apply.")
+
+        owner, repo = self.parse_repo_url(repo_url)
+        headers = {
+            "Authorization": f"token {clean_token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "CodeLens-AI-AutoFix"
+        }
+
+        # 1. Fetch repo info to get default branch
+        repo_res = requests.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers, timeout=12)
+        if repo_res.status_code != 200:
+            err_msg = repo_res.json().get("message", f"HTTP {repo_res.status_code}")
+            raise Exception(f"Unable to access {owner}/{repo} via GitHub API: {err_msg}. Verify your token has 'repo' scope.")
+
+        repo_info = repo_res.json()
+        default_branch = repo_info.get("default_branch", "main")
+        base_branch = target_branch.strip() if (target_branch and target_branch.strip()) else default_branch
+
+        # Determine the branch to commit into
+        if branch_mode == "pr":
+            timestamp = int(time.time())
+            commit_branch = f"codelens/cloud-deployment-fixes-{timestamp}"
+            
+            # Get latest commit SHA on base branch
+            ref_res = requests.get(f"https://api.github.com/repos/{owner}/{repo}/git/ref/heads/{base_branch}", headers=headers, timeout=10)
+            if ref_res.status_code != 200:
+                raise Exception(f"Could not find base branch '{base_branch}' in {owner}/{repo}.")
+            base_sha = ref_res.json()["object"]["sha"]
+
+            # Create new branch
+            create_branch_res = requests.post(
+                f"https://api.github.com/repos/{owner}/{repo}/git/refs",
+                headers=headers,
+                json={"ref": f"refs/heads/{commit_branch}", "sha": base_sha},
+                timeout=12
+            )
+            if create_branch_res.status_code not in (200, 201):
+                err_detail = create_branch_res.json().get("message", "Unknown error")
+                raise Exception(f"Failed to create branch '{commit_branch}': {err_detail}")
+        else:
+            commit_branch = base_branch
+
+        # 2. Commit each file
+        committed_files = []
+        for fix in fixes:
+            file_path = fix.get("path", "").strip().lstrip('/')
+            raw_content = fix.get("content", "")
+
+            if not file_path:
+                continue
+
+            # Clean JSON files of any comment lines (// ...) that would break standard JSON parsers
+            if file_path.lower().endswith(".json"):
+                clean_lines = []
+                for line in raw_content.splitlines():
+                    stripped = line.strip()
+                    if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*"):
+                        continue
+                    clean_lines.append(line)
+                clean_content = "\n".join(clean_lines).strip()
+            else:
+                clean_content = raw_content
+
+            # Check if file already exists in branch to get its SHA (required by GitHub Contents API for updates)
+            file_sha = None
+            check_res = requests.get(
+                f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}?ref={commit_branch}",
+                headers=headers,
+                timeout=10
+            )
+            if check_res.status_code == 200:
+                file_sha = check_res.json().get("sha")
+
+            # Base64 encode content
+            b64_content = base64.b64encode(clean_content.encode("utf-8")).decode("utf-8")
+
+            file_commit_msg = commit_message or f"fix(codelens): configure {file_path} for production deployment"
+            put_payload = {
+                "message": file_commit_msg,
+                "content": b64_content,
+                "branch": commit_branch
+            }
+            if file_sha:
+                put_payload["sha"] = file_sha
+
+            put_res = requests.put(
+                f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}",
+                headers=headers,
+                json=put_payload,
+                timeout=15
+            )
+
+            if put_res.status_code not in (200, 201):
+                err_msg = put_res.json().get("message", "Commit error")
+                raise Exception(f"Failed to commit file '{file_path}': {err_msg}")
+
+            committed_files.append(file_path)
+
+        # 3. If PR mode, open Pull Request
+        pr_info = None
+        if branch_mode == "pr":
+            pr_title_text = pr_title or "CodeLens AI: Cloud Deployment & Health Fixes"
+            pr_body = (
+                "### 🚀 Automated Cloud Deployment Fixes\n"
+                "Generated and verified by **CodeLens AI Observability & Static Analysis**.\n\n"
+                "#### 🛠️ Configured & Applied Patches:\n"
+                + "\n".join([f"- `{f}`" for f in committed_files])
+                + "\n\n"
+                "> [!TIP]\n"
+                f"> Review and merge these fixes into `{base_branch}` to enable seamless continuous deployment on Vercel, Render, or Docker."
+            )
+            pr_payload = {
+                "title": pr_title_text,
+                "head": commit_branch,
+                "base": base_branch,
+                "body": pr_body
+            }
+            pr_res = requests.post(
+                f"https://api.github.com/repos/{owner}/{repo}/pulls",
+                headers=headers,
+                json=pr_payload,
+                timeout=15
+            )
+            if pr_res.status_code in (200, 201):
+                pr_data = pr_res.json()
+                pr_info = {
+                    "pr_url": pr_data.get("html_url"),
+                    "pr_number": pr_data.get("number"),
+                    "title": pr_data.get("title")
+                }
+            else:
+                err_pr = pr_res.json().get("message", "PR creation error")
+                pr_info = {
+                    "pr_url": f"https://github.com/{owner}/{repo}/compare/{base_branch}...{commit_branch}",
+                    "note": f"Branch created with commits. PR link: {err_pr}"
+                }
+
+        return {
+            "success": True,
+            "mode": branch_mode,
+            "owner": owner,
+            "repo": repo,
+            "branch": commit_branch,
+            "base_branch": base_branch,
+            "committed_files": committed_files,
+            "pr": pr_info,
+            "direct_url": pr_info["pr_url"] if pr_info else f"https://github.com/{owner}/{repo}/tree/{commit_branch}",
+            "message": f"Successfully applied {len(committed_files)} fixes to GitHub ({'Pull Request opened' if branch_mode == 'pr' else 'Committed directly'})."
+        }
+

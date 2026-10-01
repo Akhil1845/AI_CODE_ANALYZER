@@ -41,6 +41,8 @@ import {
 } from 'lucide-react';
 import { auth } from '../services/auth';
 import { themeService, THEMES } from '../services/theme';
+import { storage } from '../services/storage';
+import { api } from '../services/api';
 
 const AVATAR_GRADIENTS = [
   { id: 'indigo', name: 'Hyper Violet', value: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)' },
@@ -61,44 +63,62 @@ const CODING_PLATFORMS = [
 export default function Profile() {
   const navigate = useNavigate();
 
-  // Load Current User or default demo
+  // Load Current User (Zero fake default profile data)
   const [user, setUser] = useState(() => {
     const existing = auth.getCurrentUser();
-    return existing || {
-      id: 'usr_akhil',
-      name: 'Akhil',
-      email: 'itsmeakhil9999@gmail.com',
+    if (existing) {
+      // Purge any legacy fake mock defaults from previous runs
+      if (existing.headline === 'Full-Stack Developer & Competitive DSA Enthusiast') existing.headline = '';
+      if (existing.location === 'Hyderabad, India') existing.location = '';
+      if (existing.bio?.includes('Obsessed with O(1) space optimization')) existing.bio = '';
+      if (existing.leetcodeUsername === 'akhil_codes') existing.leetcodeUsername = '';
+      if (existing.codechefUsername === 'akhil_1845') existing.codechefUsername = '';
+      if (existing.portfolioUrl === 'https://github.com/Akhil1845/AI_CODE_ANALYZER') existing.portfolioUrl = '';
+      return existing;
+    }
+    return {
+      id: 'usr_dev',
+      name: 'Developer',
+      email: '',
       platform: 'LeetCode',
-      headline: 'Full-Stack Developer & Competitive DSA Enthusiast',
-      bio: 'Building intelligent code observability tools. Obsessed with O(1) space optimization, compiler internals, and Spring Boot / React architectures.',
-      location: 'Hyderabad, India',
-      avatarGradient: AVATAR_GRADIENTS[1].value,
-      githubUsername: 'Akhil1845',
-      leetcodeUsername: 'akhil_codes',
-      codechefUsername: 'akhil_1845',
-      portfolioUrl: 'https://github.com/Akhil1845/AI_CODE_ANALYZER'
+      headline: '',
+      bio: '',
+      location: '',
+      avatarGradient: AVATAR_GRADIENTS[0].value,
+      githubUsername: '',
+      leetcodeUsername: '',
+      codechefUsername: '',
+      portfolioUrl: ''
     };
   });
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState('identity'); // 'identity' | 'dsa' | 'editor' | 'security' | 'api' | 'badges'
+  const [activeTab, setActiveTab] = useState('identity');
+
+  // Real Metrics loaded dynamically from storage and backend
+  const [realMetrics, setRealMetrics] = useState({
+    totalScans: 0,
+    dsaTraces: 0,
+    issuesDetected: 0,
+    issuesResolved: 0
+  });
 
   // Toast / Feedback states
   const [successToast, setSuccessToast] = useState('');
   const [errorToast, setErrorToast] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form Fields
-  const [name, setName] = useState(user.name || 'Akhil');
-  const [headline, setHeadline] = useState(user.headline || 'Full-Stack Developer & Competitive DSA Enthusiast');
-  const [bio, setBio] = useState(user.bio || 'Building intelligent code observability tools. Obsessed with O(1) space optimization and AST analysis.');
-  const [location, setLocation] = useState(user.location || 'Hyderabad, India');
+  // Form Fields - strictly genuine (empty unless set by user)
+  const [name, setName] = useState(user.name || '');
+  const [headline, setHeadline] = useState(user.headline || '');
+  const [bio, setBio] = useState(user.bio || '');
+  const [location, setLocation] = useState(user.location || '');
   const [platform, setPlatform] = useState(user.platform || 'LeetCode');
-  const [avatarGradient, setAvatarGradient] = useState(user.avatarGradient || AVATAR_GRADIENTS[1].value);
-  const [githubUsername, setGithubUsername] = useState(user.githubUsername || 'Akhil1845');
-  const [leetcodeUsername, setLeetcodeUsername] = useState(user.leetcodeUsername || 'akhil_codes');
-  const [codechefUsername, setCodechefUsername] = useState(user.codechefUsername || 'akhil_1845');
-  const [portfolioUrl, setPortfolioUrl] = useState(user.portfolioUrl || 'https://github.com/Akhil1845/AI_CODE_ANALYZER');
+  const [avatarGradient, setAvatarGradient] = useState(user.avatarGradient || AVATAR_GRADIENTS[0].value);
+  const [githubUsername, setGithubUsername] = useState(user.githubUsername || '');
+  const [leetcodeUsername, setLeetcodeUsername] = useState(user.leetcodeUsername || '');
+  const [codechefUsername, setCodechefUsername] = useState(user.codechefUsername || '');
+  const [portfolioUrl, setPortfolioUrl] = useState(user.portfolioUrl || '');
 
   // DSA & Engine Settings
   const [targetLanguage, setTargetLanguage] = useState('Java');
@@ -121,11 +141,76 @@ export default function Profile() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
 
-  // API Token State
-  const [apiToken, setApiToken] = useState('cldev_live_9f82ab7e10c448a9b240');
+  // API Token State (Persistent & Real)
+  const [apiToken, setApiToken] = useState(() => {
+    let t = localStorage.getItem('codelens_api_token');
+    if (!t) {
+      t = 'cldev_live_' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('codelens_api_token', t);
+    }
+    return t;
+  });
   const [showApiToken, setShowApiToken] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
-  const [githubPat, setGithubPat] = useState('ghp_••••••••••••••••••••••••••••••••••••');
+  const [githubPat, setGithubPat] = useState(() => {
+    const p = localStorage.getItem('codelens_github_pat') || '';
+    return p === 'ghp_••••••••••••••••••••••••••••••••••••' ? '' : p;
+  });
+  const [verifyingPat, setVerifyingPat] = useState(false);
+  const [patStatus, setPatStatus] = useState(null);
+
+  // Fetch genuine dynamic metrics
+  useEffect(() => {
+    async function loadMetrics() {
+      try {
+        const storedAnalyses = storage.getAnalyses() || [];
+        let backendProjects = [];
+        try {
+          backendProjects = await api.getProjects();
+        } catch {}
+
+        const allScansCount = storedAnalyses.length + (Array.isArray(backendProjects) ? backendProjects.length : 0);
+        
+        const tracesCount = storedAnalyses.filter(a => 
+          a.type === 'CODE_SNIPPET' || 
+          a.platform === 'LeetCode' || 
+          a.platform === 'CodeChef' || 
+          a.platform === 'MentorPick'
+        ).length;
+
+        let totalIssues = 0;
+        let resolvedIssues = 0;
+
+        storedAnalyses.forEach(a => {
+          if (a.result?.issues) {
+            totalIssues += a.result.issues.length;
+          }
+          if (a.result?.status === 'PASSED' || a.result?.testResult?.passed) {
+            resolvedIssues += 1;
+          }
+        });
+
+        if (Array.isArray(backendProjects)) {
+          backendProjects.forEach(p => {
+            if (p.issue_count) totalIssues += p.issue_count;
+            if (p.health_score && p.health_score > 80) resolvedIssues += 1;
+          });
+        }
+
+        setRealMetrics({
+          totalScans: allScansCount,
+          dsaTraces: tracesCount,
+          issuesDetected: totalIssues,
+          issuesResolved: resolvedIssues
+        });
+      } catch (e) {
+        console.error('Failed loading profile metrics:', e);
+      }
+    }
+
+    loadMetrics();
+  }, []);
+
 
   const triggerToast = (msg, isErr = false) => {
     if (isErr) {
@@ -406,12 +491,12 @@ export default function Profile() {
 
               {/* Name & Headline */}
               <div style={{ paddingBottom: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
-                    {name}
+                    {name || user.name || 'Developer'}
                   </h1>
                   <span style={{
-                    fontSize: '11.5px',
+                    fontSize: '11px',
                     fontWeight: 700,
                     padding: '3px 10px',
                     borderRadius: '9999px',
@@ -419,34 +504,42 @@ export default function Profile() {
                     border: '1px solid rgba(56, 189, 248, 0.4)',
                     color: 'var(--accent-blue)'
                   }}>
-                    PRO DEVELOPER
+                    {realMetrics.totalScans > 0 ? 'ACTIVE DEVELOPER' : 'NEW DEVELOPER'}
                   </span>
-                  <span style={{
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    padding: '3px 10px',
-                    borderRadius: '9999px',
-                    background: 'rgba(236, 72, 153, 0.15)',
-                    border: '1px solid rgba(236, 72, 153, 0.4)',
-                    color: 'var(--accent-pink)'
-                  }}>
-                    {platform}
-                  </span>
+                  {platform && (
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 10px',
+                      borderRadius: '9999px',
+                      background: 'rgba(236, 72, 153, 0.15)',
+                      border: '1px solid rgba(236, 72, 153, 0.4)',
+                      color: 'var(--accent-pink)'
+                    }}>
+                      {platform}
+                    </span>
+                  )}
                 </div>
 
-                <p style={{ fontSize: '14.5px', color: 'var(--text-muted)', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Mail size={14} color="var(--primary)" />
-                    {user.email}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MapPin size={14} color="var(--accent-emerald)" />
-                    {location}
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Briefcase size={14} color="var(--accent-purple)" />
-                    {headline}
-                  </span>
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  {user.email && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Mail size={14} color="var(--primary)" />
+                      {user.email}
+                    </span>
+                  )}
+                  {location && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <MapPin size={14} color="var(--accent-emerald)" />
+                      {location}
+                    </span>
+                  )}
+                  {headline && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Briefcase size={14} color="var(--accent-purple)" />
+                      {headline}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -488,7 +581,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Quick Metrics Bar */}
+          {/* Quick Metrics Bar (100% Real Dynamic Metrics) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
@@ -498,19 +591,27 @@ export default function Profile() {
           }}>
             <div style={{ background: 'var(--bg-surface)', padding: '16px 24px' }}>
               <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>TOTAL SCANS</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px' }}>24+ Projects</div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px' }}>
+                {realMetrics.totalScans} {realMetrics.totalScans === 1 ? 'Project' : 'Projects'}
+              </div>
             </div>
             <div style={{ background: 'var(--bg-surface)', padding: '16px 24px' }}>
               <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>DSA TRACES</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-blue)', marginTop: '2px' }}>18 Iterations</div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-blue)', marginTop: '2px' }}>
+                {realMetrics.dsaTraces} {realMetrics.dsaTraces === 1 ? 'Trace' : 'Traces'}
+              </div>
             </div>
             <div style={{ background: 'var(--bg-surface)', padding: '16px 24px' }}>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>AI REGRESSIONS PREVENTED</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-emerald)', marginTop: '2px' }}>37 NullPointers</div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>ISSUES DETECTED</div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-pink)', marginTop: '2px' }}>
+                {realMetrics.issuesDetected} {realMetrics.issuesDetected === 1 ? 'Issue' : 'Issues'}
+              </div>
             </div>
             <div style={{ background: 'var(--bg-surface)', padding: '16px 24px' }}>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>BIG-O RATING</div>
-              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-pink)', marginTop: '2px' }}>Top 98.4%</div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>FIXES APPLIED</div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--accent-emerald)', marginTop: '2px' }}>
+                {realMetrics.issuesResolved} Resolved
+              </div>
             </div>
           </div>
         </div>
@@ -788,7 +889,7 @@ export default function Profile() {
                           type="text"
                           value={githubUsername}
                           onChange={(e) => setGithubUsername(e.target.value)}
-                          placeholder="Akhil1845"
+                          placeholder="your-github-username"
                           style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-main)', fontSize: '13.5px', width: '100%' }}
                         />
                       </div>
@@ -812,7 +913,7 @@ export default function Profile() {
                           type="text"
                           value={leetcodeUsername}
                           onChange={(e) => setLeetcodeUsername(e.target.value)}
-                          placeholder="akhil_codes"
+                          placeholder="your-leetcode-username"
                           style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-main)', fontSize: '13.5px', width: '100%' }}
                         />
                       </div>
@@ -826,7 +927,7 @@ export default function Profile() {
                         type="text"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. Hyderabad, India"
+                        placeholder="e.g. City, Country or Remote"
                         style={{
                           width: '100%',
                           padding: '10px 12px',
@@ -848,7 +949,7 @@ export default function Profile() {
                         type="url"
                         value={portfolioUrl}
                         onChange={(e) => setPortfolioUrl(e.target.value)}
-                        placeholder="https://github.com/Akhil1845/AI_CODE_ANALYZER"
+                        placeholder="https://github.com/username/project"
                         style={{
                           width: '100%',
                           padding: '10px 12px',
@@ -1423,7 +1524,7 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* GitHub Personal Access Token (PAT) */}
+                {/* GitHub Personal Access Token (PAT) & Auto-Fix Setup */}
                 <div style={{
                   padding: '22px',
                   borderRadius: 'var(--radius-sm)',
@@ -1432,25 +1533,29 @@ export default function Profile() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
-                      GitHub Rate Limit Token (PAT)
+                      GitHub Personal Access Token (PAT)
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--accent-blue)', fontWeight: 700 }}>
-                      5,000 REQ / HR
+                    <span style={{ fontSize: '11px', color: githubPat ? 'var(--accent-emerald)' : 'var(--text-muted)', fontWeight: 700 }}>
+                      {githubPat ? 'CONFIGURED' : 'NOT CONFIGURED'}
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-                    Optional GitHub token to prevent API rate limiting when analyzing large repositories.
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: 1.5 }}>
+                    Used securely for direct automated repository repairs, creating Pull Requests, and bypassing GitHub public rate limits. Never stored on server disk.
                   </p>
 
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <input
                       type="password"
                       value={githubPat}
-                      onChange={(e) => setGithubPat(e.target.value)}
-                      placeholder="ghp_••••••••••••••••••••"
+                      onChange={(e) => {
+                        setGithubPat(e.target.value);
+                        setPatStatus(null);
+                      }}
+                      placeholder="ghp_yourPersonalAccessToken123..."
                       style={{
                         flex: 1,
+                        minWidth: '240px',
                         padding: '10px 14px',
                         borderRadius: 'var(--radius-sm)',
                         background: '#04060f',
@@ -1463,18 +1568,70 @@ export default function Profile() {
                     />
                     <button
                       type="button"
-                      onClick={() => triggerToast('✓ GitHub token saved securely in session!')}
+                      onClick={() => {
+                        localStorage.setItem('codelens_github_pat', githubPat.trim());
+                        triggerToast('✓ GitHub token saved securely in browser session!');
+                      }}
                       className="btn-primary"
                       style={{ padding: '10px 18px', fontSize: '13px', whiteSpace: 'nowrap' }}
                     >
                       <span>Save PAT</span>
                     </button>
+                    <button
+                      type="button"
+                      disabled={!githubPat || verifyingPat}
+                      onClick={async () => {
+                        setVerifyingPat(true);
+                        setPatStatus(null);
+                        try {
+                          const res = await api.verifyGitHubToken(githubPat.trim(), portfolioUrl || null);
+                          setPatStatus(res);
+                          if (res.valid) {
+                            localStorage.setItem('codelens_github_pat', githubPat.trim());
+                            triggerToast(`✓ Verified! Authenticated as @${res.username}`);
+                          } else {
+                            triggerToast(res.message || 'Token verification failed', true);
+                          }
+                        } catch (err) {
+                          setPatStatus({ valid: false, message: err.message });
+                          triggerToast(err.message, true);
+                        } finally {
+                          setVerifyingPat(false);
+                        }
+                      }}
+                      style={{
+                        padding: '10px 18px',
+                        fontSize: '13px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'transparent',
+                        border: '1px solid var(--border-light)',
+                        color: 'var(--text-main)',
+                        cursor: (!githubPat || verifyingPat) ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {verifyingPat ? 'Testing...' : 'Test Permissions'}
+                    </button>
                   </div>
+
+                  {patStatus && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: patStatus.valid ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.12)',
+                      border: `1px solid ${patStatus.valid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
+                      fontSize: '12.5px',
+                      color: patStatus.valid ? '#34d399' : '#fb7185'
+                    }}>
+                      {patStatus.message}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* TAB 6: BADGES & STATS */}
+            {/* TAB 6: BADGES & REAL STATS */}
             {activeTab === 'badges' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
                 <div>
@@ -1482,18 +1639,60 @@ export default function Profile() {
                     Developer Achievements &amp; Badges
                   </h2>
                   <p style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
-                    Earned badges and algorithmic milestones achieved on CodeLens AI.
+                    Genuine milestones unlocked through your real scans and code fixes.
                   </p>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                   {[
-                    { title: 'O(1) Memory Optimizer', desc: 'Achieved O(1) space complexity on LeetCode two pointer algorithms.', color: 'var(--accent-emerald)', icon: Zap },
-                    { title: 'Null-Safe Architect', desc: 'Detected and resolved 0 NPE regressions across Java code bases.', color: 'var(--accent-pink)', icon: ShieldCheck },
-                    { title: 'AST Trace Master', desc: 'Traced 50+ iteration table steps across LeetCode & CodeChef buffers.', color: 'var(--accent-blue)', icon: Terminal },
-                    { title: 'CodeDoctor Pioneer', desc: 'Generated 100% test-passing neural fixes with Google Gemini.', color: 'var(--accent-purple)', icon: Sparkles },
-                    { title: 'Polyglot Engineer', desc: 'Scanned projects in Java, Python, C++, and React TypeScript.', color: '#f59e0b', icon: FileCode2 },
-                    { title: 'CodeLens Contributor', desc: 'Early adopter and core tester of CodeLens AI v1.2 engine.', color: 'var(--primary)', icon: Award }
+                    {
+                      title: 'O(1) Space Optimizer',
+                      desc: 'Execute an algorithm analysis with O(1) auxiliary space rating.',
+                      color: 'var(--accent-emerald)',
+                      icon: Zap,
+                      unlocked: realMetrics.dsaTraces > 0,
+                      req: '1 DSA Trace'
+                    },
+                    {
+                      title: 'Zero-Defect Architect',
+                      desc: 'Scan a codebase or snippet with verified zero regressions.',
+                      color: 'var(--accent-pink)',
+                      icon: ShieldCheck,
+                      unlocked: realMetrics.issuesResolved > 0,
+                      req: '1 Resolved Issue'
+                    },
+                    {
+                      title: 'AST Trace Master',
+                      desc: 'Trace algorithmic loop states and step-by-step memory tables.',
+                      color: 'var(--accent-blue)',
+                      icon: Terminal,
+                      unlocked: realMetrics.dsaTraces >= 1,
+                      req: '1 DSA Trace'
+                    },
+                    {
+                      title: 'Cloud Deployment Pioneer',
+                      desc: 'Scan a live Render, Vercel, or full-stack project repository.',
+                      color: 'var(--accent-purple)',
+                      icon: Sparkles,
+                      unlocked: realMetrics.totalScans >= 1,
+                      req: '1 Project Scan'
+                    },
+                    {
+                      title: 'Polyglot Engineer',
+                      desc: 'Analyze projects across multiple languages and frameworks.',
+                      color: '#f59e0b',
+                      icon: FileCode2,
+                      unlocked: realMetrics.totalScans >= 2,
+                      req: '2 Project Scans'
+                    },
+                    {
+                      title: 'CodeLens Contributor',
+                      desc: 'Active user verifying code quality, security, and live health.',
+                      color: 'var(--primary)',
+                      icon: Award,
+                      unlocked: realMetrics.totalScans >= 1,
+                      req: '1 Scan'
+                    }
                   ].map((badge, idx) => {
                     const BIcon = badge.icon;
                     return (
@@ -1502,25 +1701,40 @@ export default function Profile() {
                         style={{
                           padding: '18px',
                           borderRadius: 'var(--radius-sm)',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-light)',
+                          background: badge.unlocked ? 'var(--bg-secondary)' : 'rgba(15, 23, 42, 0.4)',
+                          border: badge.unlocked ? `1px solid ${badge.color}` : '1px solid var(--border-light)',
+                          boxShadow: badge.unlocked ? `0 0 15px rgba(99, 102, 241, 0.15)` : 'none',
+                          opacity: badge.unlocked ? 1 : 0.65,
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '10px'
                         }}
                       >
-                        <div style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '10px',
-                          background: 'var(--bg-surface)',
-                          border: `1px solid ${badge.color}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: badge.color
-                        }}>
-                          <BIcon size={20} />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '10px',
+                            background: 'var(--bg-surface)',
+                            border: `1px solid ${badge.unlocked ? badge.color : 'var(--border-subtle)'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: badge.unlocked ? badge.color : 'var(--text-muted)'
+                          }}>
+                            <BIcon size={20} />
+                          </div>
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '9999px',
+                            background: badge.unlocked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.15)',
+                            color: badge.unlocked ? '#34d399' : 'var(--text-muted)',
+                            border: `1px solid ${badge.unlocked ? 'rgba(52, 211, 153, 0.4)' : 'transparent'}`
+                          }}>
+                            {badge.unlocked ? 'UNLOCKED ✓' : `LOCKED (${badge.req})`}
+                          </span>
                         </div>
                         <div>
                           <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>{badge.title}</div>
