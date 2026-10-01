@@ -331,8 +331,8 @@ export default function Navbar() {
       {/* Settings Modal */}
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
-      {/* Left Edge Cursor Hover Activated History Drawer */}
-      <HistoryDrawer />
+      {/* Left Edge Cursor Hover Activated History Drawer (hidden on auth pages) */}
+      {location.pathname !== '/login' && location.pathname !== '/logout' && <HistoryDrawer />}
     </>
   );
 }

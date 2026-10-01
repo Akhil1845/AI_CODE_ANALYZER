@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   History, 
   X, 
@@ -14,6 +14,13 @@ import { storage } from '../services/storage';
 
 export default function HistoryDrawer() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Completely disable History Drawer on Login and Logout pages
+  if (location.pathname === '/login' || location.pathname === '/logout') {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [analyses, setAnalyses] = useState([]);
   const [search, setSearch] = useState('');

@@ -43,7 +43,6 @@ export default function Login() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [platform, setPlatform] = useState('LeetCode');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [infoNotice, setInfoNotice] = useState('');
@@ -90,7 +89,7 @@ export default function Login() {
       if (mode === 'signin') {
         auth.login(email, password);
       } else {
-        auth.signup(name, email, password, platform);
+        auth.signup(name, email, password);
       }
       navigate('/dashboard');
     } catch (err) {
@@ -127,7 +126,7 @@ export default function Login() {
       setMode('signup');
       setName(googleName);
       setEmail(googleEmail);
-      setInfoNotice(`No account found for "${googleEmail}". We've auto-filled your Google details—please set a password and platform to create your developer account.`);
+      setInfoNotice(`No account found for "${googleEmail}". We've auto-filled your Google details—please enter a password to create your developer account.`);
     }
   };
 
@@ -142,7 +141,7 @@ export default function Login() {
 
     setName(defaultGoogleName);
     setEmail(defaultGoogleEmail);
-    setSuccessNotice(`✓ Google profile imported (${defaultGoogleName} • ${defaultGoogleEmail}). Please enter a secure password & select your primary platform, then click Create Account below.`);
+    setSuccessNotice(`✓ Google profile imported (${defaultGoogleName} • ${defaultGoogleEmail}). Please enter a secure password, then click Create Account below.`);
   };
 
   const handleFastDemoLogin = () => {
@@ -336,15 +335,6 @@ export default function Login() {
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>0 NullPointer Regressions</div>
                 </div>
               </div>
-            </div>
-
-            {/* Platform pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-dim)', fontWeight: 600 }}>Tuned for:</span>
-              <span className="badge badge-medium" style={{ fontSize: '11.5px' }}>LeetCode</span>
-              <span className="badge badge-medium" style={{ fontSize: '11.5px' }}>MentorPick</span>
-              <span className="badge badge-medium" style={{ fontSize: '11.5px' }}>CodeChef</span>
-              <span className="badge badge-medium" style={{ fontSize: '11.5px' }}>HackerRank</span>
             </div>
           </div>
 
@@ -703,43 +693,6 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-
-              {mode === 'signup' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                    Primary Coding Platform
-                  </label>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-light)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '8px 14px'
-                  }}>
-                    <Code2 size={16} color="var(--primary)" />
-                    <select
-                      value={platform}
-                      onChange={(e) => setPlatform(e.target.value)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        color: 'var(--text-main)',
-                        fontSize: '13.5px',
-                        width: '100%',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="LeetCode" style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)' }}>LeetCode</option>
-                      <option value="MentorPick" style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)' }}>MentorPick</option>
-                      <option value="CodeChef" style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)' }}>CodeChef</option>
-                      <option value="HackerRank" style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)' }}>HackerRank</option>
-                    </select>
-                  </div>
-                </div>
-              )}
 
               <button
                 type="submit"
