@@ -19,6 +19,7 @@ function App() {
         <Route path="/code-analyzer" element={<CodeAnalyzer />} />
         <Route path="/project-generator" element={<ProjectGenerator />} />
         <Route path="/analyzer" element={<Analyzer />} />
+        <Route path="/analysis/new" element={<Analyzer />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/analysis/:id" element={<AnalysisResult />} />
         <Route path="/login" element={<Login />} />

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import UploadBox from '../components/UploadBox';
@@ -32,9 +32,25 @@ const GithubIcon = ({ size = 18, color = "currentColor" }) => (
 
 export default function Analyzer() {
   const navigate = useNavigate();
-  const [scanMode, setScanMode] = useState('github'); // 'github', 'live', or 'upload'
-  const [githubUrl, setGithubUrl] = useState('https://github.com/Akhil1845/AI_CODE_ANALYZER');
-  const [liveUrl, setLiveUrl] = useState('https://my-app.onrender.com');
+  const [searchParams] = useSearchParams();
+
+  const [scanMode, setScanMode] = useState(() => {
+    const target = searchParams.get('target') || searchParams.get('mode');
+    if (target === 'live' || searchParams.get('url')) return 'live';
+    if (target === 'upload') return 'upload';
+    return 'github';
+  });
+
+  const [githubUrl, setGithubUrl] = useState(() => {
+    const repo = searchParams.get('repo');
+    return repo ? decodeURIComponent(repo) : 'https://github.com/Akhil1845/AI_CODE_ANALYZER';
+  });
+
+  const [liveUrl, setLiveUrl] = useState(() => {
+    const url = searchParams.get('url');
+    return url ? decodeURIComponent(url) : 'https://my-app.onrender.com';
+  });
+
   const [customGithubToken, setCustomGithubToken] = useState(() => localStorage.getItem('codelens_github_pat') || '');
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -43,6 +59,21 @@ export default function Analyzer() {
   const [detectedProject, setDetectedProject] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const terminalRef = useRef(null);
+
+  // Sync if URL query parameters change dynamically
+  useEffect(() => {
+    const target = searchParams.get('target') || searchParams.get('mode');
+    const urlParam = searchParams.get('url');
+    const repoParam = searchParams.get('repo');
+
+    if (target === 'live' || urlParam) {
+      setScanMode('live');
+      if (urlParam) setLiveUrl(decodeURIComponent(urlParam));
+    } else if (target === 'github' || repoParam) {
+      setScanMode('github');
+      if (repoParam) setGithubUrl(decodeURIComponent(repoParam));
+    }
+  }, [searchParams]);
 
   // Auto-scroll ONLY inside the terminal log box, never scrolling the browser window
   useEffect(() => {

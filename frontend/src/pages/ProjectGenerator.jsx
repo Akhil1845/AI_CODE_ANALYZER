@@ -2803,7 +2803,7 @@ export default function ProjectGenerator() {
 
                     <button
                       type="button"
-                      onClick={() => navigate(`/analysis/new`)}
+                      onClick={() => navigate(`/analyzer?mode=github&repo=${encodeURIComponent(pushResult?.direct_url || pushResult?.repo_url || '')}`)}
                       style={{
                         padding: '10px 18px',
                         borderRadius: '8px',
@@ -3342,7 +3342,7 @@ export default function ProjectGenerator() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => navigate(`/analysis/new?target=live&url=${encodeURIComponent(deployResult.live_url)}`)}
+                      onClick={() => navigate(`/analyzer?target=live&url=${encodeURIComponent(deployResult.live_url)}`)}
                       style={{
                         padding: '8px 16px',
                         borderRadius: '8px',
