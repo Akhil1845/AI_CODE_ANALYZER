@@ -8,6 +8,20 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+export function formatApiError(err, fallback = 'Operation failed') {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (typeof err.detail === 'string') return err.detail;
+  if (Array.isArray(err.detail)) {
+    return err.detail.map(d => (d.msg || d.message || JSON.stringify(d))).join('; ');
+  }
+  if (err.detail && typeof err.detail === 'object') {
+    return err.detail.msg || err.detail.message || JSON.stringify(err.detail);
+  }
+  if (err.message && typeof err.message === 'string') return err.message;
+  return fallback;
+}
+
 export const api = {
   // Upload and analyze real project ZIP file
   async uploadFile(file, onProgress) {
@@ -28,7 +42,7 @@ export const api = {
         return await res.json();
       }
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Upload analysis failed.');
+      throw new Error(formatApiError(err, 'Upload analysis failed.'));
     } catch (e) {
       if (onProgress) onProgress(100);
       throw e;
@@ -65,7 +79,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'GitHub scan failed');
+      throw new Error(formatApiError(err, 'GitHub scan failed'));
     }
     return await res.json();
   },
@@ -79,7 +93,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Live deployment scan failed');
+      throw new Error(formatApiError(err, 'Live deployment scan failed'));
     }
     return await res.json();
   },
@@ -89,11 +103,11 @@ export const api = {
     const res = await fetch(`${API_BASE_URL}/github/verify-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ github_token: token, repo_url: repoUrl })
+      body: JSON.stringify({ token, github_token: token, repo_url: repoUrl })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'GitHub token verification failed.');
+      throw new Error(formatApiError(err, 'GitHub token verification failed.'));
     }
     return await res.json();
   },
@@ -308,20 +322,6 @@ export const api = {
     };
   },
 
-  // Verify GitHub Personal Access Token permissions
-  async verifyGitHubToken(token, repoUrl = null) {
-    const res = await fetch(`${API_BASE_URL}/github/verify-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, repo_url: repoUrl })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Token verification failed.');
-    }
-    return await res.json();
-  },
-
   // Apply fixes directly to GitHub (Create PR or Direct Commit)
   async applyFixesToGitHub({ repoUrl, token, fixes, branchMode = 'pr', targetBranch = null, prTitle = null, commitMessage = null }) {
     const sanitizedFixes = (fixes || []).map(f => ({
@@ -346,31 +346,33 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      let msg = 'Failed to apply fixes to GitHub repository.';
-      if (err.detail) {
-        if (typeof err.detail === 'string') {
-          msg = err.detail;
-        } else if (Array.isArray(err.detail)) {
-          msg = err.detail.map(d => (typeof d === 'string' ? d : (d.msg || JSON.stringify(d)))).join('; ');
-        } else if (typeof err.detail === 'object') {
-          msg = err.detail.message || JSON.stringify(err.detail);
-        }
-      }
-      throw new Error(msg);
+      throw new Error(formatApiError(err, 'Failed to apply fixes to GitHub repository.'));
     }
     return await res.json();
   },
 
   // Verify Vercel / Render cloud deployment token
-  async verifyCloudToken({ platform, token, liveUrl = null }) {
+  // Flexible signature: supports both ({ platform, token, liveUrl }) and (platform, token, liveUrl)
+  async verifyCloudToken(arg1, arg2 = null, arg3 = null) {
+    let platform, token, liveUrl;
+    if (typeof arg1 === 'object' && arg1 !== null) {
+      platform = arg1.platform;
+      token = arg1.token;
+      liveUrl = arg1.liveUrl || arg1.live_url || null;
+    } else {
+      platform = arg1;
+      token = arg2;
+      liveUrl = arg3;
+    }
+
     const res = await fetch(`${API_BASE_URL}/cloud/verify-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform, token, live_url: liveUrl })
+      body: JSON.stringify({ platform: String(platform || ''), token: String(token || ''), live_url: liveUrl })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Cloud token verification failed.');
+      throw new Error(formatApiError(err, `${platform ? String(platform).toUpperCase() : 'Cloud'} token verification failed.`));
     }
     return await res.json();
   },
@@ -384,7 +386,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Redeployment request failed.');
+      throw new Error(formatApiError(err, 'Redeployment request failed.'));
     }
     return await res.json();
   },
@@ -398,7 +400,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Re-probe request failed.');
+      throw new Error(formatApiError(err, 'Re-probe request failed.'));
     }
     return await res.json();
   },
@@ -443,7 +445,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to create Render cloud service.');
+      throw new Error(formatApiError(err, 'Failed to create Render cloud service.'));
     }
     return await res.json();
   },
@@ -462,21 +464,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to link backend to frontend.');
-    }
-    return await res.json();
-  },
-
-  // Verify Cloud Token (Vercel, Render, Netlify)
-  async verifyCloudToken(platform, token, liveUrl = null) {
-    const res = await fetch(`${API_BASE_URL}/cloud/verify-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform, token, live_url: liveUrl })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `${platform} token verification failed.`);
+      throw new Error(formatApiError(err, 'Failed to link backend to frontend.'));
     }
     return await res.json();
   },
@@ -512,7 +500,7 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Deployment to ${platform} failed.`);
+      throw new Error(formatApiError(err, `Deployment to ${platform} failed.`));
     }
     return await res.json();
   }

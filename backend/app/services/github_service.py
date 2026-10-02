@@ -72,7 +72,10 @@ class GitHubService:
             return self._scan_via_git_clone(owner, repo, repo_url, auth_token)
         except Exception as git_err:
             print(f"[GITHUB_SERVICE] Native git clone failed: {git_err}")
-            raise Exception(f"Unable to access repository '{owner}/{repo}'. Please verify the repository exists and is accessible.")
+            if not auth_token:
+                raise Exception(f"Unable to access repository '{owner}/{repo}'. If this is a private repository, please expand 'Have a GitHub Personal Access Token?' and provide your token with 'repo' scope.")
+            else:
+                raise Exception(f"Unable to access repository '{owner}/{repo}'. Please check that your Personal Access Token has 'repo' scope and repository access permissions.")
 
     def _scan_via_codeload(self, owner: str, repo: str, repo_url: str, auth_token: Optional[str] = None) -> Dict[str, Any]:
         """Streams repository archive directly from GitHub CDN with zero REST API rate limit."""
@@ -84,9 +87,12 @@ class GitHubService:
         content_bytes = None
 
         for br in branches:
-            zip_url = f"https://codeload.github.com/{owner}/{repo}/zip/refs/heads/{br}"
+            if auth_token:
+                zip_url = f"https://api.github.com/repos/{owner}/{repo}/zipball/{br}"
+            else:
+                zip_url = f"https://codeload.github.com/{owner}/{repo}/zip/refs/heads/{br}"
             try:
-                res = requests.get(zip_url, headers=headers, timeout=25)
+                res = requests.get(zip_url, headers=headers, timeout=25, allow_redirects=True)
                 if res.status_code == 200 and len(res.content) > 100:
                     content_bytes = res.content
                     break
@@ -136,8 +142,10 @@ class GitHubService:
             if auth_token:
                 clone_url = f"https://x-access-token:{auth_token}@github.com/{owner}/{repo}.git"
 
+            env = dict(os.environ)
+            env["GIT_TERMINAL_PROMPT"] = "0"
             cmd = ["git", "clone", "--depth", "1", "--single-branch", clone_url, temp_dir]
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=35)
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=35, env=env)
             if proc.returncode != 0:
                 raise Exception(f"Git clone error: {proc.stderr}")
 
@@ -195,8 +203,15 @@ class GitHubService:
 
         for file_node in target_files:
             file_path = file_node['path']
-            raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{default_branch}/{file_path}"
-            raw_res = requests.get(raw_url, headers=headers, timeout=10)
+            # Fetch raw content via official GitHub contents API with Accept: application/vnd.github.v3.raw (supports private repos)
+            contents_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}?ref={default_branch}"
+            raw_headers = dict(headers)
+            raw_headers["Accept"] = "application/vnd.github.v3.raw"
+            raw_res = requests.get(contents_url, headers=raw_headers, timeout=10)
+            if raw_res.status_code != 200:
+                # Fallback to raw.githubusercontent.com
+                fallback_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{default_branch}/{file_path}"
+                raw_res = requests.get(fallback_url, headers=headers, timeout=10)
             if raw_res.status_code == 200:
                 content = raw_res.text
                 file_issues = self.analyzer.analyze_file(file_path, content)

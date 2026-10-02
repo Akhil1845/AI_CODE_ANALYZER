@@ -659,14 +659,16 @@ def generate_full_project(req: GenerateFullProjectRequest):
 # GITHUB SECURE AUTO-FIX & DIRECT PR / COMMIT ENDPOINTS
 # -------------------------------------------------------------
 class GitHubVerifyTokenRequest(BaseModel):
-    token: str
+    token: Optional[str] = None
+    github_token: Optional[str] = None
     repo_url: Optional[str] = None
 
 @app.post("/api/github/verify-token")
 def verify_github_token(req: GitHubVerifyTokenRequest):
-    if not req.token or not req.token.strip():
+    actual_token = (req.token or req.github_token or "").strip()
+    if not actual_token:
         raise HTTPException(status_code=400, detail="Please provide a GitHub Personal Access Token.")
-    result = github_service.verify_token(req.token.strip(), req.repo_url)
+    result = github_service.verify_token(actual_token, req.repo_url)
     return result
 
 class GitHubApplyFixesRequest(BaseModel):

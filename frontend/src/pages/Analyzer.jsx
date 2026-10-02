@@ -110,6 +110,7 @@ export default function Analyzer() {
       `[INFO] Connecting via Resilient Multi-Engine Code Streamer...`
     ]);
 
+    const effectiveToken = customGithubToken.trim() || localStorage.getItem('codelens_github_pat') || '';
     if (customGithubToken.trim()) {
       localStorage.setItem('codelens_github_pat', customGithubToken.trim());
     }
@@ -131,7 +132,7 @@ export default function Analyzer() {
     );
 
     try {
-      const result = await api.scanGitHubRepo(githubUrl.trim(), customGithubToken.trim() || null);
+      const result = await api.scanGitHubRepo(githubUrl.trim(), effectiveToken || null);
       timers.forEach(clearTimeout);
 
       setCurrentStep(3);
@@ -172,9 +173,13 @@ export default function Analyzer() {
     } catch (err) {
       timers.forEach(clearTimeout);
       console.error(err);
-      setErrorMessage(err.message || 'Scan failed. Please verify the repository URL.');
-      setLogs((prev) => [...prev, `[ERROR] Scan halted: ${err.message}`]);
+      const msg = err.message || 'Scan failed. Please verify the repository URL.';
+      setErrorMessage(msg);
+      setLogs((prev) => [...prev, `[ERROR] Scan halted: ${msg}`]);
       setAnalyzing(false);
+      if (msg.toLowerCase().includes('private') || msg.toLowerCase().includes('token') || msg.toLowerCase().includes('access')) {
+        setShowTokenInput(true);
+      }
     }
   };
 
@@ -521,7 +526,7 @@ export default function Analyzer() {
                         }}
                       >
                         <Key size={14} />
-                        <span>{showTokenInput ? 'Hide GitHub Token Field' : 'Have a GitHub Personal Access Token? (Optional)'}</span>
+                        <span>{showTokenInput ? 'Hide GitHub Token Field' : (customGithubToken ? '🔑 GitHub Token Stored (Click to Edit)' : '🔑 Have a GitHub Personal Access Token? (Required for Private Repos)')}</span>
                       </button>
 
                       {showTokenInput && (

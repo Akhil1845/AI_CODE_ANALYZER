@@ -3074,7 +3074,7 @@ export default function AnalysisResult() {
                     color: '#fb7185',
                     fontSize: '13px'
                   }}>
-                    {redeployError}
+                    {typeof redeployError === 'object' ? JSON.stringify(redeployError) : String(redeployError)}
                   </div>
                 )}
               </div>
@@ -3724,7 +3724,11 @@ export default function AnalysisResult() {
                           }}>
                             <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <div>
-                              <strong>Deployment Error:</strong> {applyError || redeployError}
+                              <strong>Deployment Error:</strong> {
+                                typeof (applyError || redeployError) === 'object'
+                                  ? JSON.stringify(applyError || redeployError)
+                                  : String(applyError || redeployError)
+                              }
                             </div>
                           </div>
                         )}
