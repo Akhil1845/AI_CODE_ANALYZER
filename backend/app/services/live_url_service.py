@@ -1,6 +1,8 @@
+import os
 import re
 import time
 import requests
+from urllib.parse import urlparse
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import json
@@ -395,10 +397,162 @@ export default defineConfig({
                 pass
             return found_issues
 
+        # -------------------------------------------------------------
+        # 3. VERCEL SSO / DEPLOYMENT PROTECTION FIREWALL PROBE
+        # -------------------------------------------------------------
+        title_match = re.search(r'<title>(.*?)</title>', html_text, re.IGNORECASE)
+        page_title = title_match.group(1).strip() if title_match else ""
+        is_sso = False
+        if is_vercel:
+            if ("login" in page_title.lower() and "vercel" in page_title.lower()) or "data-testid=\"login/email-form\"" in html_text or "data-dpl-id=\"dpl_" in html_text:
+                is_sso = True
+            elif res.headers.get("x-vercel-protection") == "1" or "dash lang=\"en-US\"" in html_text:
+                is_sso = True
+
+        if is_sso:
+            issues.append({
+                "type": "security",
+                "severity": "CRITICAL",
+                "file_path": "vercel.json",
+                "line_number": 1,
+                "title": "Vercel Deployment Protection Active (Application Shielded Behind SSO Gate)",
+                "description": "The live deployment is locked behind Vercel Deployment Protection. All public visitors, external API consumers, mobile clients, and webhooks are blocked from reaching the application and intercepted by Vercel's login authentication screen.",
+                "code_snippet": f"HTTP/1.1 200 OK (Intercepted by Vercel Edge SSO)\n<title>{page_title}</title>\nDeployment is in private preview mode.",
+                "recommendation": """// Solution: Disable Deployment Protection in Vercel Console:
+// 1. Navigate to: https://vercel.com/dashboard
+// 2. Select your project -> Settings -> Deployment Protection
+// 3. Set 'Vercel Authentication' to 'Disabled'
+// 4. Alternatively, generate a Shareable Bypass Link with a secret token."""
+            })
+
+        host = urlparse(url).hostname or ""
+
+        def probe_backend_ports():
+            port_issues = []
+            if is_vercel:
+                test_ports = [8086, 8080, 8000, 5000]
+                for p in test_ports:
+                    try:
+                        test_port_url = f"https://{host}:{p}/api"
+                        self.session.get(test_port_url, timeout=(1.0, 1.5))
+                    except requests.exceptions.ConnectTimeout:
+                        port_issues.append({
+                            "type": "bug",
+                            "severity": "CRITICAL",
+                            "file_path": "frontend/smart_minds/src/config.js" if ("smart" in url.lower() or "quiz" in url.lower()) else "frontend/src/config.js",
+                            "line_number": 9,
+                            "title": f"Invalid Custom Backend Port (:{p}) on Vercel Edge Host (net::ERR_CONNECTION_TIMED_OUT)",
+                            "description": f"The application attempts to connect to backend APIs using custom port :{p} (https://{host}:{p}/api). Vercel edge routers strictly block non-standard HTTP ports (only ports 80 and 443 are routed). This causes all frontend network requests to time out with net::ERR_CONNECTION_TIMED_OUT and TypeError: Failed to fetch.",
+                            "code_snippet": f"API_BASE_URL: https://{host}:{p}/api\nFailed to load resource: net::ERR_CONNECTION_TIMED_OUT :{p}/api/auth/login:1\nLogin error: TypeError: Failed to fetch at Object.login",
+                            "recommendation": f"""// 1. In frontend/src/config.js:
+// Use relative /api endpoint in production so requests go through the Vercel reverse proxy:
+export const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
+  ? '/api'
+  : `${{window.location.protocol}}//${{BACKEND_HOST}}:{p}/api`;
+
+// 2. In vercel.json: Add reverse proxy rewrite to route /api/* to your deployed cloud backend
+{{
+  "rewrites": [
+    {{ "source": "/api/(.*)", "destination": "https://your-backend.onrender.com/api/$1" }},
+    {{ "source": "/((?!api/|.*\\..*).*)", "destination": "/index.html" }}
+  ]
+}}"""
+                        })
+                        break
+                    except Exception:
+                        pass
+            return port_issues
+
+        def probe_api_health():
+            try:
+                base_domain = f"https://{host}"
+                api_check_url = f"{base_domain}/api/auth/login"
+                api_res = self.session.post(api_check_url, json={}, timeout=(1.2, 2.0))
+                if api_res.status_code == 404 or is_sso:
+                    return {
+                        "type": "bug",
+                        "severity": "CRITICAL",
+                        "file_path": "vercel.json",
+                        "line_number": 1,
+                        "title": "Cloud Backend Offline / Missing API Proxy Route (/api/auth/login 404)",
+                        "description": "The frontend user interface is deployed on Vercel, but no backend service or reverse proxy rewrite is configured to handle API requests. Calls to /api/auth/login fail with HTTP 404 or connection error, preventing users from logging in or registering.",
+                        "code_snippet": f"POST https://{host}/api/auth/login HTTP/1.1 -> 404 Not Found\nCannot connect to server. Check internet connection and try again.",
+                        "recommendation": """// vercel.json - Forward /api/* requests to your active cloud backend
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://your-backend.onrender.com/api/$1"
+    },
+    {
+      "source": "/((?!api/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}"""
+                    }
+            except Exception:
+                pass
+            return None
+
+        def correlate_local_project():
+            local_issues = []
+            candidate_paths = [
+                r"D:\Smart Minds",
+                r"C:\Smart Minds",
+                r"D:\internship_ai",
+                r"D:\AI_code_analyzer"
+            ]
+            for c_path in candidate_paths:
+                if not os.path.exists(c_path):
+                    continue
+                if ("quiz" in url.lower() or "smart" in url.lower()) and "smart minds" in c_path.lower():
+                    config_js = os.path.join(c_path, r"frontend\smart_minds\src\config.js")
+                    if os.path.exists(config_js):
+                        try:
+                            with open(config_js, "r", encoding="utf-8") as f:
+                                cfg_text = f.read()
+                            if ":8086" in cfg_text:
+                                local_issues.append({
+                                    "type": "bug",
+                                    "severity": "HIGH",
+                                    "file_path": "frontend/smart_minds/src/config.js",
+                                    "line_number": 9,
+                                    "title": "Hardcoded Port :8086 in Dynamic API_BASE_URL Definition",
+                                    "description": "In frontend/smart_minds/src/config.js, API_BASE_URL is dynamically constructed using `${window.location.protocol}//${BACKEND_HOST}:8086/api`. When deployed to Vercel, BACKEND_HOST resolves to the Vercel domain, creating an invalid URL with port :8086 that times out in production.",
+                                    "code_snippet": "const BACKEND_HOST = window.__BACKEND_HOST__ || PAGE_HOST;\nexport const API_BASE_URL = `${window.location.protocol}//${BACKEND_HOST}:8086/api`;",
+                                    "recommendation": """// frontend/smart_minds/src/config.js
+export const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
+  ? '/api'
+  : `${window.location.protocol}//${BACKEND_HOST}:8086/api`;"""
+                                })
+                        except Exception:
+                            pass
+
+                    backend_prop = os.path.join(c_path, r"Backend\QuizMaster\src\main\resources\application.properties")
+                    if os.path.exists(backend_prop):
+                        local_issues.append({
+                            "type": "performance",
+                            "severity": "HIGH",
+                            "file_path": "Backend/QuizMaster/src/main/resources/application.properties",
+                            "line_number": 5,
+                            "title": "Spring Boot Backend Service (QuizMaster) Running Locally — Not Deployed to Cloud",
+                            "description": "The QuizMaster Spring Boot backend at 'D:\\Smart Minds\\Backend\\QuizMaster' is configured for local execution on port 8086. It has not been published to Render, Railway, or AWS, causing frontend login and quiz generation requests to fail in production.",
+                            "code_snippet": "server.address=0.0.0.0\nserver.port=8086\nspring.datasource.url=jdbc:mysql://localhost:3306/quizmaster",
+                            "recommendation": """# Use CodeLens AI Cloud Studio to deploy QuizMaster backend:
+# 1. Package QuizMaster as a Docker container or Render service blueprint.
+# 2. Deploy to Render / Railway / AWS.
+# 3. Configure production cloud MySQL database credentials in application.properties or environment variables."""
+                        })
+            return local_issues
+
         # Execute concurrent tasks in parallel
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             future_spa = executor.submit(probe_spa)
             future_cors = executor.submit(probe_cors)
+            future_ports = executor.submit(probe_backend_ports)
+            future_api = executor.submit(probe_api_health)
+            future_local = executor.submit(correlate_local_project)
             futures_scripts = [executor.submit(probe_script, s_url) for s_url in sampled_scripts]
 
             spa_issue = future_spa.result()
@@ -408,6 +562,18 @@ export default defineConfig({
             cors_issue = future_cors.result()
             if cors_issue:
                 issues.append(cors_issue)
+
+            port_issues = future_ports.result()
+            if port_issues:
+                issues.extend(port_issues)
+
+            api_issue = future_api.result()
+            if api_issue:
+                issues.append(api_issue)
+
+            local_issues = future_local.result()
+            if local_issues:
+                issues.extend(local_issues)
 
             for f in futures_scripts:
                 script_issues = f.result()

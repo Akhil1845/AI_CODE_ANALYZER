@@ -323,7 +323,24 @@ class CloudDeployService:
         # Check for Java Maven / Spring Boot
         if "pom.xml" in files or any(os.path.exists(os.path.join(clean_path, f, "pom.xml")) for f in files if os.path.isdir(os.path.join(clean_path, f))):
             detected_stack = "Spring Boot (Java 17 / Maven)"
-            detected_port = 8089
+            detected_port = 8080
+            prop_candidates = [
+                os.path.join(clean_path, "src", "main", "resources", "application.properties"),
+                os.path.join(clean_path, "src", "main", "resources", "application.yml"),
+                os.path.join(clean_path, "application.properties")
+            ]
+            for pc in prop_candidates:
+                if os.path.exists(pc):
+                    try:
+                        with open(pc, "r", encoding="utf-8", errors="ignore") as pf:
+                            p_txt = pf.read()
+                        m_port = re.search(r'server\.port\s*[:=]\s*(\d+)', p_txt)
+                        if m_port:
+                            detected_port = int(m_port.group(1))
+                            break
+                    except Exception:
+                        pass
+
             dockerfile_content = (
                 "# Multi-stage Docker build for Spring Boot Backend\n"
                 "FROM maven:3.9.6-eclipse-temurin-17 AS build\n"
@@ -337,7 +354,7 @@ class CloudDeployService:
                 f"EXPOSE {detected_port}\n"
                 f"ENV PORT={detected_port}\n"
                 "ENV APP_DB=postgres\n"
-                "ENTRYPOINT [\"java\", \"-Dserver.port=${PORT:-8089}\", \"-jar\", \"app.jar\"]\n"
+                f"ENTRYPOINT [\"java\", \"-Dserver.port=${{PORT:-{detected_port}}}\", \"-jar\", \"app.jar\"]\n"
             )
         # Check for Python (FastAPI / Flask / Django)
         elif "requirements.txt" in files or "pyproject.toml" in files:
