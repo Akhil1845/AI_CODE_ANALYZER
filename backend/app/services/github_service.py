@@ -548,8 +548,9 @@ class GitHubService:
                                 v_match = re.search(r'"value"\s*:\s*"([^"]+)"', line)
                                 if k_match and v_match:
                                     combined_headers[k_match.group(1)] = v_match.group(1)
-                            except Exception:
-                                pass
+                            except Exception as _err:
+                                import logging
+                                logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
                 # Query active tunnel bridge dynamically if available
                 active_tunnel_url = "https://interdental-farcically-bernardina.ngrok-free.dev"
@@ -561,8 +562,9 @@ class GitHubService:
                             if tun.get("public_url", "").startswith("https://"):
                                 active_tunnel_url = tun["public_url"]
                                 break
-                except Exception:
-                    pass
+                except Exception as _err:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
                 # Build production vercel.json
                 master_vercel = {
