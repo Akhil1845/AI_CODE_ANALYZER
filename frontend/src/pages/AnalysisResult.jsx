@@ -1901,16 +1901,20 @@ export default function AnalysisResult() {
         }}>
           <div className="glass-card" style={{
             width: '100%',
-            maxWidth: '680px',
+            maxWidth: '720px',
             maxHeight: '90vh',
-            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
             borderRadius: '16px',
             border: '1px solid rgba(56, 189, 248, 0.4)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.15)',
             background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.98) 100%)',
-            padding: '28px'
+            padding: '24px 28px'
           }}>
-            {/* Modal Header */}
+            {/* Pinned Top Container: Header, Security Guarantee & Tab Bar */}
+            <div style={{ flexShrink: 0 }}>
+              {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
@@ -2096,7 +2100,10 @@ export default function AnalysisResult() {
                 <span>4. Deploy Backend to Cloud</span>
               </button>
             </div>
+          </div>
 
+          {/* Scrollable Tab Content Body */}
+          <div style={{ flexGrow: 1, overflowY: 'auto', paddingRight: '4px', marginTop: '4px' }}>
             {/* TAB 1: GITHUB AUTO-REDEPLOY PIPELINE */}
             {modalTab === 'github' && (
               applyResult ? (
@@ -2931,6 +2938,310 @@ export default function AnalysisResult() {
                     <div style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700 }}>
                       {reprobeFeedback}
                     </div>
+
+                    {/* PRIMARY ACTION: SOLVE ALL LIVE ISSUES & REDEPLOY */}
+                    {reprobeResult.total_issues > 0 && (
+                      <div style={{
+                        marginTop: '16px',
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(236, 72, 153, 0.16) 100%)',
+                        border: '1px solid rgba(99, 102, 241, 0.4)',
+                        borderRadius: '10px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Sparkles size={17} color="#818cf8" />
+                            <strong style={{ fontSize: '14px', color: '#ffffff' }}>
+                              Auto-Solve &amp; Redeploy These {reprobeResult.total_issues} Live Issues
+                            </strong>
+                          </div>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            background: 'rgba(16, 185, 129, 0.2)',
+                            color: '#34d399',
+                            padding: '2px 8px',
+                            borderRadius: '4px'
+                          }}>
+                            Patches Ready to Commit
+                          </span>
+                        </div>
+
+                        <p style={{ margin: 0, fontSize: '12px', color: '#cbd5e1', lineHeight: 1.5 }}>
+                          CodeLens AI has packaged production configurations for all missing security headers (CSP, HSTS, X-Frame) and proxy rules into <code style={{ color: '#38bdf8' }}>vercel.json</code>. Choose how you want to deploy:
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (reprobeResult.issues && reprobeResult.issues.length > 0) {
+                                const formatted = reprobeResult.issues.map((iss, idx) => ({
+                                  id: `live-fix-${idx}`,
+                                  category: (iss.type || 'SECURITY').toUpperCase(),
+                                  severity: (iss.severity || 'HIGH').toUpperCase(),
+                                  title: iss.title,
+                                  file: iss.file_path || 'vercel.json',
+                                  line: iss.line_number || 1,
+                                  function: iss.file_path?.split('/').pop() || 'vercel.json',
+                                  snippet: iss.code_snippet,
+                                  explanation: iss.description,
+                                  doctorAnalysis: { cause: iss.title, impact: iss.severity, recommendation: iss.recommendation },
+                                  beforeCode: iss.code_snippet,
+                                  afterCode: iss.recommendation && (
+                                    iss.recommendation.startsWith('//') || 
+                                    iss.recommendation.startsWith('{') || 
+                                    iss.recommendation.startsWith('/*')
+                                  ) ? iss.recommendation : `// vercel.json\n${iss.recommendation}`,
+                                  validationStatus: null
+                                }));
+                                setIssues(formatted);
+                                setSelectedFixIds(formatted.map(f => f.id));
+                              }
+                              setModalTab('github');
+                            }}
+                            style={{
+                              flex: '1 1 200px',
+                              padding: '10px 16px',
+                              borderRadius: '8px',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: '12.5px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              boxShadow: '0 4px 15px rgba(16, 185, 129, 0.35)'
+                            }}
+                          >
+                            <GitPullRequest size={14} />
+                            <span>1. Apply via GitHub &amp; Auto-Redeploy &rarr;</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setModalTab('cloud_api')}
+                            style={{
+                              flex: '1 1 180px',
+                              padding: '10px 16px',
+                              borderRadius: '8px',
+                              background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: '12.5px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              boxShadow: '0 4px 15px rgba(56, 189, 248, 0.35)'
+                            }}
+                          >
+                            <Cloud size={14} />
+                            <span>2. Direct Cloud API Redeploy &rarr;</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DIRECT INLINE PERMISSION & COMMIT CARD */}
+                    {reprobeResult.total_issues > 0 && (
+                      <div style={{
+                        marginTop: '14px',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '10px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Key size={15} color="#34d399" />
+                            <strong style={{ fontSize: '13px', color: '#ffffff' }}>
+                              Grant Permissions &amp; Deploy Now
+                            </strong>
+                          </div>
+                          <a
+                            href="https://github.com/settings/tokens"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '11.5px', color: '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <span>Get GitHub PAT (Contents: Read &amp; Write)</span>
+                            <ExternalLink size={11} />
+                          </a>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                          <div style={{
+                            flex: 1,
+                            minWidth: '220px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '0 10px'
+                          }}>
+                            <Lock size={13} color="#64748b" style={{ marginRight: '6px' }} />
+                            <input
+                              type={showTokenInput ? 'text' : 'password'}
+                              value={githubToken}
+                              onChange={(e) => {
+                                setGithubToken(e.target.value);
+                                setTokenVerifyData(null);
+                              }}
+                              placeholder="Paste GitHub PAT (ghp_••••••••••••••••)"
+                              style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#ffffff',
+                                fontSize: '12px',
+                                outline: 'none',
+                                padding: '9px 0',
+                                fontFamily: 'var(--font-mono)'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowTokenInput(!showTokenInput)}
+                              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', fontSize: '11px' }}
+                            >
+                              {showTokenInput ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={applyingFixes || !githubToken}
+                            onClick={async () => {
+                              if (reprobeResult.issues && reprobeResult.issues.length > 0) {
+                                const formatted = reprobeResult.issues.map((iss, idx) => ({
+                                  id: `live-fix-${idx}`,
+                                  category: (iss.type || 'SECURITY').toUpperCase(),
+                                  severity: (iss.severity || 'HIGH').toUpperCase(),
+                                  title: iss.title,
+                                  file: iss.file_path || 'vercel.json',
+                                  line: iss.line_number || 1,
+                                  function: iss.file_path?.split('/').pop() || 'vercel.json',
+                                  snippet: iss.code_snippet,
+                                  explanation: iss.description,
+                                  doctorAnalysis: { cause: iss.title, impact: iss.severity, recommendation: iss.recommendation },
+                                  beforeCode: iss.code_snippet,
+                                  afterCode: iss.recommendation && (
+                                    iss.recommendation.startsWith('//') || 
+                                    iss.recommendation.startsWith('{') || 
+                                    iss.recommendation.startsWith('/*')
+                                  ) ? iss.recommendation : `// vercel.json\n${iss.recommendation}`,
+                                  validationStatus: null
+                                }));
+                                setIssues(formatted);
+                                setSelectedFixIds(formatted.map(f => f.id));
+                              }
+                              await handleApplyGitHubFixes();
+                            }}
+                            style={{
+                              padding: '10px 18px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              border: 'none',
+                              color: '#ffffff',
+                              fontSize: '12.5px',
+                              fontWeight: 800,
+                              cursor: (applyingFixes || !githubToken) ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)'
+                            }}
+                          >
+                            {applyingFixes ? (
+                              <>
+                                <Loader2 size={13} className="spin" />
+                                <span>Committing to GitHub...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={14} />
+                                <span>Commit Fixes &amp; Auto-Redeploy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DETAILED LIST OF DETECTED ISSUES */}
+                    {reprobeResult.issues && reprobeResult.issues.length > 0 && (
+                      <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Detected Deployment Issues ({reprobeResult.issues.length}):
+                        </div>
+
+                        {reprobeResult.issues.map((iss, idx) => (
+                          <div key={idx} style={{
+                            background: 'rgba(0,0,0,0.4)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
+                            padding: '12px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  background: iss.severity === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                  color: iss.severity === 'CRITICAL' ? '#f87171' : '#fbbf24',
+                                  border: `1px solid ${iss.severity === 'CRITICAL' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`
+                                }}>
+                                  {iss.severity}
+                                </span>
+                                <strong style={{ fontSize: '13px', color: '#ffffff' }}>{iss.title}</strong>
+                              </div>
+                              <span style={{ fontSize: '11px', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                                {iss.file_path || 'vercel.json'}
+                              </span>
+                            </div>
+
+                            <p style={{ margin: 0, fontSize: '12px', color: '#cbd5e1', lineHeight: 1.45 }}>
+                              {iss.description}
+                            </p>
+
+                            {iss.recommendation && (
+                              <div style={{
+                                background: 'rgba(15, 23, 42, 0.8)',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                borderRadius: '6px',
+                                padding: '8px 10px',
+                                fontSize: '11.5px',
+                                fontFamily: 'var(--font-mono)',
+                                color: '#34d399',
+                                maxHeight: '90px',
+                                overflowY: 'auto'
+                              }}>
+                                {iss.recommendation}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -3601,6 +3912,7 @@ export default function AnalysisResult() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
