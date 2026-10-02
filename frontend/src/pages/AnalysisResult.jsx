@@ -149,6 +149,7 @@ export default function AnalysisResult() {
     setApplyError('');
     setApplyResult(null);
     setShowGitHubModal(true);
+    fetchCloudBridge();
 
     const savedToken = githubToken || localStorage.getItem('codelens_github_pat');
     if (savedToken && !tokenVerifyData) {
@@ -2067,6 +2068,33 @@ export default function AnalysisResult() {
                 <Activity size={14} />
                 <span>3. Re-Probe Live URL</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab('deploy_backend');
+                  fetchCloudBridge();
+                }}
+                style={{
+                  flex: '1 1 180px',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '7px',
+                  background: modalTab === 'deploy_backend' ? 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)' : 'transparent',
+                  color: modalTab === 'deploy_backend' ? '#ffffff' : '#94a3b8',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Server size={14} />
+                <span>4. Deploy Backend to Cloud</span>
+              </button>
             </div>
 
             {/* TAB 1: GITHUB AUTO-REDEPLOY PIPELINE */}
@@ -2905,6 +2933,672 @@ export default function AnalysisResult() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* TAB 4: LOCAL BACKEND CLOUD DEPLOYMENT & AUTO-LINK */}
+            {modalTab === 'deploy_backend' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Information Header Card */}
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: '10px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px'
+                }}>
+                  <Server size={20} color="#34d399" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#ffffff', display: 'block', marginBottom: '2px' }}>
+                      Connect Local & Unhosted Backends to Your Cloud Frontend
+                    </strong>
+                    When your frontend is hosted on Vercel or Netlify, browsers strictly block direct requests to <code style={{ color: '#38bdf8', background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: '4px' }}>localhost</code> (Mixed Content). Use CodeLens AI to containerize your local backend, expose it via a secure public tunnel, or provision a Render cloud service, and auto-link your frontend repository with API proxy rewrites.
+                  </div>
+                </div>
+
+                {/* Section 1: Live Local-to-Cloud Bridge (Auto-detected Tunnel) */}
+                <div style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '10px',
+                  padding: '18px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Zap size={16} color="#38bdf8" />
+                      <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                        1. Active Public Cloud Bridge (Tunnel)
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchCloudBridge}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        color: '#94a3b8',
+                        fontSize: '11.5px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <RefreshCw size={12} />
+                      <span>Scan Bridge</span>
+                    </button>
+                  </div>
+
+                  {cloudBridge?.active ? (
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#10b981',
+                            boxShadow: '0 0 10px #10b981',
+                            display: 'inline-block'
+                          }} />
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#34d399' }}>
+                            ONLINE TUNNEL ACTIVE
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                          Forwarding {cloudBridge.local_port || 'http://localhost:8089'}
+                        </span>
+                      </div>
+
+                      <div style={{
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '13px',
+                        color: '#38bdf8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        wordBreak: 'break-all'
+                      }}>
+                        <span>{cloudBridge.public_url}</span>
+                        <a
+                          href={cloudBridge.public_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#94a3b8', marginLeft: '10px', flexShrink: 0 }}
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', flexWrap: 'wrap', gap: '10px' }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+                          Commit vercel.json rewrites so your deployed frontend calls this tunnel securely.
+                        </p>
+                        <button
+                          type="button"
+                          disabled={linkingBackend}
+                          onClick={() => handleLinkBackendToFrontend(cloudBridge.public_url)}
+                          style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            cursor: linkingBackend ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {linkingBackend ? (
+                            <>
+                              <Loader2 size={13} className="spin" />
+                              <span>Linking to Vercel...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={13} />
+                              <span>Link Tunnel to Vercel</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px dashed var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '14px',
+                      fontSize: '12.5px',
+                      color: '#94a3b8'
+                    }}>
+                      <p style={{ margin: '0 0 8px 0', color: '#cbd5e1' }}>
+                        No live public bridge detected on local port 8089 or ngrok API (127.0.0.1:4040).
+                      </p>
+                      <div style={{
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        color: '#38bdf8'
+                      }}>
+                        ngrok http 8089
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '6px' }}>
+                        Run the command above in your terminal, then click "Scan Bridge".
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Local Backend Directory Packager */}
+                <div style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '10px',
+                  padding: '18px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Box size={16} color="#a855f7" />
+                    <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                      2. Package Local Backend Directory (Dockerfile & render.yaml)
+                    </h4>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                      LOCAL BACKEND DIRECTORY PATH
+                    </label>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0 12px'
+                    }}>
+                      <input
+                        type="text"
+                        value={backendPath}
+                        onChange={(e) => {
+                          setBackendPath(e.target.value);
+                          setPackageResult(null);
+                          setPackageError('');
+                        }}
+                        placeholder="e.g. D:\internship_ai\backend\internship_ai_backend"
+                        style={{
+                          flex: 1,
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          outline: 'none',
+                          padding: '10px 0',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      disabled={packagingBackend || !backendPath}
+                      onClick={() => handlePackageBackend(false)}
+                      style={{
+                        flex: '1 1 180px',
+                        padding: '9px 14px',
+                        borderRadius: '6px',
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        border: '1px solid rgba(168, 85, 247, 0.4)',
+                        color: '#c084fc',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        cursor: (packagingBackend || !backendPath) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      {packagingBackend ? <Loader2 size={13} className="spin" /> : <Zap size={13} />}
+                      <span>Inspect & Preview Configs</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={packagingBackend || !backendPath}
+                      onClick={() => handlePackageBackend(true)}
+                      style={{
+                        flex: '1 1 200px',
+                        padding: '9px 14px',
+                        borderRadius: '6px',
+                        background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        fontWeight: 800,
+                        cursor: (packagingBackend || !backendPath) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      {packagingBackend ? <Loader2 size={13} className="spin" /> : <CheckCircle2 size={13} />}
+                      <span>Save Dockerfile & render.yaml to Disk</span>
+                    </button>
+                  </div>
+
+                  {packageError && (
+                    <div style={{
+                      padding: '10px 14px',
+                      borderRadius: '6px',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#f87171',
+                      fontSize: '12px',
+                      marginBottom: '10px'
+                    }}>
+                      {packageError}
+                    </div>
+                  )}
+
+                  {packageResult && (
+                    <div style={{
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '14px',
+                      fontSize: '12.5px',
+                      color: '#cbd5e1'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          background: 'rgba(16, 185, 129, 0.2)',
+                          color: '#34d399',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '4px'
+                        }}>
+                          FRAMEWORK DETECTED
+                        </span>
+                        <strong style={{ color: '#ffffff' }}>{packageResult.detected_framework}</strong>
+                        <span style={{ color: '#94a3b8' }}>Port: {packageResult.detected_port}</span>
+                      </div>
+
+                      {packageResult.written ? (
+                        <div style={{
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: '6px',
+                          padding: '10px 12px',
+                          color: '#34d399',
+                          fontSize: '12px',
+                          marginBottom: '10px'
+                        }}>
+                          ✓ Successfully generated and wrote production Dockerfile and render.yaml directly into <code style={{ color: '#ffffff' }}>{packageResult.backend_path}</code>!
+                        </div>
+                      ) : null}
+
+                      <div style={{ marginTop: '10px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                          GENERATED DOCKERFILE PREVIEW
+                        </div>
+                        <pre style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          color: '#38bdf8',
+                          maxHeight: '140px',
+                          overflowY: 'auto',
+                          margin: 0
+                        }}>
+                          {packageResult.dockerfile}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 3: Deploy to Render Cloud Web Service */}
+                <div style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '10px',
+                  padding: '18px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Cloud size={16} color="#38bdf8" />
+                    <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                      3. Provision Cloud Web Service (Render API)
+                    </h4>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                        RENDER API KEY
+                      </label>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '0 10px'
+                      }}>
+                        <Key size={14} color="#64748b" style={{ marginRight: '6px' }} />
+                        <input
+                          type={showCloudTokenInput ? 'text' : 'password'}
+                          value={cloudToken}
+                          onChange={(e) => setCloudToken(e.target.value)}
+                          placeholder="rnd_••••••••••••••••"
+                          style={{
+                            flex: 1,
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '12.5px',
+                            outline: 'none',
+                            padding: '9px 0',
+                            fontFamily: 'var(--font-mono)'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                        BACKEND SERVICE NAME
+                      </label>
+                      <input
+                        type="text"
+                        value={renderServiceName}
+                        onChange={(e) => setRenderServiceName(e.target.value)}
+                        placeholder="careerpilot-backend"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          padding: '9px 10px',
+                          outline: 'none',
+                          fontFamily: 'var(--font-mono)',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                      BACKEND GITHUB REPOSITORY URL
+                    </label>
+                    <input
+                      type="text"
+                      value={githubRepoUrl}
+                      onChange={(e) => setGithubRepoUrl(e.target.value)}
+                      placeholder="https://github.com/Akhil1845/ai_internship_suggestor.git"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        padding: '9px 10px',
+                        outline: 'none',
+                        fontFamily: 'var(--font-mono)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={deployingBackend || !cloudToken || !githubRepoUrl}
+                    onClick={handleDeployToRender}
+                    style={{
+                      width: '100%',
+                      padding: '11px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: (deployingBackend || !cloudToken || !githubRepoUrl) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {deployingBackend ? (
+                      <>
+                        <Loader2 size={15} className="spin" />
+                        <span>Provisioning Render Web Service...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud size={15} />
+                        <span>Provision & Deploy Service to Render</span>
+                      </>
+                    )}
+                  </button>
+
+                  {deployBackendError && (
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '10px 14px',
+                      borderRadius: '6px',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#f87171',
+                      fontSize: '12px'
+                    }}>
+                      {deployBackendError}
+                    </div>
+                  )}
+
+                  {deployBackendResult && (
+                    <div style={{
+                      marginTop: '12px',
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '8px',
+                      padding: '14px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <CheckCircle2 size={16} color="#34d399" />
+                        <strong style={{ color: '#ffffff', fontSize: '13px' }}>Render Web Service Created!</strong>
+                      </div>
+                      <div style={{
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12.5px',
+                        color: '#38bdf8',
+                        marginBottom: '10px'
+                      }}>
+                        {deployBackendResult.cloud_backend_url}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={linkingBackend}
+                        onClick={() => handleLinkBackendToFrontend(deployBackendResult.cloud_backend_url)}
+                        style={{
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: linkingBackend ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {linkingBackend ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+                        <span>Link Render Backend to Frontend (Vercel)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 4: Manual Backend URL Auto-Linker */}
+                <div style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '10px',
+                  padding: '18px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Globe size={16} color="#10b981" />
+                    <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                      4. Direct Cloud Backend Linker (Any Live URL)
+                    </h4>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                      CLOUD BACKEND URL (HTTPS)
+                    </label>
+                    <div style={{
+                      display: 'flex',
+                      gap: '10px'
+                    }}>
+                      <input
+                        type="text"
+                        value={customBackendUrl}
+                        onChange={(e) => setCustomBackendUrl(e.target.value)}
+                        placeholder="e.g. https://your-backend.onrender.com or https://your-tunnel.ngrok-free.dev"
+                        style={{
+                          flex: 1,
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          padding: '9px 12px',
+                          outline: 'none',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={linkingBackend || !customBackendUrl}
+                        onClick={() => handleLinkBackendToFrontend(customBackendUrl)}
+                        style={{
+                          padding: '9px 18px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          cursor: (linkingBackend || !customBackendUrl) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {linkingBackend ? (
+                          <>
+                            <Loader2 size={13} className="spin" />
+                            <span>Linking...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={13} />
+                            <span>Apply to Frontend</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {linkBackendError && (
+                    <div style={{
+                      padding: '10px 14px',
+                      borderRadius: '6px',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: '#f87171',
+                      fontSize: '12px',
+                      marginBottom: '10px'
+                    }}>
+                      {linkBackendError}
+                    </div>
+                  )}
+
+                  {linkBackendResult && (
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '8px',
+                      padding: '14px',
+                      fontSize: '12.5px',
+                      color: '#cbd5e1'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <CheckCircle2 size={16} color="#34d399" />
+                        <strong style={{ color: '#ffffff' }}>Frontend Successfully Linked to Cloud Backend!</strong>
+                      </div>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#94a3b8' }}>
+                        Created atomic commit on branch <code style={{ color: '#38bdf8' }}>{linkBackendResult.branch}</code> with updated <code style={{ color: '#38bdf8' }}>vercel.json</code> rewrites and <code style={{ color: '#38bdf8' }}>frontend/config.js</code>.
+                      </p>
+                      {linkBackendResult.commit_url && (
+                        <a
+                          href={linkBackendResult.commit_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#34d399',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            textDecoration: 'none'
+                          }}
+                        >
+                          <span>View GitHub Commit ({linkBackendResult.commit_sha?.substring(0, 7)})</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
