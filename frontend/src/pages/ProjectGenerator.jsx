@@ -58,7 +58,12 @@ import {
   Key,
   Loader2,
   AlertTriangle,
-  X
+  X,
+  Cloud,
+  Globe,
+  Server,
+  UploadCloud,
+  EyeOff
 } from 'lucide-react';
 import { projectGenerator } from '../services/projectGenerator';
 import { api } from '../services/api';
@@ -287,6 +292,70 @@ const PROMPT_SUGGESTIONS = [
   { label: '✦ High-Conversion Pricing Matrix', archetype: 'pricing', prompt: 'Build a high-conversion pricing comparison matrix with monthly and annual billing toggle, 3 tier cards with a highlighted Pro plan, and comprehensive feature checklists.' }
 ];
 
+// Cloud Deployment Platforms Specification
+const DEPLOY_PLATFORMS = [
+  {
+    id: 'vercel',
+    name: 'Vercel',
+    badge: 'Instant Edge / Zero-Git',
+    iconText: '▲',
+    color: '#ffffff',
+    gradient: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.9) 100%)',
+    border: 'rgba(255, 255, 255, 0.25)',
+    glow: 'rgba(255, 255, 255, 0.15)',
+    desc: 'Instant direct API deployment to Vercel Global Edge Network with live SSL URL.',
+    tokenName: 'Vercel API Token',
+    tokenUrl: 'https://vercel.com/account/tokens',
+    tokenStorageKey: 'codelens_vercel_token',
+    directDeploy: true
+  },
+  {
+    id: 'render',
+    name: 'Render',
+    badge: 'Fullstack / Docker & Web',
+    iconText: '⬡',
+    color: '#00e599',
+    gradient: 'linear-gradient(135deg, rgba(0, 229, 153, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)',
+    border: 'rgba(0, 229, 153, 0.4)',
+    glow: 'rgba(0, 229, 153, 0.2)',
+    desc: 'Provisions automated Docker container or static service on Render linked to GitHub.',
+    tokenName: 'Render API Key',
+    tokenUrl: 'https://dashboard.render.com/u/settings#api-keys',
+    tokenStorageKey: 'codelens_render_token',
+    directDeploy: false
+  },
+  {
+    id: 'netlify',
+    name: 'Netlify',
+    badge: 'Instant Atomic ZIP / Edge',
+    iconText: '◈',
+    color: '#00c7b7',
+    gradient: 'linear-gradient(135deg, rgba(0, 199, 183, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)',
+    border: 'rgba(0, 199, 183, 0.4)',
+    glow: 'rgba(0, 199, 183, 0.2)',
+    desc: 'Direct atomic ZIP deployment to Netlify Global CDN. Live in under 5 seconds.',
+    tokenName: 'Netlify Access Token',
+    tokenUrl: 'https://app.netlify.com/user/applications#personal-access-tokens',
+    tokenStorageKey: 'codelens_netlify_token',
+    directDeploy: true
+  },
+  {
+    id: 'railway',
+    name: 'Railway',
+    badge: 'Container & PaaS',
+    iconText: '🚂',
+    color: '#c084fc',
+    gradient: 'linear-gradient(135deg, rgba(192, 132, 252, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)',
+    border: 'rgba(192, 132, 252, 0.4)',
+    glow: 'rgba(192, 132, 252, 0.2)',
+    desc: 'Containerized cloud infrastructure deployment via Railway CLI or 1-Click template.',
+    tokenName: 'Railway Template Deploy',
+    tokenUrl: 'https://railway.app/new',
+    tokenStorageKey: 'codelens_railway_token',
+    directDeploy: false
+  }
+];
+
 export default function ProjectGenerator() {
   const navigate = useNavigate();
 
@@ -366,6 +435,22 @@ export default function ProjectGenerator() {
   const [pushProgress, setPushProgress] = useState('');
   const [pushError, setPushError] = useState('');
   const [pushResult, setPushResult] = useState(null);
+
+  // Cloud Deployment Modal States (Vercel, Render, Netlify, Railway)
+  const [showDeployModal, setShowDeployModal] = useState(false);
+  const [deployPlatform, setDeployPlatform] = useState('vercel');
+  const [deployProjectName, setDeployProjectName] = useState('');
+  const [deployToken, setDeployToken] = useState('');
+  const [showDeployTokenInput, setShowDeployTokenInput] = useState(false);
+  const [deployRememberToken, setDeployRememberToken] = useState(true);
+  const [deployServiceType, setDeployServiceType] = useState('web_service');
+  const [deployGitHubRepo, setDeployGitHubRepo] = useState('');
+  const [deployGitHubToken, setDeployGitHubToken] = useState(() => localStorage.getItem('codelens_github_pat') || '');
+  const [showDeployGhTokenInput, setShowDeployGhTokenInput] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployProgress, setDeployProgress] = useState('');
+  const [deployError, setDeployError] = useState('');
+  const [deployResult, setDeployResult] = useState(null);
 
   const fileKeys = Object.keys(projectFiles);
   const activeFile = selectedFile && projectFiles[selectedFile] ? selectedFile : fileKeys[0];
@@ -639,6 +724,107 @@ export default function ProjectGenerator() {
     } finally {
       setIsPushing(false);
       setPushProgress('');
+    }
+  };
+
+  // Open Cloud Deployment Modal
+  const handleOpenDeployModal = () => {
+    const fallbackName = name || (singlePageResult?.filename ? singlePageResult.filename.replace(/\.[^/.]+$/, "") : 'codelens-app');
+    const sanitizedName = fallbackName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || 'codelens-app';
+    setDeployProjectName(sanitizedName);
+    
+    // Auto-load token for current selected platform
+    const savedToken = localStorage.getItem(`codelens_${deployPlatform}_token`) || '';
+    setDeployToken(savedToken);
+
+    // If project has been pushed or repo exists, prefill GitHub repo
+    if (pushResult?.repo_url || pushResult?.direct_url) {
+      setDeployGitHubRepo(pushResult.direct_url || pushResult.repo_url);
+    } else if (githubRepoInput) {
+      setDeployGitHubRepo(githubRepoInput);
+    } else {
+      setDeployGitHubRepo(sanitizedName);
+    }
+
+    setDeployError('');
+    setDeployResult(null);
+    setShowDeployModal(true);
+  };
+
+  const handleSelectDeployPlatform = (platId) => {
+    setDeployPlatform(platId);
+    const savedToken = localStorage.getItem(`codelens_${platId}_token`) || '';
+    setDeployToken(savedToken);
+    setDeployError('');
+  };
+
+  const handleExecuteDeployment = async () => {
+    if (deployPlatform === 'railway') {
+      const repoTarget = deployGitHubRepo.startsWith('http') 
+        ? deployGitHubRepo 
+        : `https://github.com/Akhil1845/${deployGitHubRepo}`;
+      window.open(`https://railway.app/new/template?template=${encodeURIComponent(repoTarget)}`, '_blank');
+      return;
+    }
+
+    if (!deployToken || !deployToken.trim()) {
+      setDeployError(`Please provide your ${deployPlatform.toUpperCase()} API token/key.`);
+      return;
+    }
+
+    if (!deployProjectName || !deployProjectName.trim()) {
+      setDeployError('Please enter a project name.');
+      return;
+    }
+
+    if (deployPlatform === 'render' && !deployGitHubRepo.trim() && !deployGitHubToken.trim()) {
+      setDeployError('Render builds from Git. Please provide a GitHub repository URL or a GitHub Personal Access Token to auto-publish.');
+      return;
+    }
+
+    setIsDeploying(true);
+    setDeployProgress(`Connecting to ${deployPlatform.toUpperCase()} Cloud API & validating credentials...`);
+    setDeployError('');
+    setDeployResult(null);
+
+    try {
+      if (deployRememberToken) {
+        localStorage.setItem(`codelens_${deployPlatform}_token`, deployToken.trim());
+        if (deployGitHubToken) {
+          localStorage.setItem('codelens_github_pat', deployGitHubToken.trim());
+        }
+      }
+
+      const filesToDeploy = genMode === 'single' && singlePageResult
+        ? [
+            { path: 'index.html', content: singlePageResult.preview_html || singlePageResult.code },
+            { path: singlePageResult.filename || 'src/App.jsx', content: singlePageResult.code }
+          ]
+        : Object.entries(projectFiles).map(([path, content]) => ({ path, content }));
+
+      if (filesToDeploy.length === 0) {
+        throw new Error('No files available to deploy. Please generate or scaffold a project first.');
+      }
+
+      setDeployProgress(`Packaging ${filesToDeploy.length} files and provisioning cloud deployment on ${deployPlatform.toUpperCase()}...`);
+
+      const res = await api.deployProjectToCloud({
+        platform: deployPlatform,
+        token: deployToken.trim(),
+        projectName: deployProjectName.trim(),
+        files: filesToDeploy,
+        repoUrl: deployGitHubRepo.trim() || null,
+        githubToken: deployGitHubToken.trim() || null,
+        serviceType: deployServiceType,
+        target: 'production'
+      });
+
+      setDeployResult(res);
+    } catch (err) {
+      setDeployError(err.message || `Failed to deploy to ${deployPlatform}`);
+    } finally {
+      setIsDeploying(false);
+      setDeployProgress('');
     }
   };
 
@@ -1023,6 +1209,30 @@ export default function ProjectGenerator() {
                     >
                       <GitPullRequest size={14} />
                       <span>Push to GitHub</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenDeployModal}
+                      title="Deploy project to Vercel, Render, Netlify, or Railway"
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
+                        border: '1px solid rgba(168, 85, 247, 0.5)',
+                        color: '#c084fc',
+                        fontSize: '12.5px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                        boxShadow: '0 2px 12px rgba(168, 85, 247, 0.2)'
+                      }}
+                    >
+                      <Zap size={14} color="#e879f9" />
+                      <span>Deploy to Cloud</span>
                     </button>
 
                     <button
@@ -2106,6 +2316,29 @@ export default function ProjectGenerator() {
                           <GitPullRequest size={13} />
                           <span>Push to GitHub</span>
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={handleOpenDeployModal}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 15px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            boxShadow: '0 0 18px rgba(139, 92, 246, 0.45)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Zap size={13} />
+                          <span>Deploy to Cloud</span>
+                        </button>
                       </>
                     )}
 
@@ -2174,6 +2407,29 @@ export default function ProjectGenerator() {
                         >
                           <GitPullRequest size={13} />
                           <span>Push to GitHub</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleOpenDeployModal}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 16px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            boxShadow: '0 0 20px rgba(139, 92, 246, 0.45)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Zap size={13} />
+                          <span>Deploy to Cloud</span>
                         </button>
                       </div>
                     )}
@@ -2857,6 +3113,645 @@ export default function ProjectGenerator() {
                     <button
                       type="button"
                       onClick={() => setShowGitHubModal(false)}
+                      style={{
+                        padding: '12px 18px',
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#94a3b8',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CLOUD DEPLOYMENT MODAL (Vercel, Render, Netlify, Railway) */}
+      {showDeployModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#0a0e1a',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '18px',
+            width: '100%',
+            maxWidth: '680px',
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 30px 80px rgba(0, 0, 0, 0.85)',
+            overflow: 'hidden'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 20px rgba(139, 92, 246, 0.4)'
+                }}>
+                  <Zap size={20} color="#ffffff" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Deploy to Cloud Platform
+                    <span style={{ fontSize: '10px', background: 'rgba(168, 85, 247, 0.2)', border: '1px solid rgba(168, 85, 247, 0.4)', color: '#d8b4fe', padding: '1px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                      MULTI-CLOUD
+                    </span>
+                  </h3>
+                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    Provision live cloud hosting on Vercel, Render, Netlify, or Railway
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeployModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '22px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {deployResult ? (
+                /* SUCCESS CELEBRATION DASHBOARD */
+                <div style={{ textAlign: 'center', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 35px rgba(16, 185, 129, 0.55)'
+                  }}>
+                    <CheckCircle2 size={36} color="#ffffff" />
+                  </div>
+
+                  <div>
+                    <h3 style={{ fontSize: '21px', fontWeight: 900, color: '#ffffff', margin: '0 0 6px' }}>
+                      Deployment Live on {deployResult.platform?.toUpperCase() || deployPlatform.toUpperCase()}!
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#cbd5e1', margin: 0, lineHeight: 1.5, maxWidth: '520px' }}>
+                      {deployResult.message || 'Cloud deployment provisioned and building automatically.'}
+                    </p>
+                  </div>
+
+                  {/* Live URL Highlight Card */}
+                  <div style={{
+                    width: '100%',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    borderRadius: '12px',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Production Live URL
+                    </div>
+                    <a
+                      href={deployResult.live_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 800,
+                        color: '#ffffff',
+                        fontFamily: 'var(--font-mono)',
+                        textDecoration: 'underline',
+                        wordBreak: 'break-all'
+                      }}
+                    >
+                      {deployResult.live_url}
+                    </a>
+
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '4px' }}>
+                      <a
+                        href={deployResult.live_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          padding: '8px 18px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)'
+                        }}
+                      >
+                        <span>Visit Live Site</span>
+                        <ExternalLink size={13} />
+                      </a>
+
+                      {deployResult.dashboard_url && (
+                        <a
+                          href={deployResult.dashboard_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            color: '#e2e8f0',
+                            fontSize: '12.5px',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <span>{deployPlatform.toUpperCase()} Dashboard</span>
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Connect to CodeLens AI Audit */}
+                  <div style={{
+                    width: '100%',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                    borderRadius: '12px',
+                    padding: '14px 18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#c7d2fe' }}>
+                        Run CodeLens AI Observability Scan
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                        Probe security headers, SSL status, and cold-start latency now
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/analysis/new?target=live&url=${encodeURIComponent(deployResult.live_url)}`)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                        color: '#ffffff',
+                        fontSize: '12.5px',
+                        fontWeight: 800,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)'
+                      }}
+                    >
+                      <Sparkles size={13} />
+                      <span>Audit Live Deployment</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDeployModal(false)}
+                    style={{
+                      padding: '8px 24px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#94a3b8',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      marginTop: '4px'
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                /* DEPLOY CONFIGURATION FORM */
+                <>
+                  {/* Platform Selector Grid */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#cbd5e1', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      1. Select Target Cloud Platform:
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px' }}>
+                      {DEPLOY_PLATFORMS.map((plat) => {
+                        const isSelected = deployPlatform === plat.id;
+                        return (
+                          <div
+                            key={plat.id}
+                            onClick={() => handleSelectDeployPlatform(plat.id)}
+                            style={{
+                              background: isSelected ? plat.gradient : 'rgba(255, 255, 255, 0.03)',
+                              border: isSelected ? `1.5px solid ${plat.color}` : '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: '10px',
+                              padding: '12px 14px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px',
+                              position: 'relative',
+                              transition: 'all 0.15s ease',
+                              boxShadow: isSelected ? `0 0 15px ${plat.glow}` : 'none'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '15px', fontWeight: 900, color: plat.color }}>
+                                {plat.iconText} {plat.name}
+                              </span>
+                              {isSelected && <Check size={14} color={plat.color} />}
+                            </div>
+                            <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>
+                              {plat.badge}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Active Platform Info Banner */}
+                  {(() => {
+                    const currentPlat = DEPLOY_PLATFORMS.find(p => p.id === deployPlatform) || DEPLOY_PLATFORMS[0];
+                    return (
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '12px',
+                        color: '#94a3b8'
+                      }}>
+                        <span>{currentPlat.desc}</span>
+                        <a
+                          href={currentPlat.tokenUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            color: '#38bdf8',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 700,
+                            flexShrink: 0
+                          }}
+                        >
+                          <span>Get {currentPlat.tokenName.split(' ')[0]} Key</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Project / Service Name */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                      Project / App Name on Cloud
+                    </label>
+                    <input
+                      type="text"
+                      value={deployProjectName}
+                      onChange={(e) => setDeployProjectName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                      placeholder="e.g. codelens-service"
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        outline: 'none',
+                        fontFamily: 'var(--font-mono)'
+                      }}
+                    />
+                  </div>
+
+                  {/* API Token Input (except for Railway 1-click) */}
+                  {deployPlatform !== 'railway' && (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>
+                          {deployPlatform.toUpperCase()} API Token
+                        </label>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                          Saved locally in your browser
+                        </span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '8px',
+                        padding: '0 12px'
+                      }}>
+                        <Key size={14} color="#64748b" style={{ marginRight: '8px' }} />
+                        <input
+                          type={showDeployTokenInput ? 'text' : 'password'}
+                          value={deployToken}
+                          onChange={(e) => {
+                            setDeployToken(e.target.value);
+                            if (deployRememberToken) localStorage.setItem(`codelens_${deployPlatform}_token`, e.target.value);
+                          }}
+                          placeholder={deployPlatform === 'render' ? 'rnd_••••••••••••••••••••' : (deployPlatform === 'vercel' ? '••••••••••••••••••••••••' : 'nfp_••••••••••••••••••••')}
+                          style={{
+                            flex: 1,
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '12.5px',
+                            outline: 'none',
+                            padding: '10px 0',
+                            fontFamily: 'var(--font-mono)'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowDeployTokenInput(!showDeployTokenInput)}
+                          style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', fontSize: '11px' }}
+                        >
+                          {showDeployTokenInput ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Render Specific Settings */}
+                  {deployPlatform === 'render' && (
+                    <div style={{
+                      background: 'rgba(0, 229, 153, 0.05)',
+                      border: '1px solid rgba(0, 229, 153, 0.2)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}>
+                      <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#00e599', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Server size={14} />
+                        <span>Render Service Architecture:</span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#cbd5e1' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            name="renderServiceType"
+                            checked={deployServiceType === 'web_service'}
+                            onChange={() => setDeployServiceType('web_service')}
+                          />
+                          <span>Web Service (Docker Backend)</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            name="renderServiceType"
+                            checked={deployServiceType === 'static_site'}
+                            onChange={() => setDeployServiceType('static_site')}
+                          />
+                          <span>Static Site (React/Vite)</span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                          GitHub Repository URL or Name (Render pulls from Git):
+                        </label>
+                        <input
+                          type="text"
+                          value={deployGitHubRepo}
+                          onChange={(e) => setDeployGitHubRepo(e.target.value)}
+                          placeholder="e.g. codelens-service or https://github.com/..."
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#ffffff',
+                            fontSize: '12px',
+                            outline: 'none',
+                            fontFamily: 'var(--font-mono)'
+                          }}
+                        />
+                      </div>
+
+                      {/* If user needs GitHub Token to auto-push for Render */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>
+                          GitHub PAT (to auto-push repository before deploying):
+                        </label>
+                        <input
+                          type={showDeployGhTokenInput ? 'text' : 'password'}
+                          value={deployGitHubToken}
+                          onChange={(e) => {
+                            setDeployGitHubToken(e.target.value);
+                            if (deployRememberToken) localStorage.setItem('codelens_github_pat', e.target.value);
+                          }}
+                          placeholder="ghp_••••••••••••••••••••••••••••••••"
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#ffffff',
+                            fontSize: '12px',
+                            outline: 'none',
+                            fontFamily: 'var(--font-mono)'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Remember Token Checkbox */}
+                  {deployPlatform !== 'railway' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#94a3b8', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={deployRememberToken}
+                        onChange={(e) => setDeployRememberToken(e.target.checked)}
+                      />
+                      <span>Remember API key securely in browser</span>
+                    </label>
+                  )}
+
+                  {/* Files Manifest Preview */}
+                  <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '8px',
+                    padding: '10px 14px'
+                  }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#94a3b8', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Files Ready to Deploy ({genMode === 'single' ? (singlePageResult ? 2 : 0) : Object.keys(projectFiles).length} files):</span>
+                      <span style={{ color: '#38bdf8' }}>
+                        {deployPlatform === 'vercel' ? 'Zero-Git Instant Upload' : (deployPlatform === 'netlify' ? 'Atomic ZIP Bundle' : 'Git Synchronized')}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '80px', overflowY: 'auto' }}>
+                      {genMode === 'single' ? (
+                        <>
+                          <span style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '2px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                            index.html
+                          </span>
+                          <span style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '2px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                            {singlePageResult?.filename || 'src/App.jsx'}
+                          </span>
+                        </>
+                      ) : (
+                        Object.keys(projectFiles).map(f => (
+                          <span key={f} style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '2px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                            {f}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress Banner */}
+                  {isDeploying && (
+                    <div style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                      color: '#d8b4fe',
+                      fontSize: '12.5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Loader2 size={16} className="spin" />
+                      <span>{deployProgress || 'Provisioning cloud infrastructure and triggering deployment...'}</span>
+                    </div>
+                  )}
+
+                  {/* Error Banner */}
+                  {deployError && (
+                    <div style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      color: '#f87171',
+                      fontSize: '12.5px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px'
+                    }}>
+                      <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <strong>Deployment Error:</strong> {deployError}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      disabled={isDeploying || (deployPlatform !== 'railway' && !deployToken)}
+                      onClick={handleExecuteDeployment}
+                      style={{
+                        flex: 1,
+                        padding: '13px 22px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '13.5px',
+                        fontWeight: 800,
+                        cursor: (isDeploying || (deployPlatform !== 'railway' && !deployToken)) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 25px rgba(139, 92, 246, 0.45)',
+                        opacity: (isDeploying || (deployPlatform !== 'railway' && !deployToken)) ? 0.6 : 1
+                      }}
+                    >
+                      {isDeploying ? (
+                        <>
+                          <Loader2 size={16} className="spin" />
+                          <span>Deploying to {deployPlatform.toUpperCase()}...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={16} />
+                          <span>
+                            {deployPlatform === 'railway' 
+                              ? 'Open Railway 1-Click Deploy ↗' 
+                              : `Authorize & Deploy to ${deployPlatform.toUpperCase()}`}
+                          </span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowDeployModal(false)}
                       style={{
                         padding: '12px 18px',
                         borderRadius: '8px',

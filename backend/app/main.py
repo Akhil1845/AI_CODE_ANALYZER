@@ -805,6 +805,55 @@ def create_render_service(req: CreateRenderServiceRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class UnifiedCloudDeployRequest(BaseModel):
+    platform: str
+    token: str
+    project_name: str
+    files: List[Dict[str, str]] = []
+    repo_url: Optional[str] = None
+    github_token: Optional[str] = None
+    branch: Optional[str] = "main"
+    service_type: Optional[str] = "web_service"
+    env_vars: Optional[List[Dict[str, str]]] = None
+    target: Optional[str] = "production"
+
+@app.post("/api/cloud/deploy-project")
+def deploy_project_to_cloud(req: UnifiedCloudDeployRequest):
+    if not req.platform or not req.token:
+        raise HTTPException(status_code=400, detail="Deployment platform and API token are required.")
+    
+    p = req.platform.lower().strip()
+    try:
+        if p == "vercel":
+            return cloud_deploy_service.deploy_to_vercel(
+                token=req.token,
+                project_name=req.project_name,
+                files=req.files,
+                git_repo_url=req.repo_url,
+                target=req.target or "production"
+            )
+        elif p == "render":
+            return cloud_deploy_service.deploy_to_render_full(
+                render_token=req.token,
+                service_name=req.project_name,
+                repo_url=req.repo_url,
+                github_token=req.github_token,
+                files=req.files,
+                branch=req.branch or "main",
+                service_type=req.service_type or "web_service",
+                env_vars=req.env_vars
+            )
+        elif p == "netlify":
+            return cloud_deploy_service.deploy_to_netlify(
+                token=req.token,
+                site_name=req.project_name,
+                files=req.files
+            )
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported deployment platform: {req.platform}. Supported: vercel, render, netlify.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 class LinkBackendRequest(BaseModel):
     frontend_repo_url: str
     github_token: str

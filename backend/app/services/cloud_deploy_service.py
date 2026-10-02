@@ -2,6 +2,9 @@ import os
 import json
 import re
 import time
+import io
+import hashlib
+import zipfile
 import requests
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
@@ -39,8 +42,10 @@ class CloudDeployService:
             return self._verify_vercel_token(clean_token, target_domain)
         elif platform_clean == "render":
             return self._verify_render_token(clean_token, target_domain)
+        elif platform_clean == "netlify":
+            return self._verify_netlify_token(clean_token)
         else:
-            return {"valid": False, "message": f"Unsupported cloud platform '{platform}'. Supported: vercel, render."}
+            return {"valid": False, "message": f"Unsupported cloud platform '{platform}'. Supported: vercel, render, netlify."}
 
     def _verify_vercel_token(self, token: str, target_domain: str) -> Dict[str, Any]:
         headers = {
@@ -147,6 +152,32 @@ class CloudDeployService:
             "matched_service": matched_service,
             "available_services": available_services[:10],
             "message": f"Authenticated successfully as {owner_name} on Render." + (f" Matched service '{matched_service['name']}'." if matched_service else "")
+        }
+
+    def _verify_netlify_token(self, token: str) -> Dict[str, Any]:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "CodeLens-CloudDeploy/1.0"
+        }
+        try:
+            res = requests.get("https://api.netlify.com/api/v1/user", headers=headers, timeout=10)
+        except Exception as e:
+            return {"valid": False, "message": f"Network error connecting to Netlify API: {str(e)}"}
+
+        if res.status_code in (401, 403):
+            return {"valid": False, "message": "Invalid or expired Netlify Personal Access Token."}
+        elif res.status_code != 200:
+            return {"valid": False, "message": f"Netlify API returned HTTP {res.status_code}"}
+
+        u = res.json()
+        username = u.get("slug") or u.get("email") or u.get("full_name") or "Netlify User"
+        return {
+            "valid": True,
+            "platform": "netlify",
+            "username": username,
+            "avatar_url": u.get("avatar_url") or f"https://avatar.vercel.sh/{username}",
+            "can_deploy": True,
+            "message": f"Authenticated successfully as @{username} on Netlify."
         }
 
     def trigger_cloud_redeploy(self, platform: str, token: str, service_or_project_id: str, clear_cache: bool = True) -> Dict[str, Any]:
@@ -389,10 +420,11 @@ class CloudDeployService:
         service_name: str,
         branch: Optional[str] = "main",
         root_dir: Optional[str] = None,
-        env_vars: Optional[List[Dict[str, str]]] = None
+        env_vars: Optional[List[Dict[str, str]]] = None,
+        service_type: Optional[str] = "web_service"
     ) -> Dict[str, Any]:
         """
-        Creates a new Web Service on Render using the Render REST API.
+        Creates a new Web Service or Static Site on Render using the Render REST API.
         """
         clean_token = token.strip() if token else ""
         if not clean_token:
@@ -416,30 +448,44 @@ class CloudDeployService:
 
         # 2. Construct service creation payload
         clean_name = re.sub(r'[^a-zA-Z0-9\-]', '-', service_name.lower().strip()).strip('-')[:30]
-        payload = {
-            "type": "web_service",
-            "name": clean_name,
-            "ownerId": owner_id,
-            "repo": repo_url.strip(),
-            "autoDeploy": "yes",
-            "serviceDetails": {
-                "env": "docker",
-                "plan": "free",
-                "region": "oregon"
+        if service_type == "static_site":
+            payload = {
+                "type": "static_site",
+                "name": clean_name,
+                "ownerId": owner_id,
+                "repo": repo_url.strip(),
+                "autoDeploy": "yes",
+                "serviceDetails": {
+                    "buildCommand": "npm install && npm run build",
+                    "publishPath": "dist",
+                    "pullRequestPreviewsEnabled": "yes"
+                }
             }
-        }
+        else:
+            payload = {
+                "type": "web_service",
+                "name": clean_name,
+                "ownerId": owner_id,
+                "repo": repo_url.strip(),
+                "autoDeploy": "yes",
+                "serviceDetails": {
+                    "env": "docker",
+                    "plan": "free",
+                    "region": "oregon"
+                }
+            }
         if branch:
             payload["branch"] = branch.strip()
         if root_dir:
             payload["rootDir"] = root_dir.strip()
-        if env_vars:
+        if env_vars and service_type != "static_site":
             payload["serviceDetails"]["envVars"] = env_vars
 
         # 3. Create service via Render API
         create_res = requests.post("https://api.render.com/v1/services", headers=headers, json=payload, timeout=20)
         if create_res.status_code not in (200, 201):
             err_msg = create_res.json().get("message", f"HTTP {create_res.status_code}")
-            raise Exception(f"Failed to create Render Web Service: {err_msg}")
+            raise Exception(f"Failed to create Render Service: {err_msg}")
 
         s_data = create_res.json().get("service", {})
         s_id = s_data.get("id", "")
@@ -450,7 +496,275 @@ class CloudDeployService:
             "service_id": s_id,
             "service_name": clean_name,
             "cloud_backend_url": s_url,
+            "live_url": s_url,
             "dashboard_url": f"https://dashboard.render.com/web/{s_id}",
-            "message": f"Cloud Web Service '{clean_name}' created on Render. Auto-build initiated from repository!"
+            "message": f"Cloud Service '{clean_name}' created on Render. Live auto-build initiated from repository!"
         }
+
+    def deploy_to_vercel(
+        self,
+        token: str,
+        project_name: str,
+        files: List[Dict[str, str]],
+        git_repo_url: Optional[str] = None,
+        target: str = "production"
+    ) -> Dict[str, Any]:
+        """
+        Direct API Deployment to Vercel Edge Network.
+        Supports zero-Git instant deployments via Vercel File Digest API.
+        """
+        clean_token = token.strip() if token else ""
+        if not clean_token:
+            raise ValueError("Vercel API Token is required.")
+
+        headers = {
+            "Authorization": f"Bearer {clean_token}",
+            "User-Agent": "CodeLens-CloudDeploy/1.0"
+        }
+
+        # 1. Verify user token
+        user_res = requests.get("https://api.vercel.com/v2/user", headers=headers, timeout=10)
+        if user_res.status_code != 200:
+            err_msg = user_res.json().get("error", {}).get("message", "Invalid Vercel API Token")
+            raise Exception(f"Vercel Token Error: {err_msg}. Verify your token at vercel.com/account/tokens")
+
+        user_data = user_res.json().get("user", {})
+        username = user_data.get("username") or user_data.get("name") or "user"
+        clean_name = re.sub(r'[^a-zA-Z0-9\-]', '-', project_name.lower().strip()).strip('-')[:50] or "codelens-project"
+
+        if not files and not git_repo_url:
+            raise ValueError("No files or repository provided for Vercel deployment.")
+
+        # 2. Upload file contents to Vercel Content-Addressable Storage
+        uploaded_files = []
+        is_vite = any("vite.config" in f.get("path", "") for f in files)
+        has_package_json = any(f.get("path", "") == "package.json" for f in files)
+
+        deploy_files = [dict(f) for f in files]
+
+        # Ensure index.html exists if no package.json (instant static deployment)
+        has_index = any(f.get("path", "").lower() in ("index.html", "public/index.html") for f in deploy_files)
+        if not has_index:
+            html_file = next((f for f in deploy_files if f.get("path", "").endswith(".html")), None)
+            if html_file:
+                deploy_files.append({"path": "index.html", "content": html_file["content"]})
+            else:
+                fallback_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{clean_name}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <div id="root" class="p-8 max-w-4xl mx-auto">
+    <h1 class="text-3xl font-extrabold text-indigo-400 mb-2">{clean_name}</h1>
+    <p class="text-slate-400 mb-6">Generated &amp; deployed live via CodeLens AI Studio.</p>
+    <div class="p-4 rounded-xl bg-slate-800/80 border border-slate-700 font-mono text-sm">
+      <div class="text-emerald-400 font-bold mb-2">⚡ Status: Live on Vercel Edge</div>
+      <p class="text-slate-300">Architecture synthesis completed. Ready for production usage.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+                deploy_files.append({"path": "index.html", "content": fallback_html})
+
+        for item in deploy_files:
+            rel_path = item.get("path", "").replace("\\", "/").lstrip("/")
+            content_str = item.get("content", "")
+            raw_bytes = content_str.encode("utf-8")
+            file_sha = hashlib.sha1(raw_bytes).hexdigest()
+            file_size = len(raw_bytes)
+
+            upload_headers = {
+                "Authorization": f"Bearer {clean_token}",
+                "x-vercel-digest": file_sha,
+                "Content-Type": "application/octet-stream",
+                "User-Agent": "CodeLens-CloudDeploy/1.0"
+            }
+            try:
+                requests.post("https://api.vercel.com/v2/files", headers=upload_headers, data=raw_bytes, timeout=15)
+            except Exception as e:
+                print(f"[VERCEL FILE UPLOAD] Note for {rel_path}: {e}")
+
+            uploaded_files.append({
+                "file": rel_path,
+                "sha": file_sha,
+                "size": file_size
+            })
+
+        # 3. Create deployment
+        deploy_payload = {
+            "name": clean_name,
+            "files": uploaded_files,
+            "target": target or "production"
+        }
+        if is_vite:
+            deploy_payload["projectSettings"] = {"framework": "vite"}
+        elif not has_package_json:
+            deploy_payload["projectSettings"] = {"framework": None}
+
+        deploy_headers = {
+            "Authorization": f"Bearer {clean_token}",
+            "Content-Type": "application/json",
+            "User-Agent": "CodeLens-CloudDeploy/1.0"
+        }
+        deploy_res = requests.post("https://api.vercel.com/v13/deployments", headers=deploy_headers, json=deploy_payload, timeout=25)
+        if deploy_res.status_code not in (200, 201):
+            err_data = deploy_res.json().get("error", {})
+            err_msg = err_data.get("message", f"HTTP {deploy_res.status_code}")
+            raise Exception(f"Vercel Deployment Failed: {err_msg}")
+
+        d_json = deploy_res.json()
+        dep_id = d_json.get("id", "")
+        raw_url = d_json.get("url", "")
+        aliases = d_json.get("alias", [])
+        live_url = f"https://{aliases[0]}" if aliases else f"https://{raw_url}"
+
+        return {
+            "success": True,
+            "platform": "vercel",
+            "deployment_id": dep_id,
+            "live_url": live_url,
+            "preview_url": f"https://{raw_url}" if raw_url else live_url,
+            "project_name": clean_name,
+            "ready_state": d_json.get("readyState", "QUEUED"),
+            "dashboard_url": f"https://vercel.com/{username}/{clean_name}",
+            "message": f"Deployed successfully to Vercel Edge Network! Live URL: {live_url}"
+        }
+
+    def deploy_to_netlify(
+        self,
+        token: str,
+        site_name: str,
+        files: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
+        """
+        Direct Atomic ZIP Deployment to Netlify Global CDN.
+        """
+        clean_token = token.strip() if token else ""
+        if not clean_token:
+            raise ValueError("Netlify Personal Access Token is required.")
+
+        headers = {
+            "Authorization": f"Bearer {clean_token}",
+            "User-Agent": "CodeLens-CloudDeploy/1.0"
+        }
+        user_res = requests.get("https://api.netlify.com/api/v1/user", headers=headers, timeout=10)
+        if user_res.status_code != 200:
+            err_msg = user_res.json().get("message", "Invalid Netlify Personal Access Token")
+            raise Exception(f"Netlify Token Error: {err_msg}. Verify token at app.netlify.com/user/applications#personal-access-tokens")
+
+        clean_name = re.sub(r'[^a-zA-Z0-9\-]', '-', site_name.lower().strip()).strip('-')[:35] or "codelens-site"
+
+        # Build in-memory zip
+        zip_buffer = io.BytesIO()
+        has_index = any(f.get("path", "").lower() in ("index.html", "public/index.html") for f in files)
+
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for item in files:
+                rel_path = item.get("path", "").replace("\\", "/").lstrip("/")
+                zf.writestr(rel_path, item.get("content", ""))
+
+            if not has_index:
+                html_file = next((f for f in files if f.get("path", "").endswith(".html")), None)
+                if html_file:
+                    zf.writestr("index.html", html_file["content"])
+                else:
+                    minimal_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{clean_name}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-extrabold text-teal-400 mb-2">{clean_name}</h1>
+    <p class="text-slate-400 mb-6">Generated &amp; deployed live to Netlify Global Edge via CodeLens AI Studio.</p>
+    <div class="p-4 rounded-xl bg-slate-800/80 border border-slate-700 font-mono text-sm text-emerald-400">
+      ⚡ Status: Live on Netlify Global CDN
+    </div>
+  </div>
+</body>
+</html>"""
+                    zf.writestr("index.html", minimal_html)
+
+        zip_buffer.seek(0)
+        zip_bytes = zip_buffer.getvalue()
+
+        deploy_headers = {
+            "Authorization": f"Bearer {clean_token}",
+            "Content-Type": "application/zip",
+            "User-Agent": "CodeLens-CloudDeploy/1.0"
+        }
+        post_url = f"https://api.netlify.com/api/v1/sites"
+        params = {"name": clean_name} if clean_name else {}
+
+        res = requests.post(post_url, headers=deploy_headers, data=zip_bytes, params=params, timeout=30)
+        # If name is taken, retry without custom name so Netlify assigns an auto-generated unique subdomain
+        if res.status_code not in (200, 201):
+            res = requests.post(post_url, headers=deploy_headers, data=zip_bytes, timeout=30)
+            if res.status_code not in (200, 201):
+                err = res.json().get("message", f"HTTP {res.status_code}")
+                raise Exception(f"Netlify Deployment Failed: {err}")
+
+        data = res.json()
+        live_url = data.get("ssl_url") or data.get("url") or f"https://{clean_name}.netlify.app"
+        site_id = data.get("id", "")
+        admin_url = data.get("admin_url", f"https://app.netlify.com/sites/{clean_name}")
+
+        return {
+            "success": True,
+            "platform": "netlify",
+            "site_id": site_id,
+            "live_url": live_url,
+            "dashboard_url": admin_url,
+            "message": f"Successfully deployed '{clean_name}' to Netlify Global Edge! Live URL: {live_url}"
+        }
+
+    def deploy_to_render_full(
+        self,
+        render_token: str,
+        service_name: str,
+        repo_url: Optional[str] = None,
+        github_token: Optional[str] = None,
+        files: Optional[List[Dict[str, str]]] = None,
+        branch: str = "main",
+        service_type: str = "web_service",
+        env_vars: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Render Full Deployment Pipeline: auto-pushes project to GitHub if needed,
+        then creates Render service linked to GitHub.
+        """
+        target_repo_url = repo_url
+        if not target_repo_url and github_token and files:
+            from .github_service import GitHubService
+            gh = GitHubService()
+            clean_repo_name = re.sub(r'[^a-zA-Z0-9\-]', '-', service_name.lower().strip()).strip('-') or "codelens-service"
+            push_res = gh.apply_fixes(
+                repo_url=clean_repo_name,
+                token=github_token,
+                fixes=files,
+                mode="direct",
+                commit_message=f"feat(scaffold): initialize {service_name} for Render deployment",
+                target_branch=branch or "main"
+            )
+            target_repo_url = push_res.get("direct_url") or f"https://github.com/{push_res.get('owner')}/{push_res.get('repo')}"
+
+        if not target_repo_url:
+            raise ValueError("A GitHub Repository URL (or GitHub Token to auto-push) is required for Render deployment.")
+
+        return self.create_render_web_service(
+            token=render_token,
+            repo_url=target_repo_url,
+            service_name=service_name,
+            branch=branch or "main",
+            env_vars=env_vars,
+            service_type=service_type
+        )
+
 

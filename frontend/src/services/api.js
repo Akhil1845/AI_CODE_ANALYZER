@@ -439,6 +439,56 @@ export const api = {
       throw new Error(err.detail || 'Failed to link backend to frontend.');
     }
     return await res.json();
+  },
+
+  // Verify Cloud Token (Vercel, Render, Netlify)
+  async verifyCloudToken(platform, token, liveUrl = null) {
+    const res = await fetch(`${API_BASE_URL}/cloud/verify-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, token, live_url: liveUrl })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `${platform} token verification failed.`);
+    }
+    return await res.json();
+  },
+
+  // Deploy project directly to cloud platform (Vercel, Render, Netlify)
+  async deployProjectToCloud({
+    platform,
+    token,
+    projectName,
+    files = [],
+    repoUrl = null,
+    githubToken = null,
+    branch = 'main',
+    serviceType = 'web_service',
+    envVars = null,
+    target = 'production'
+  }) {
+    const res = await fetch(`${API_BASE_URL}/cloud/deploy-project`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        platform,
+        token,
+        project_name: projectName,
+        files,
+        repo_url: repoUrl,
+        github_token: githubToken,
+        branch,
+        service_type: serviceType,
+        env_vars: envVars,
+        target
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Deployment to ${platform} failed.`);
+    }
+    return await res.json();
   }
 };
 
