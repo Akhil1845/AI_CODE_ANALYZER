@@ -100,12 +100,17 @@ export default function AnalysisResult() {
   const [tab3AuthMode, setTab3AuthMode] = useState('github'); // 'github' | 'cloud_api'
 
   // Backend Cloud Deployment States
-  const [backendPath, setBackendPath] = useState('D:\\internship_ai\\backend\\internship_ai_backend');
+  const [backendPath, setBackendPath] = useState(() => localStorage.getItem('codelens_backend_path') || 'D:\\Smart Minds\\Backend\\QuizMaster');
+  const [backendPort, setBackendPort] = useState(() => localStorage.getItem('codelens_backend_port') || '8086');
+  const [launchingBridge, setLaunchingBridge] = useState(false);
+  const [bridgeLaunchResult, setBridgeLaunchResult] = useState(null);
+  const [bridgeLaunchError, setBridgeLaunchError] = useState('');
+  const [bridgeStatus, setBridgeStatus] = useState(null);
   const [packagingBackend, setPackagingBackend] = useState(false);
   const [packageResult, setPackageResult] = useState(null);
   const [packageError, setPackageError] = useState('');
   const [cloudBridge, setCloudBridge] = useState(null);
-  const [renderServiceName, setRenderServiceName] = useState('careerpilot-backend');
+  const [renderServiceName, setRenderServiceName] = useState('quizmaster-backend');
   const [deployingBackend, setDeployingBackend] = useState(false);
   const [deployBackendResult, setDeployBackendResult] = useState(null);
   const [deployBackendError, setDeployBackendError] = useState('');
@@ -406,13 +411,54 @@ export default function AnalysisResult() {
 
   const fetchCloudBridge = async () => {
     try {
-      const b = await api.getCloudBridge();
+      const [b, st] = await Promise.all([
+        api.getCloudBridge(),
+        api.getCloudBridgeStatus({ port: backendPort, backendPath })
+      ]);
       setCloudBridge(b);
+      setBridgeStatus(st);
       if (b?.active && b?.public_url && !customBackendUrl) {
         setCustomBackendUrl(b.public_url);
       }
     } catch {
       // ignore
+    }
+  };
+
+  const handleLaunchBridge = async (autoLink = true) => {
+    setLaunchingBridge(true);
+    setBridgeLaunchError('');
+    setBridgeLaunchResult(null);
+    try {
+      const res = await api.launchCloudBridge({
+        backendPath: backendPath.trim(),
+        port: backendPort ? parseInt(backendPort, 10) : 8086,
+        repoUrl: (githubRepoUrl || project?.repo_url || '').trim(),
+        githubToken: githubToken ? githubToken.trim() : undefined,
+        autoLink: autoLink
+      });
+      setBridgeLaunchResult(res);
+      if (res?.public_url) {
+        setCustomBackendUrl(res.public_url);
+      }
+      await fetchCloudBridge();
+    } catch (err) {
+      setBridgeLaunchError(err.message || 'Failed to start backend and bridge.');
+    } finally {
+      setLaunchingBridge(false);
+    }
+  };
+
+  const handleStopBridge = async (stopBackend = false) => {
+    try {
+      await api.stopCloudBridge({
+        stopBackend,
+        port: backendPort ? parseInt(backendPort, 10) : 8086
+      });
+      await fetchCloudBridge();
+      setBridgeLaunchResult(null);
+    } catch (err) {
+      setBridgeLaunchError(err.message || 'Failed to stop bridge.');
     }
   };
 
@@ -3959,101 +4005,291 @@ export default function AnalysisResult() {
                   </div>
                 </div>
 
-                {/* Section 1: Live Local-to-Cloud Bridge (Auto-detected Tunnel) */}
+                {/* Section 1: AI Autonomous Backend Runner & Cloud Bridge */}
                 <div style={{
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-subtle)',
-                  borderRadius: '10px',
-                  padding: '18px'
+                  borderRadius: '12px',
+                  padding: '22px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Zap size={16} color="#38bdf8" />
-                      <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                        1. Active Public Cloud Bridge (Tunnel)
-                      </h4>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={fetchCloudBridge}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#94a3b8',
-                        fontSize: '11.5px',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '5px'
-                      }}
-                    >
-                      <RefreshCw size={12} />
-                      <span>Scan Bridge</span>
-                    </button>
+                        justifyContent: 'center'
+                      }}>
+                        <Zap size={18} color="#10b981" />
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                          1. AI Autonomous Backend Runner & Cloud Bridge
+                        </h4>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                          Start your local backend (QuizMaster Spring Boot) and bridge it to Vercel in 1 click
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={fetchCloudBridge}
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          color: '#cbd5e1',
+                          fontSize: '12px',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <RefreshCw size={13} />
+                        <span>Scan Status</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {cloudBridge?.active ? (
+                  {/* Backend Configuration Row */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(250px, 3fr) minmax(100px, 1fr)',
+                    gap: '12px',
+                    marginBottom: '16px'
+                  }}>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+                        Local Backend Path (Spring Boot / Node / Python)
+                      </label>
+                      <input
+                        type="text"
+                        value={backendPath}
+                        onChange={(e) => {
+                          setBackendPath(e.target.value);
+                          localStorage.setItem('codelens_backend_path', e.target.value);
+                        }}
+                        placeholder="e.g. D:\Smart Minds\Backend\QuizMaster"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          padding: '9px 12px',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+                        Port
+                      </label>
+                      <input
+                        type="text"
+                        value={backendPort}
+                        onChange={(e) => {
+                          setBackendPort(e.target.value);
+                          localStorage.setItem('codelens_backend_port', e.target.value);
+                        }}
+                        placeholder="8086"
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '6px',
+                          padding: '9px 12px',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 1-Click Launch Button */}
+                  <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      disabled={launchingBridge}
+                      onClick={() => handleLaunchBridge(true)}
+                      style={{
+                        flex: '1 1 240px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '12px 20px',
+                        borderRadius: '8px',
+                        fontSize: '13.5px',
+                        fontWeight: 800,
+                        cursor: launchingBridge ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {launchingBridge ? (
+                        <>
+                          <Loader2 size={16} className="spin" />
+                          <span>AI Launching Backend & Cloud Bridge...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={16} />
+                          <span>🚀 AI 1-Click Launch & Bridge Backend</span>
+                        </>
+                      )}
+                    </button>
+                    {(cloudBridge?.active || bridgeStatus?.backend?.online) && (
+                      <button
+                        type="button"
+                        onClick={() => handleStopBridge(false)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          color: '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span>Stop Bridge</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {bridgeLaunchError && (
                     <div style={{
-                      background: 'rgba(16, 185, 129, 0.08)',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      padding: '10px 14px',
+                      marginBottom: '16px',
+                      fontSize: '12.5px',
+                      color: '#fca5a5'
+                    }}>
+                      {bridgeLaunchError}
+                    </div>
+                  )}
+
+                  {/* Bridge Status Card */}
+                  {(cloudBridge?.active || bridgeStatus?.backend?.online) ? (
+                    <div style={{
+                      background: 'rgba(16, 185, 129, 0.06)',
                       border: '1px solid rgba(16, 185, 129, 0.3)',
-                      borderRadius: '8px',
-                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      padding: '16px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '10px'
+                      gap: '12px'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{
-                            width: '8px',
-                            height: '8px',
+                            width: '9px',
+                            height: '9px',
                             borderRadius: '50%',
                             background: '#10b981',
-                            boxShadow: '0 0 10px #10b981',
+                            boxShadow: '0 0 12px #10b981',
                             display: 'inline-block'
                           }} />
-                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#34d399' }}>
-                            ONLINE TUNNEL ACTIVE
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: '#34d399' }}>
+                            QUIZMASTER BACKEND & CLOUD BRIDGE LIVE
                           </span>
                         </div>
                         <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
-                          Forwarding {cloudBridge.local_port || 'http://localhost:8089'}
+                          Port {backendPort || '8086'} · Spring Boot JAR
                         </span>
                       </div>
 
+                      {/* Bridge Tunnel Box */}
+                      {cloudBridge?.public_url && (
+                        <div style={{
+                          background: 'rgba(0,0,0,0.45)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          border: '1px solid rgba(56, 189, 248, 0.2)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                            <Globe size={15} color="#38bdf8" style={{ flexShrink: 0 }} />
+                            <span style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '13px',
+                              color: '#38bdf8',
+                              wordBreak: 'break-all'
+                            }}>
+                              {cloudBridge.public_url}
+                            </span>
+                          </div>
+                          <a
+                            href={cloudBridge.public_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', textDecoration: 'none' }}
+                          >
+                            <span>Open</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Action Bar */}
                       <div style={{
-                        background: 'rgba(0,0,0,0.4)',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '13px',
-                        color: '#38bdf8',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        wordBreak: 'break-all'
+                        flexWrap: 'wrap',
+                        gap: '10px',
+                        paddingTop: '6px'
                       }}>
-                        <span>{cloudBridge.public_url}</span>
-                        <a
-                          href={cloudBridge.public_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: '#94a3b8', marginLeft: '10px', flexShrink: 0 }}
-                        >
-                          <ExternalLink size={13} />
-                        </a>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', flexWrap: 'wrap', gap: '10px' }}>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
-                          Commit vercel.json rewrites so your deployed frontend calls this tunnel securely.
-                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <a
+                            href="https://quizmasterprivate.vercel.app/login"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              background: 'rgba(56, 189, 248, 0.15)',
+                              color: '#38bdf8',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              padding: '8px 14px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              textDecoration: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <ExternalLink size={13} />
+                            <span>Open QuizMaster Live App</span>
+                          </a>
+                        </div>
                         <button
                           type="button"
                           disabled={linkingBackend}
-                          onClick={() => handleLinkBackendToFrontend(cloudBridge.public_url)}
+                          onClick={() => handleLinkBackendToFrontend(cloudBridge?.public_url)}
                           style={{
                             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                             color: '#ffffff',
@@ -4065,19 +4301,18 @@ export default function AnalysisResult() {
                             cursor: linkingBackend ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px',
-                            whiteSpace: 'nowrap'
+                            gap: '6px'
                           }}
                         >
                           {linkingBackend ? (
                             <>
                               <Loader2 size={13} className="spin" />
-                              <span>Linking to Vercel...</span>
+                              <span>Pushing to GitHub...</span>
                             </>
                           ) : (
                             <>
                               <Sparkles size={13} />
-                              <span>Link Tunnel to Vercel</span>
+                              <span>Re-Sync Tunnel to Vercel</span>
                             </>
                           )}
                         </button>
@@ -4085,29 +4320,26 @@ export default function AnalysisResult() {
                     </div>
                   ) : (
                     <div style={{
-                      background: 'rgba(255,255,255,0.03)',
+                      background: 'rgba(255,255,255,0.02)',
                       border: '1px dashed var(--border-subtle)',
                       borderRadius: '8px',
-                      padding: '14px',
+                      padding: '16px',
                       fontSize: '12.5px',
-                      color: '#94a3b8'
+                      color: '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px'
                     }}>
-                      <p style={{ margin: '0 0 8px 0', color: '#cbd5e1' }}>
-                        No live public bridge detected on local port 8089 or ngrok API (127.0.0.1:4040).
-                      </p>
-                      <div style={{
-                        background: 'rgba(0,0,0,0.4)',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '12px',
-                        color: '#38bdf8'
-                      }}>
-                        ngrok http 8089
+                      <div>
+                        <strong style={{ color: '#cbd5e1', display: 'block', marginBottom: '3px' }}>
+                          QuizMaster Backend is currently OFFLINE
+                        </strong>
+                        <span>
+                          Click "🚀 AI 1-Click Launch & Bridge Backend" above. CodeLens AI will autonomously run the Spring Boot JAR, launch the secure ngrok HTTPS tunnel, and connect it to Vercel.
+                        </span>
                       </div>
-                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '6px' }}>
-                        Run the command above in your terminal, then click "Scan Bridge".
-                      </span>
                     </div>
                   )}
                 </div>

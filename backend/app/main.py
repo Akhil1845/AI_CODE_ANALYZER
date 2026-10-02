@@ -782,6 +782,63 @@ def reprobe_live_url(req: CloudReprobeRequest):
 def get_cloud_bridge():
     return cloud_deploy_service.get_active_cloud_bridge()
 
+class LaunchBridgeRequest(BaseModel):
+    backend_path: Optional[str] = None
+    port: Optional[int] = None
+    repo_url: Optional[str] = None
+    github_token: Optional[str] = None
+    auto_link: Optional[bool] = False
+
+class StopBridgeRequest(BaseModel):
+    stop_backend: Optional[bool] = False
+    port: Optional[int] = None
+
+@app.get("/api/cloud/bridge/status")
+def get_bridge_status(port: Optional[int] = None, backend_path: Optional[str] = None):
+    return cloud_deploy_service.get_full_bridge_status(backend_port=port, backend_path=backend_path)
+
+@app.post("/api/cloud/bridge/launch")
+def launch_cloud_bridge(req: LaunchBridgeRequest):
+    # 1. Launch / check backend
+    backend_res = cloud_deploy_service.launch_project_backend(
+        backend_path=req.backend_path,
+        port=req.port
+    )
+    actual_port = backend_res.get("port") or req.port or 8086
+
+    # 2. Launch / check ngrok bridge
+    bridge_res = cloud_deploy_service.launch_cloud_bridge(port=actual_port)
+
+    # 3. If auto_link and credentials provided, commit vercel.json and config to GitHub
+    link_res = None
+    if req.auto_link and req.repo_url and req.github_token and bridge_res.get("public_url"):
+        try:
+            link_req = LinkBackendRequest(
+                frontend_repo_url=req.repo_url,
+                github_token=req.github_token,
+                backend_url=bridge_res.get("public_url"),
+                target_branch="main"
+            )
+            link_res = link_backend_to_frontend(link_req)
+        except Exception as e:
+            link_res = {"error": str(e)}
+
+    return {
+        "success": bool(bridge_res.get("success") or backend_res.get("success")),
+        "backend": backend_res,
+        "bridge": bridge_res,
+        "link": link_res,
+        "public_url": bridge_res.get("public_url"),
+        "status": "ONLINE" if (backend_res.get("status") == "ONLINE" and bridge_res.get("status") == "ONLINE") else "STARTING"
+    }
+
+@app.post("/api/cloud/bridge/stop")
+def stop_cloud_bridge(req: StopBridgeRequest):
+    return cloud_deploy_service.stop_cloud_bridge(
+        stop_backend=req.stop_backend or False,
+        backend_port=req.port
+    )
+
 class PackageBackendRequest(BaseModel):
     backend_path: str
     write_files: Optional[bool] = False
@@ -907,40 +964,47 @@ def link_backend_to_frontend(req: LinkBackendRequest):
                 "destination": f"{backend_url}/api/$1"
             },
             {
-                "source": "/((?!api/|.*\\..*).*)",
-                "destination": "/user_login.html"
+                "source": "/(.*)",
+                "destination": "/index.html"
             }
         ]
     }
 
-    # 2. Dynamic config.js for frontend clients
+    # 2. Universal Dynamic config.js for frontend clients (React/Vite/SPA & Vanilla)
+    domain = urlparse(backend_url).netloc or backend_url.replace("https://", "").replace("http://", "")
     config_js = (
-        "// CareerPilot Dynamic Backend Configuration\n"
-        "(function() {\n"
-        "  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';\n"
-        f"  const CLOUD_URL = '{backend_url}';\n"
-        "  const activeBackend = isLocal ? 'http://localhost:8089' : CLOUD_URL;\n"
-        "  window.CAREERPILOT_BACKEND = activeBackend;\n"
-        "  window.API_BASE = activeBackend + '/api/students';\n"
-        "  window.AUTH_BASE = activeBackend + '/api/auth';\n\n"
+        "// CodeLens AI Universal Dynamic Backend Configuration\n"
+        f"const CLOUD_URL = '{backend_url}';\n"
+        "const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');\n"
+        "export const API_BASE_URL = isLocal ? 'http://localhost:8086/api' : (CLOUD_URL.endsWith('/api') ? CLOUD_URL : CLOUD_URL + '/api');\n"
+        f"export const WS_HOST = isLocal ? 'localhost' : '{domain}';\n"
+        "export const WS_PORT = isLocal ? 3002 : 443;\n\n"
+        "if (typeof window !== 'undefined') {\n"
+        "  window.API_BASE = API_BASE_URL;\n"
+        "  window.API_BASE_URL = API_BASE_URL;\n"
+        "  window.__BACKEND_HOST__ = CLOUD_URL;\n"
         "  const origFetch = window.fetch;\n"
         "  window.fetch = function(res, init) {\n"
-        "    let u = typeof res === 'string' ? res : res.url;\n"
-        "    if (u.includes('localhost:8089')) u = u.replace('http://localhost:8089', activeBackend);\n"
-        "    else if (u.startsWith('/api/')) u = activeBackend + u;\n"
+        "    let u = typeof res === 'string' ? res : (res && res.url ? res.url : '');\n"
+        "    if (u.includes('localhost:8086') && !isLocal) u = u.replace('http://localhost:8086', CLOUD_URL);\n"
+        "    else if (u.startsWith('/api/') && !isLocal) u = API_BASE_URL + u.substring(4);\n"
         "    init = init || {};\n"
         "    init.headers = init.headers || {};\n"
         "    if (init.headers instanceof Headers) init.headers.append('ngrok-skip-browser-warning', 'true');\n"
         "    else init.headers['ngrok-skip-browser-warning'] = 'true';\n"
         "    return typeof res === 'string' ? origFetch(u, init) : origFetch(new Request(u, {...res, ...init}));\n"
         "  };\n"
-        "})();\n"
+        "}\n\n"
+        "export default { API_BASE_URL, WS_HOST, WS_PORT };\n"
     )
 
     fixes = [
         {"path": "vercel.json", "content": json.dumps(vercel_config, indent=2)},
         {"path": "frontend/vercel.json", "content": json.dumps(vercel_config, indent=2)},
-        {"path": "frontend/config.js", "content": config_js}
+        {"path": "frontend/smart_minds/vercel.json", "content": json.dumps(vercel_config, indent=2)},
+        {"path": "frontend/config.js", "content": config_js},
+        {"path": "src/config.js", "content": config_js},
+        {"path": "frontend/smart_minds/src/config.js", "content": config_js}
     ]
 
     try:

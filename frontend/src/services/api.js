@@ -416,6 +416,58 @@ export const api = {
     return { active: false, public_url: null };
   },
 
+  // Real-time status of backend process & cloud bridge
+  async getCloudBridgeStatus({ port, backendPath } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (port) params.append('port', port);
+      if (backendPath) params.append('backend_path', backendPath);
+      const url = `${API_BASE_URL}/cloud/bridge/status${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
+      if (res.ok) return await res.json();
+    } catch {
+      // fallback
+    }
+    return { overall_status: 'OFFLINE', backend: { online: false }, bridge: { active: false } };
+  },
+
+  // 1-Click Launch Backend & Cloud Bridge
+  async launchCloudBridge({ backendPath, port, repoUrl, githubToken, autoLink = true } = {}) {
+    const res = await fetch(`${API_BASE_URL}/cloud/bridge/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        backend_path: backendPath,
+        port: port ? parseInt(port, 10) : undefined,
+        repo_url: repoUrl,
+        github_token: githubToken,
+        auto_link: autoLink
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(formatApiError(err, 'Failed to launch backend and cloud bridge.'));
+    }
+    return await res.json();
+  },
+
+  // Stop Backend & Cloud Bridge
+  async stopCloudBridge({ stopBackend = false, port } = {}) {
+    const res = await fetch(`${API_BASE_URL}/cloud/bridge/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stop_backend: stopBackend,
+        port: port ? parseInt(port, 10) : undefined
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(formatApiError(err, 'Failed to stop cloud bridge.'));
+    }
+    return await res.json();
+  },
+
   // Inspect local backend and generate Dockerfile & render.yaml
   async packageBackend({ backendPath, writeFiles = false }) {
     const res = await fetch(`${API_BASE_URL}/cloud/package-backend`, {

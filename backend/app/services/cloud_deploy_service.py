@@ -5,6 +5,9 @@ import time
 import io
 import hashlib
 import zipfile
+import socket
+import subprocess
+import psutil
 import requests
 import logging
 from typing import Dict, Any, List, Optional
@@ -22,6 +25,8 @@ class CloudDeployService:
 
     def __init__(self):
         self.live_url_service = LiveUrlService()
+        self._managed_backend_proc = None
+        self._managed_tunnel_proc = None
 
     def extract_domain(self, url: str) -> str:
         clean = url.strip()
@@ -382,6 +387,302 @@ class CloudDeployService:
             "public_url": None,
             "status": "OFFLINE",
             "message": "No active public cloud bridge found. Backend can be deployed to Render or tunneled."
+        }
+
+    def is_port_listening(self, port: int, host: str = "127.0.0.1") -> bool:
+        """Checks if a TCP port is actively listening."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.8)
+                return s.connect_ex((host, port)) == 0
+        except Exception:
+            return False
+
+    def find_pid_on_port(self, port: int) -> Optional[int]:
+        """Finds the PID listening on a given port."""
+        try:
+            for conn in psutil.net_connections(kind='inet'):
+                if conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
+                    return conn.pid
+        except Exception:
+            pass
+        return None
+
+    def auto_find_candidate_backend(self) -> Optional[str]:
+        """Auto-discovers backend directory candidates on the local filesystem."""
+        candidates = [
+            r"D:\Smart Minds\Backend\QuizMaster",
+            r"D:\Smart Minds\Backend",
+            r"D:\Smart Minds",
+            r"D:\internship_ai\backend",
+        ]
+        for c in candidates:
+            if os.path.exists(c) and (
+                os.path.exists(os.path.join(c, "pom.xml")) or
+                os.path.exists(os.path.join(c, "package.json")) or
+                os.path.exists(os.path.join(c, "requirements.txt")) or
+                os.path.exists(os.path.join(c, "QuizMaster"))
+            ):
+                return c
+        return None
+
+    def detect_backend_info(self, backend_path: str) -> Dict[str, Any]:
+        """Analyzes a backend directory to detect framework, port, and launch command."""
+        clean_path = os.path.abspath(backend_path.strip().strip('"\''))
+        if not os.path.exists(clean_path):
+            return {"valid": False, "error": f"Path '{clean_path}' does not exist"}
+
+        files = os.listdir(clean_path)
+        detected_port = 8086
+        backend_type = "Generic Web Backend"
+        run_cmd = []
+        target_jar = None
+
+        # Check Spring Boot (Java / Maven)
+        if "pom.xml" in files or any(os.path.exists(os.path.join(clean_path, f, "pom.xml")) for f in files if os.path.isdir(os.path.join(clean_path, f))):
+            backend_type = "Spring Boot (Java / Maven)"
+            detected_port = 8086
+            prop_candidates = [
+                os.path.join(clean_path, "src", "main", "resources", "application.properties"),
+                os.path.join(clean_path, "src", "main", "resources", "application.yml"),
+                os.path.join(clean_path, "application.properties")
+            ]
+            for pc in prop_candidates:
+                if os.path.exists(pc):
+                    try:
+                        with open(pc, "r", encoding="utf-8", errors="ignore") as pf:
+                            p_txt = pf.read()
+                        m_port = re.search(r'server\.port\s*[:=]\s*(\d+)', p_txt)
+                        if m_port:
+                            detected_port = int(m_port.group(1))
+                            break
+                    except Exception:
+                        pass
+
+            # Check for pre-built JAR in target/
+            target_dir = os.path.join(clean_path, "target")
+            if os.path.exists(target_dir):
+                jars = [
+                    j for j in os.listdir(target_dir)
+                    if j.endswith(".jar") and not j.endswith("-sources.jar") and not j.endswith("-javadoc.jar")
+                ]
+                if jars:
+                    target_jar = os.path.join(target_dir, jars[0])
+                    run_cmd = ["java", "-jar", target_jar]
+
+            if not run_cmd:
+                mvn_cmd = "mvnw.cmd" if os.path.exists(os.path.join(clean_path, "mvnw.cmd")) else ("mvnw" if os.path.exists(os.path.join(clean_path, "mvnw")) else "mvn")
+                run_cmd = [mvn_cmd, "spring-boot:run"]
+
+        elif "package.json" in files:
+            backend_type = "Node.js"
+            detected_port = 5000
+            run_cmd = ["npm", "start"]
+
+        elif "requirements.txt" in files or "pyproject.toml" in files:
+            backend_type = "Python (FastAPI / Flask)"
+            detected_port = 8000
+            run_cmd = ["python", "main.py"]
+
+        return {
+            "valid": True,
+            "path": clean_path,
+            "type": backend_type,
+            "port": detected_port,
+            "jar": target_jar,
+            "command": run_cmd
+        }
+
+    def launch_project_backend(self, backend_path: Optional[str] = None, port: Optional[int] = None) -> Dict[str, Any]:
+        """Launches the project backend process autonomously in background."""
+        target_path = backend_path or self.auto_find_candidate_backend()
+        if not target_path or not os.path.exists(target_path):
+            return {
+                "success": False,
+                "status": "ERROR",
+                "message": f"Backend path '{target_path}' not found. Please specify the local backend directory."
+            }
+
+        info = self.detect_backend_info(target_path)
+        target_port = port or info.get("port", 8086)
+
+        # Check if already listening on target port
+        if self.is_port_listening(target_port):
+            pid = self.find_pid_on_port(target_port)
+            return {
+                "success": True,
+                "status": "ONLINE",
+                "message": f"Backend already running and listening on port {target_port} (PID {pid}).",
+                "port": target_port,
+                "pid": pid,
+                "type": info.get("type", "Backend Service"),
+                "path": target_path
+            }
+
+        cmd = info.get("command", [])
+        if not cmd:
+            return {
+                "success": False,
+                "status": "ERROR",
+                "message": f"Could not determine launch command for backend in {target_path}."
+            }
+
+        try:
+            creationflags = 0
+            if os.name == 'nt':
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+
+            proc = subprocess.Popen(
+                cmd,
+                cwd=target_path,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creationflags
+            )
+            self._managed_backend_proc = proc
+
+            # Wait up to 6 seconds for port to start listening
+            start_time = time.time()
+            online = False
+            while time.time() - start_time < 6.0:
+                if self.is_port_listening(target_port):
+                    online = True
+                    break
+                time.sleep(0.5)
+
+            return {
+                "success": True,
+                "status": "ONLINE" if online else "STARTING",
+                "message": f"Successfully launched {info.get('type')} on port {target_port} (PID {proc.pid})." if online else f"Process started (PID {proc.pid}), initializing on port {target_port}...",
+                "port": target_port,
+                "pid": proc.pid,
+                "type": info.get("type"),
+                "path": target_path
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "status": "ERROR",
+                "message": f"Failed to launch backend: {str(e)}"
+            }
+
+    def launch_cloud_bridge(self, port: int = 8086) -> Dict[str, Any]:
+        """Launches an ngrok HTTPS tunnel bridge pointing to the local port."""
+        existing = self.get_active_cloud_bridge()
+        if existing.get("active") and existing.get("public_url"):
+            return {
+                "success": True,
+                "status": "ONLINE",
+                "public_url": existing.get("public_url"),
+                "local_port": existing.get("local_port", f"http://localhost:{port}"),
+                "message": f"Live tunnel bridge active: {existing.get('public_url')}"
+            }
+
+        try:
+            creationflags = 0
+            if os.name == 'nt':
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+
+            proc = subprocess.Popen(
+                ["ngrok", "http", str(port)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creationflags
+            )
+            self._managed_tunnel_proc = proc
+
+            start_time = time.time()
+            while time.time() - start_time < 8.0:
+                time.sleep(0.8)
+                active = self.get_active_cloud_bridge()
+                if active.get("active") and active.get("public_url"):
+                    return {
+                        "success": True,
+                        "status": "ONLINE",
+                        "public_url": active.get("public_url"),
+                        "local_port": active.get("local_port", f"http://localhost:{port}"),
+                        "message": f"Ngrok bridge successfully launched: {active.get('public_url')}"
+                    }
+
+            return {
+                "success": False,
+                "status": "TIMEOUT",
+                "message": "Ngrok tunnel initiated but tunnel URL was not ready within 8 seconds."
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "status": "ERROR",
+                "message": f"Failed to launch ngrok tunnel: {str(e)}"
+            }
+
+    def stop_cloud_bridge(self, stop_backend: bool = False, backend_port: Optional[int] = None) -> Dict[str, Any]:
+        """Stops the active ngrok bridge and optionally the local backend."""
+        msgs = []
+        if self._managed_tunnel_proc:
+            try:
+                self._managed_tunnel_proc.terminate()
+                msgs.append("Ngrok process stopped.")
+            except Exception as e:
+                msgs.append(f"Error terminating ngrok: {e}")
+            self._managed_tunnel_proc = None
+        else:
+            ngrok_pid = self.find_pid_on_port(4040)
+            if ngrok_pid:
+                try:
+                    p = psutil.Process(ngrok_pid)
+                    p.terminate()
+                    msgs.append(f"Terminated ngrok tunnel (PID {ngrok_pid}).")
+                except Exception as e:
+                    msgs.append(f"Could not kill ngrok PID {ngrok_pid}: {e}")
+
+        if stop_backend:
+            target_port = backend_port or 8086
+            b_pid = self.find_pid_on_port(target_port)
+            if b_pid:
+                try:
+                    p = psutil.Process(b_pid)
+                    p.terminate()
+                    msgs.append(f"Stopped backend process on port {target_port} (PID {b_pid}).")
+                except Exception as e:
+                    msgs.append(f"Error terminating backend: {e}")
+            elif self._managed_backend_proc:
+                try:
+                    self._managed_backend_proc.terminate()
+                    msgs.append("Managed backend process stopped.")
+                except Exception as e:
+                    msgs.append(f"Error terminating backend: {e}")
+                self._managed_backend_proc = None
+
+        return {
+            "success": True,
+            "message": " | ".join(msgs) if msgs else "No active processes needed termination."
+        }
+
+    def get_full_bridge_status(self, backend_port: Optional[int] = None, backend_path: Optional[str] = None) -> Dict[str, Any]:
+        """Provides a unified health and status report of backend, tunnel, and cloud bridge."""
+        target_path = backend_path or self.auto_find_candidate_backend()
+        info = self.detect_backend_info(target_path) if target_path else {}
+        target_port = backend_port or info.get("port", 8086)
+
+        backend_listening = self.is_port_listening(target_port)
+        backend_pid = self.find_pid_on_port(target_port) if backend_listening else None
+        bridge_info = self.get_active_cloud_bridge()
+
+        return {
+            "backend": {
+                "online": backend_listening,
+                "port": target_port,
+                "pid": backend_pid,
+                "type": info.get("type", "Spring Boot (Java / Maven)"),
+                "path": target_path
+            },
+            "bridge": {
+                "active": bridge_info.get("active", False),
+                "public_url": bridge_info.get("public_url"),
+                "local_port": bridge_info.get("local_port")
+            },
+            "overall_status": "ONLINE" if (backend_listening and bridge_info.get("active")) else ("PARTIAL" if (backend_listening or bridge_info.get("active")) else "OFFLINE")
         }
 
     def package_local_backend(self, backend_path: str, write_files: bool = False) -> Dict[str, Any]:
