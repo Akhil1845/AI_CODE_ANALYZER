@@ -192,8 +192,16 @@ export default function Profile() {
 
         if (Array.isArray(backendProjects)) {
           backendProjects.forEach(p => {
-            if (p.issue_count) totalIssues += p.issue_count;
-            if (p.health_score && p.health_score > 80) resolvedIssues += 1;
+            const scan = p.latest_scan || {};
+            const count = (typeof scan.total_issues === 'number') ? scan.total_issues : (p.issue_count || 0);
+            totalIssues += count;
+            if (p.resolved_count) {
+              resolvedIssues += p.resolved_count;
+            } else if (count === 0) {
+              resolvedIssues += 1;
+            } else if ((scan.critical_count || 0) === 0 && (scan.high_count || 0) === 0) {
+              resolvedIssues += 1;
+            }
           });
         }
 
@@ -414,14 +422,15 @@ export default function Profile() {
         }}>
           {/* Cover Graphic Background */}
           <div style={{
-            height: '160px',
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(236, 72, 153, 0.25) 50%, rgba(16, 185, 129, 0.15) 100%), #050814',
+            height: '140px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(236, 72, 153, 0.3) 50%, rgba(16, 185, 129, 0.2) 100%), #090d16',
             position: 'relative',
             borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
-            alignItems: 'flex-end',
+            alignItems: 'center',
             justifyContent: 'flex-end',
-            padding: '18px 24px'
+            padding: '16px 24px',
+            zIndex: 1
           }}>
             <div style={{
               display: 'flex',
@@ -429,7 +438,7 @@ export default function Profile() {
               gap: '8px',
               padding: '6px 14px',
               borderRadius: '9999px',
-              background: 'rgba(0, 0, 0, 0.6)',
+              background: 'rgba(0, 0, 0, 0.65)',
               backdropFilter: 'blur(8px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               fontSize: '12px',
@@ -443,16 +452,17 @@ export default function Profile() {
 
           {/* Profile User Info Row */}
           <div style={{
-            padding: '0 32px 28px',
+            padding: '0 32px 24px',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
             gap: '24px',
-            marginTop: '-55px'
+            position: 'relative',
+            zIndex: 10
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '22px', flexWrap: 'wrap' }}>
-              {/* Dynamic Avatar with Initial */}
+              {/* Dynamic Avatar with Initial overlapping cover border */}
               <div style={{
                 width: '100px',
                 height: '100px',
@@ -467,7 +477,9 @@ export default function Profile() {
                 fontWeight: 900,
                 color: '#ffffff',
                 position: 'relative',
-                flexShrink: 0
+                flexShrink: 0,
+                marginTop: '-50px',
+                zIndex: 11
               }}>
                 {name ? name[0].toUpperCase() : 'A'}
                 <div style={{
@@ -490,7 +502,7 @@ export default function Profile() {
               </div>
 
               {/* Name & Headline */}
-              <div style={{ paddingBottom: '4px' }}>
+              <div style={{ paddingBottom: '4px', paddingTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
                     {name || user.name || 'Developer'}
@@ -545,7 +557,7 @@ export default function Profile() {
             </div>
 
             {/* Header Right Action Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '4px', paddingTop: '12px' }}>
               <button
                 type="button"
                 onClick={handleSaveProfile}
