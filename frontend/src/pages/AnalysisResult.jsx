@@ -3497,7 +3497,7 @@ export default function AnalysisResult() {
                             <button
                               type="button"
                               disabled={redeployingCloud || !cloudToken}
-                              onClick={handleTriggerRedeploy}
+                              onClick={handleTriggerCloudRedeploy}
                               style={{
                                 marginTop: '4px',
                                 padding: '11px 20px',
