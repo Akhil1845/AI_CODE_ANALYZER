@@ -317,8 +317,9 @@ app.add_middleware(HstsMiddleware)"""
 # Destination: /index.html
 # Action: Rewrite"""
                     }
-            except Exception:
-                pass
+            except Exception as _err:
+                import logging
+                logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
             return None
 
         def probe_cors():
@@ -346,8 +347,9 @@ app.add_middleware(
     allow_headers=["*"]
 )"""
                     }
-            except Exception:
-                pass
+            except Exception as _err:
+                import logging
+                logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
             return None
 
         def probe_script(s_url):
@@ -391,10 +393,12 @@ export default defineConfig({
   }
 });"""
                             })
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    except Exception as _err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
+            except Exception as _err:
+                import logging
+                logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
             return found_issues
 
         # -------------------------------------------------------------
@@ -459,8 +463,9 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.location.ho
 }}"""
                         })
                         break
-                    except Exception:
-                        pass
+                    except Exception as _err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
             return port_issues
 
         def probe_api_health():
@@ -491,8 +496,9 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.location.ho
   ]
 }"""
                     }
-            except Exception:
-                pass
+            except Exception as _err:
+                import logging
+                logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
             return None
 
         def correlate_local_project():
@@ -526,8 +532,9 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.location.ho
   ? '/api'
   : `${window.location.protocol}//${BACKEND_HOST}:8086/api`;"""
                                 })
-                        except Exception:
-                            pass
+                        except Exception as _err:
+                            import logging
+                            logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
                     backend_prop = os.path.join(c_path, r"Backend\QuizMaster\src\main\resources\application.properties")
                     if os.path.exists(backend_prop):
@@ -647,8 +654,9 @@ jobs:
             res = self.ai_service._call_gemini("You are a cloud security expert.", prompt, timeout=2.5)
             if res and len(res.strip()) > 20:
                 return res.strip()
-        except Exception:
-            pass
+        except Exception as _err:
+            import logging
+            logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
         return fast_summary
 
