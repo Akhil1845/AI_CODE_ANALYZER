@@ -296,8 +296,9 @@ class CloudDeployService:
                             "status": "ONLINE",
                             "message": f"Active live cloud bridge detected: {pub}"
                         }
-        except Exception:
-            pass
+        except Exception as _err:
+            import logging
+            logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
         return {
             "active": False,
@@ -338,8 +339,9 @@ class CloudDeployService:
                         if m_port:
                             detected_port = int(m_port.group(1))
                             break
-                    except Exception:
-                        pass
+                    except Exception as _err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
             dockerfile_content = (
                 "# Multi-stage Docker build for Spring Boot Backend\n"
