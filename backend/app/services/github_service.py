@@ -8,9 +8,12 @@ import requests
 import base64
 import json
 import time
+import logging
 from typing import Dict, Any, List, Optional
 from .analyzer import StaticAnalyzer
 from .. import config
+
+logger = logging.getLogger(__name__)
 
 class GitHubService:
     def __init__(self):
@@ -548,8 +551,8 @@ class GitHubService:
                                 v_match = re.search(r'"value"\s*:\s*"([^"]+)"', line)
                                 if k_match and v_match:
                                     combined_headers[k_match.group(1)] = v_match.group(1)
-                            except Exception:
-                                pass
+                            except Exception as parse_err:
+                                logger.debug(f"[GITHUB_SERVICE] Header parse note: {parse_err}")
 
                 # Query active tunnel bridge dynamically if available
                 active_tunnel_url = "https://interdental-farcically-bernardina.ngrok-free.dev"
@@ -561,8 +564,8 @@ class GitHubService:
                             if tun.get("public_url", "").startswith("https://"):
                                 active_tunnel_url = tun["public_url"]
                                 break
-                except Exception:
-                    pass
+                except Exception as tunnel_err:
+                    logger.debug(f"[GITHUB_SERVICE] Bridge tunnel note: {tunnel_err}")
 
                 # Build production vercel.json
                 master_vercel = {

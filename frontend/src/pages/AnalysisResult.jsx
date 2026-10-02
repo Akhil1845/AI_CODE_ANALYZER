@@ -1165,17 +1165,42 @@ export default function AnalysisResult() {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleDownloadAllPatches}
-                style={{ padding: '8px 18px', fontSize: '12.5px' }}
-              >
-                <Download size={14} />
-                <span>Export Patches (.diff)</span>
-              </button>
-            </div>
-          )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGitHubModal('commit')}
+                    style={{
+                      padding: '8px 18px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      boxShadow: '0 0 18px rgba(16, 185, 129, 0.45)'
+                    }}
+                    title="Commit all verified fixes directly to your GitHub repository"
+                  >
+                    <Zap size={15} />
+                    <span>⚡ Commit All to GitHub Now</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleDownloadAllPatches}
+                    style={{ padding: '8px 18px', fontSize: '12.5px' }}
+                  >
+                    <Download size={14} />
+                    <span>Export Patches (.diff)</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
           {/* Zero Issues Clean State or Main 2-Column Workspace */}
           {issues.length === 0 ? (

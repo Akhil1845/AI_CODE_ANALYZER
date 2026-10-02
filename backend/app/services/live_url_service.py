@@ -317,8 +317,8 @@ app.add_middleware(HstsMiddleware)"""
 # Destination: /index.html
 # Action: Rewrite"""
                     }
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[PROBE_SPA] Error checking SPA fallback: {e}")
             return None
 
         def probe_cors():
@@ -346,8 +346,8 @@ app.add_middleware(
     allow_headers=["*"]
 )"""
                     }
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[PROBE_CORS] Error checking CORS: {e}")
             return None
 
         def probe_script(s_url):
@@ -391,10 +391,10 @@ export default defineConfig({
   }
 });"""
                             })
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    except Exception as map_err:
+                        logger.debug(f"[PROBE_SCRIPT] Map check error for {map_url}: {map_err}")
+            except Exception as js_err:
+                logger.debug(f"[PROBE_SCRIPT] Script inspect error for {s_url}: {js_err}")
             return found_issues
 
         # -------------------------------------------------------------
@@ -459,8 +459,8 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.location.ho
 }}"""
                         })
                         break
-                    except Exception:
-                        pass
+                    except Exception as p_err:
+                        logger.debug(f"[PROBE_PORTS] Port check error for {p}: {p_err}")
             return port_issues
 
         def probe_api_health():
@@ -491,8 +491,8 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.location.ho
   ]
 }"""
                     }
-            except Exception:
-                pass
+            except Exception as api_err:
+                logger.debug(f"[PROBE_API] Health check error: {api_err}")
             return None
 
         def correlate_local_project():
@@ -526,8 +526,8 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.location.ho
   ? '/api'
   : `${window.location.protocol}//${BACKEND_HOST}:8086/api`;"""
                                 })
-                        except Exception:
-                            pass
+                        except Exception as cfg_err:
+                            logger.debug(f"[LOCAL_CORRELATE] Error reading config.js: {cfg_err}")
 
                     backend_prop = os.path.join(c_path, r"Backend\QuizMaster\src\main\resources\application.properties")
                     if os.path.exists(backend_prop):
@@ -647,8 +647,8 @@ jobs:
             res = self.ai_service._call_gemini("You are a cloud security expert.", prompt, timeout=2.5)
             if res and len(res.strip()) > 20:
                 return res.strip()
-        except Exception:
-            pass
+        except Exception as ai_err:
+            logger.debug(f"[GEN_SUMMARY] Gemini summary fallback: {ai_err}")
 
         return fast_summary
 

@@ -6,9 +6,12 @@ import io
 import hashlib
 import zipfile
 import requests
+import logging
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
 from .live_url_service import LiveUrlService
+
+logger = logging.getLogger(__name__)
 
 class CloudDeployService:
     """
@@ -296,8 +299,8 @@ class CloudDeployService:
                             "status": "ONLINE",
                             "message": f"Active live cloud bridge detected: {pub}"
                         }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[CLOUD_BRIDGE] Bridge discovery skipped: {e}")
 
         return {
             "active": False,
@@ -338,8 +341,8 @@ class CloudDeployService:
                         if m_port:
                             detected_port = int(m_port.group(1))
                             break
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"[SPRING_BOOT_PORT] Could not parse server.port from {pc}: {e}")
 
             dockerfile_content = (
                 "# Multi-stage Docker build for Spring Boot Backend\n"
