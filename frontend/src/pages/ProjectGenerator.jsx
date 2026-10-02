@@ -37,22 +37,38 @@ import {
   RotateCcw,
   SlidersHorizontal,
   FolderTree,
-  Maximize2
+  Maximize2,
+  KeyRound,
+  Rocket,
+  BarChart3,
+  ShoppingBag,
+  Gem,
+  Briefcase,
+  FileCode2,
+  Users,
+  CreditCard,
+  Lock,
+  Shield,
+  Tag,
+  CornerDownLeft,
+  CheckCircle2,
+  Layers3,
+  Workflow
 } from 'lucide-react';
 import { projectGenerator } from '../services/projectGenerator';
 import { api } from '../services/api';
 
 const STACKS = [
-  { id: 'react', name: 'React 19 + Vite', badge: 'Frontend', desc: 'SPA with Tailwind CSS & modular components' },
-  { id: 'spring-boot', name: 'Spring Boot 3 (Java 17)', badge: 'Backend', desc: 'Spring Data JPA & Maven REST API' },
-  { id: 'fastapi', name: 'Python 3 + FastAPI', badge: 'Python', desc: 'Async REST API with Pydantic validation' },
-  { id: 'node', name: 'Node.js + Express', badge: 'Full-Stack', desc: 'Lightweight REST API service with CORS' },
-  { id: 'cpp', name: 'Modern C++20 (CMake)', badge: 'System', desc: 'Modular CMake project with unit testing' }
+  { id: 'react', name: 'React 19 + Vite', badge: 'Frontend', desc: 'SPA with Tailwind CSS, modular components & hooks' },
+  { id: 'spring-boot', name: 'Spring Boot 3 (Java 17)', badge: 'Backend', desc: 'Spring Data JPA, Maven wrapper & REST API' },
+  { id: 'fastapi', name: 'Python 3 + FastAPI', badge: 'Python', desc: 'Async REST API with Pydantic validation & OpenAPI' },
+  { id: 'node', name: 'Node.js + Express', badge: 'Full-Stack', desc: 'Lightweight REST API service with CORS & JSON body' },
+  { id: 'cpp', name: 'Modern C++20 (CMake)', badge: 'System', desc: 'Modular CMake project with unit testing harness' }
 ];
 
 const SINGLE_PAGE_FRAMEWORKS = [
-  { id: 'react', name: 'React 19 (JSX)', desc: 'Modular component with hooks' },
-  { id: 'html', name: 'HTML5 + Tailwind', desc: 'Zero-config standalone webpage' },
+  { id: 'react', name: 'React 19 (JSX)', desc: 'Modular component with state & hooks' },
+  { id: 'html', name: 'HTML5 + Tailwind', desc: 'Zero-config standalone web page' },
   { id: 'vue', name: 'Vue 3 Single File', desc: 'Composition API component' }
 ];
 
@@ -60,68 +76,107 @@ const PAGE_ARCHETYPES = [
   { 
     id: 'auth', 
     name: 'Auth & 2FA Portal', 
-    icon: '🔐', 
-    desc: 'Dual-tab Login, Sign Up, 2FA OTP & OAuth',
+    iconKey: 'KeyRound',
+    accentColor: '#c084fc',
+    accentBg: 'rgba(168, 85, 247, 0.12)',
+    accentBorder: 'rgba(168, 85, 247, 0.35)',
+    desc: 'Dual-tab Login, Sign Up, 2FA OTP & OAuth integrations',
     defaultSections: ['navbar', 'hero', 'form', 'footer'],
     defaultPrompt: 'Build a creative login and signup page with a sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle, and social sign in buttons.'
   },
   { 
     id: 'landing', 
     name: 'SaaS Landing Page', 
-    icon: '🚀', 
-    desc: 'Hero showcase, bento grid & conversion CTA',
+    iconKey: 'Rocket',
+    accentColor: '#38bdf8',
+    accentBg: 'rgba(56, 189, 248, 0.12)',
+    accentBorder: 'rgba(56, 189, 248, 0.35)',
+    desc: 'Hero showcase, bento grid & conversion CTA elements',
     defaultSections: ['navbar', 'hero', 'features', 'pricing', 'cta', 'footer'],
     defaultPrompt: 'Create a high-converting, dark-themed SaaS landing page for an AI code observability platform with sticky navbar, hero section, 3 feature cards, pricing tiers, and FAQ accordion.'
   },
   { 
     id: 'dashboard', 
     name: 'Analytics Dashboard', 
-    icon: '📊', 
-    desc: 'Telemetry KPI cards, SVG charts & logs',
+    iconKey: 'BarChart3',
+    accentColor: '#34d399',
+    accentBg: 'rgba(16, 185, 129, 0.12)',
+    accentBorder: 'rgba(16, 185, 129, 0.35)',
+    desc: 'Cluster telemetry, 4 real-time KPI metrics & audit logs',
     defaultSections: ['navbar', 'kpi', 'chart', 'table', 'footer'],
     defaultPrompt: 'Build a dark glassmorphic observability analytics dashboard with a cluster telemetry overview, 4 real-time KPI metric cards, and a recent deployment activity table.'
   },
   { 
     id: 'ecommerce', 
     name: 'E-Commerce Storefront', 
-    icon: '🛒', 
-    desc: 'Product cards, filter tags & cart counter',
+    iconKey: 'ShoppingBag',
+    accentColor: '#fbbf24',
+    accentBg: 'rgba(245, 158, 11, 0.12)',
+    accentBorder: 'rgba(245, 158, 11, 0.35)',
+    desc: 'Product cards, category pills & dynamic cart counter',
     defaultSections: ['navbar', 'hero', 'features', 'cta', 'footer'],
     defaultPrompt: 'Generate a modern e-commerce storefront for developer hardware gear with category filter pills, product grid with price tags, star ratings, and an interactive Add to Cart counter.'
   },
   { 
     id: 'pricing', 
     name: 'Pricing Matrix', 
-    icon: '💎', 
-    desc: '3 Tier cards, billing switch & features',
+    iconKey: 'Gem',
+    accentColor: '#f472b6',
+    accentBg: 'rgba(236, 72, 153, 0.12)',
+    accentBorder: 'rgba(236, 72, 153, 0.35)',
+    desc: '3 Tier cards, annual billing toggle & comparison matrix',
     defaultSections: ['navbar', 'hero', 'pricing', 'faq', 'footer'],
     defaultPrompt: 'Build a high-conversion pricing comparison matrix with monthly and annual billing toggle, 3 tier cards with a highlighted Pro plan, and comprehensive feature checklists.'
   },
   { 
     id: 'portfolio', 
     name: 'Developer Portfolio', 
-    icon: '💼', 
-    desc: 'Hero bio, tech stack tags & project cards',
+    iconKey: 'Briefcase',
+    accentColor: '#fb7185',
+    accentBg: 'rgba(244, 63, 94, 0.12)',
+    accentBorder: 'rgba(244, 63, 94, 0.35)',
+    desc: 'Hero statement, tech stack tags & interactive showcase',
     defaultSections: ['hero', 'features', 'form', 'footer'],
     defaultPrompt: 'Create an ultra-sleek developer portfolio with an animated hero statement, interactive tech stack tags, project showcase cards with live demo links, and a clean contact form.'
   },
-  {
-    id: 'docs',
-    name: 'API Documentation',
-    icon: '📑',
-    desc: 'Sidebar tree, code blocks & endpoints',
+  { 
+    id: 'docs', 
+    name: 'API Documentation', 
+    iconKey: 'FileCode2',
+    accentColor: '#38bdf8',
+    accentBg: 'rgba(14, 165, 233, 0.12)',
+    accentBorder: 'rgba(14, 165, 233, 0.35)',
+    desc: 'Nested sidebar tree, REST endpoints table & code blocks',
     defaultSections: ['navbar', 'features', 'table', 'footer'],
     defaultPrompt: 'Generate a high-density developer API documentation screen with nested sidebar navigation, REST endpoints table, code snippets with copy button, and request payload examples.'
   },
-  {
-    id: 'admin',
-    name: 'Admin User Directory',
-    icon: '🏢',
-    desc: 'Searchable table, role badges & actions',
+  { 
+    id: 'admin', 
+    name: 'Admin User Directory', 
+    iconKey: 'Users',
+    accentColor: '#818cf8',
+    accentBg: 'rgba(99, 102, 241, 0.12)',
+    accentBorder: 'rgba(99, 102, 241, 0.35)',
+    desc: 'Searchable table, role chips, invite modal & user audit',
     defaultSections: ['navbar', 'kpi', 'table', 'footer'],
     defaultPrompt: 'Create an enterprise admin user management dashboard with search and role filters, user list table with status chips, invite modal button, and account deletion safeguard.'
   }
 ];
+
+// Helper to render Lucide SVG Icon for archetype
+const renderArchetypeIcon = (iconKey, size = 18, color = 'currentColor') => {
+  switch (iconKey) {
+    case 'KeyRound': return <KeyRound size={size} color={color} />;
+    case 'Rocket': return <Rocket size={size} color={color} />;
+    case 'BarChart3': return <BarChart3 size={size} color={color} />;
+    case 'ShoppingBag': return <ShoppingBag size={size} color={color} />;
+    case 'Gem': return <Gem size={size} color={color} />;
+    case 'Briefcase': return <Briefcase size={size} color={color} />;
+    case 'FileCode2': return <FileCode2 size={size} color={color} />;
+    case 'Users': return <Users size={size} color={color} />;
+    default: return <Layout size={size} color={color} />;
+  }
+};
 
 // 18+ Comprehensive Color Palettes
 const COLOR_THEMES = [
@@ -218,6 +273,15 @@ const MODULAR_SECTIONS = [
   { id: 'footer', label: 'Multi-Column Footer' }
 ];
 
+// Prompt Inspiration Chips
+const PROMPT_SUGGESTIONS = [
+  { label: '✦ Auth with 2FA & OAuth', archetype: 'auth', prompt: 'Build a creative login and signup page with a sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle, and social sign in buttons.' },
+  { label: '✦ Dark SaaS Hero with Bento Grid', archetype: 'landing', prompt: 'Create a high-converting, dark-themed SaaS landing page for an AI code observability platform with sticky navbar, hero section, 3 feature cards, pricing tiers, and FAQ accordion.' },
+  { label: '✦ Real-Time Metrics & Telemetry', archetype: 'dashboard', prompt: 'Build a dark glassmorphic observability analytics dashboard with a cluster telemetry overview, 4 real-time KPI metric cards, and a recent deployment activity table.' },
+  { label: '✦ Developer Gear E-Commerce', archetype: 'ecommerce', prompt: 'Generate a modern e-commerce storefront for developer hardware gear with category filter pills, product grid with price tags, star ratings, and an interactive Add to Cart counter.' },
+  { label: '✦ High-Conversion Pricing Matrix', archetype: 'pricing', prompt: 'Build a high-conversion pricing comparison matrix with monthly and annual billing toggle, 3 tier cards with a highlighted Pro plan, and comprehensive feature checklists.' }
+];
+
 export default function ProjectGenerator() {
   const navigate = useNavigate();
 
@@ -255,7 +319,7 @@ export default function ProjectGenerator() {
   const [includeDocker, setIncludeDocker] = useState(true);
   const [includeCi, setIncludeCi] = useState(true);
 
-  // Active Options Tab on Left
+  // Active Options Tab in Studio Deck
   const [activeTabSection, setActiveTabSection] = useState('archetype'); 
   // 'archetype', 'colors', 'navbar', 'sidebar', 'animations', 'sections', 'styling'
 
@@ -266,7 +330,7 @@ export default function ProjectGenerator() {
   const [copied, setCopied] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  // Single Page Result: Starts NULL so NO page is auto-rendered on initial load!
+  // Single Page Result: Starts NULL so NO page is auto-rendered on initial load
   const [singlePageResult, setSinglePageResult] = useState(null);
   const canvasRef = useRef(null);
 
@@ -522,60 +586,64 @@ export default function ProjectGenerator() {
       {/* Dynamic Ambient Background Glows */}
       <div style={{
         position: 'absolute',
-        top: '4%',
-        left: '18%',
-        width: '500px',
-        height: '500px',
+        top: '2%',
+        left: '20%',
+        width: '600px',
+        height: '600px',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, rgba(99, 102, 241, 0.02) 70%, transparent 100%)',
-        filter: 'blur(90px)',
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.03) 60%, transparent 100%)',
+        filter: 'blur(100px)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
 
-      <main style={{ flexGrow: 1, padding: '24px 0 60px', position: 'relative', zIndex: 1 }}>
+      <main style={{ flexGrow: 1, padding: '28px 0 60px', position: 'relative', zIndex: 1 }}>
         <div style={{ width: '100%', maxWidth: '1740px', margin: '0 auto', padding: '0 24px' }}>
 
-          {/* TOP BAR / STUDIO HEADER */}
+          {/* STUDIO HEADER & SCOPE SWITCHER */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '20px',
+            marginBottom: '24px',
             flexWrap: 'wrap',
-            gap: '14px'
+            gap: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div>
               <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                boxShadow: 'var(--primary-glow)'
+                gap: '6px',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                background: 'rgba(99, 102, 241, 0.12)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                color: '#818cf8',
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                marginBottom: '8px'
               }}>
-                <Wand2 size={22} />
+                <Sparkles size={11} />
+                <span>AI APPLICATION &amp; UI STUDIO</span>
               </div>
-              <div>
-                <h1 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
-                  Project &amp; Single Page Studio
-                </h1>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Deep customizer: 18+ palettes, 10 navbar styles, 8 sidebars, visual FX &amp; modular blocks
-                </div>
+              <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', margin: '0 0 4px 0' }}>
+                Interface &amp; Scaffold Studio
+              </h1>
+              <div style={{ fontSize: '13px', color: '#94a3b8' }}>
+                Prompt, customize, and synthesize production-grade user interfaces, modular design components, or full-stack architectures.
               </div>
             </div>
 
             {/* Scope Switcher: Single Page vs Full Project */}
             <div style={{
               display: 'flex',
-              background: 'var(--bg-secondary)',
+              background: 'rgba(15, 23, 42, 0.7)',
               padding: '4px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)'
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(12px)'
             }}>
               <button
                 type="button"
@@ -583,21 +651,21 @@ export default function ProjectGenerator() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '7px',
-                  padding: '8px 18px',
-                  borderRadius: '6px',
-                  background: genMode === 'single' ? 'var(--primary)' : 'transparent',
-                  color: genMode === 'single' ? '#fff' : 'var(--text-muted)',
+                  gap: '8px',
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: genMode === 'single' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
+                  color: genMode === 'single' ? '#ffffff' : '#94a3b8',
                   border: 'none',
                   fontSize: '13px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: genMode === 'single' ? '0 2px 10px rgba(236,72,153,0.3)' : 'none'
+                  transition: 'all 0.18s ease',
+                  boxShadow: genMode === 'single' ? '0 2px 12px rgba(99, 102, 241, 0.4)' : 'none'
                 }}
               >
                 <Layout size={15} />
-                <span>Single Page Builder</span>
+                <span>Single Page &amp; UI Canvas</span>
               </button>
 
               <button
@@ -606,796 +674,236 @@ export default function ProjectGenerator() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '7px',
-                  padding: '8px 18px',
-                  borderRadius: '6px',
-                  background: genMode === 'project' ? 'var(--primary)' : 'transparent',
-                  color: genMode === 'project' ? '#fff' : 'var(--text-muted)',
+                  gap: '8px',
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  background: genMode === 'project' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'transparent',
+                  color: genMode === 'project' ? '#ffffff' : '#94a3b8',
                   border: 'none',
                   fontSize: '13px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: genMode === 'project' ? '0 2px 10px rgba(236,72,153,0.3)' : 'none'
+                  transition: 'all 0.18s ease',
+                  boxShadow: genMode === 'project' ? '0 2px 12px rgba(236, 72, 153, 0.4)' : 'none'
                 }}
               >
                 <Box size={15} />
-                <span>Full Project Repository</span>
+                <span>Full Project Scaffolding</span>
               </button>
             </div>
           </div>
 
-          {/* STACKED WORKSPACE (Canvas Down) */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '32px'
-          }}>
+          {/* STACKED WORKSPACE */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-            {/* ======================================================== */}
-            {/* TOP SECTION: Controls, Modular Options, Prompt & Actions */}
-            {/* ======================================================== */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
-              
-              {/* MAIN CONFIGURATION CARD */}
-              <div className="glass-card" style={{
-                padding: '28px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-light)'
+            {/* MAIN CONFIGURATION CARD */}
+            <div style={{
+              background: 'linear-gradient(180deg, rgba(20, 28, 48, 0.65) 0%, rgba(12, 18, 33, 0.8) 100%)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.45)',
+              backdropFilter: 'blur(20px)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+
+              {/* 1. THE AI OMNIBAR */}
+              <div style={{
+                background: 'rgba(10, 15, 28, 0.75)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '14px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.5)'
               }}>
-
-                {/* Prompt or Idea Input */}
-                <div style={{ marginBottom: '18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Sparkles size={13} color="var(--primary)" />
-                      <span>{genMode === 'single' ? 'Your Prompt / Custom Specification' : 'Project Idea / Specification'}</span>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={handleEnhancePrompt}
-                      title="Enrich prompt with production architectural details"
-                      style={{
-                        background: 'rgba(236, 72, 153, 0.1)',
-                        border: '1px solid rgba(236, 72, 153, 0.3)',
-                        color: 'var(--accent-pink)',
-                        padding: '3px 9px',
-                        borderRadius: '5px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Wand2 size={11} />
-                      <span>Enhance Idea</span>
-                    </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '6px',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff'
+                    }}>
+                      <Sparkles size={13} />
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                      {genMode === 'single' ? 'AI PROMPT & COMPONENT SPECIFICATION' : 'FULL-STACK REPOSITORY SPECIFICATION'}
+                    </span>
                   </div>
 
-                  <textarea
-                    rows={3}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe what to build (e.g. Creative login and signup page with sticky glass navbar, animated ambient background orbs, email and password inputs with reveal eye toggle)..."
+                  <button
+                    type="button"
+                    onClick={handleEnhancePrompt}
+                    title="Enrich prompt with production architectural details"
                     style={{
-                      width: '100%',
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '11px 13px',
-                      color: 'var(--text-main)',
-                      fontSize: '13px',
-                      lineHeight: 1.5,
-                      outline: 'none',
-                      resize: 'vertical',
-                      fontFamily: 'inherit'
+                      background: 'rgba(236, 72, 153, 0.12)',
+                      border: '1px solid rgba(236, 72, 153, 0.35)',
+                      color: '#f472b6',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
                     }}
-                  />
+                  >
+                    <Wand2 size={12} />
+                    <span>Enhance Prompt</span>
+                  </button>
                 </div>
 
-                {/* IF SINGLE PAGE: TABBED DEEP CONFIGURATOR */}
-                {genMode === 'single' ? (
-                  <div>
-                    {/* Navigation Pills to Switch Sub-Panels */}
-                    <div style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      background: 'var(--bg-secondary)',
-                      padding: '4px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-subtle)',
-                      marginBottom: '20px',
-                      gap: '4px'
-                    }}>
-                      {[
-                        { id: 'archetype', label: '1. Archetype' },
-                        { id: 'colors', label: '2. Colors' },
-                        { id: 'navbar', label: '3. Navbar' },
-                        { id: 'sidebar', label: '4. Sidebar' },
-                        { id: 'animations', label: '5. Animations' },
-                        { id: 'sections', label: '6. Sections' },
-                        { id: 'styling', label: '7. Styles' }
-                      ].map((tab) => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setActiveTabSection(tab.id)}
-                          style={{
-                            flex: '1 1 auto',
-                            padding: '8px 14px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            background: activeTabSection === tab.id ? 'var(--primary)' : 'transparent',
-                            color: activeTabSection === tab.id ? '#fff' : 'var(--text-muted)',
-                            boxShadow: activeTabSection === tab.id ? '0 1px 4px rgba(236,72,153,0.3)' : 'none',
-                            transition: 'all 0.12s ease'
-                          }}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
+                <textarea
+                  rows={3}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      if (genMode === 'single') handleGenerateSinglePage();
+                      else handleGenerateFullProject();
+                    }
+                  }}
+                  placeholder="Describe your interface, components, styling, or architecture in natural language..."
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '13.5px',
+                    lineHeight: 1.6,
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    padding: 0,
+                    margin: 0
+                  }}
+                />
 
-                    {/* SUB-PANEL 1: ARCHETYPES & SCOPE */}
-                    {activeTabSection === 'archetype' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '18px' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase' }}>
-                            SELECT PAGE ARCHETYPE ({PAGE_ARCHETYPES.length})
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
-                            {PAGE_ARCHETYPES.map((arch) => {
-                              const isSelected = pageArchetype === arch.id;
-                              return (
-                                <button
-                                  key={arch.id}
-                                  type="button"
-                                  onClick={() => handleSelectArchetype(arch)}
-                                  style={{
-                                    padding: '12px 10px',
-                                    borderRadius: '8px',
-                                    background: isSelected ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                    color: isSelected ? '#fff' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    textAlign: 'center',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                >
-                                  <span style={{ fontSize: '22px' }}>{arch.icon}</span>
-                                  <span style={{ fontSize: '12px', fontWeight: isSelected ? 800 : 600 }}>{arch.name}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                              Framework
-                            </label>
-                            <select
-                              value={singleFramework}
-                              onChange={(e) => setSingleFramework(e.target.value)}
-                              style={{
-                                width: '100%',
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: '6px',
-                                padding: '7px 9px',
-                                color: 'var(--text-main)',
-                                fontSize: '12px',
-                                outline: 'none'
-                              }}
-                            >
-                              {SINGLE_PAGE_FRAMEWORKS.map(f => (
-                                <option key={f.id} value={f.id}>{f.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                              Brand / Product Name
-                            </label>
-                            <input
-                              type="text"
-                              value={brandName}
-                              onChange={(e) => setBrandName(e.target.value)}
-                              placeholder="e.g. NexusAuth (Optional)"
-                              style={{
-                                width: '100%',
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: '6px',
-                                padding: '7px 10px',
-                                color: 'var(--text-main)',
-                                fontSize: '12px',
-                                outline: 'none'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-PANEL 2: 18+ COLOR PALETTES & BACKDROP */}
-                    {activeTabSection === 'colors' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                              CURATED ACCENT PALETTES ({COLOR_THEMES.length})
-                            </label>
-                            <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>Select to apply</span>
-                          </div>
-
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                            gap: '8px',
-                            maxHeight: '340px',
-                            overflowY: 'auto',
-                            paddingRight: '4px'
-                          }}>
-                            {COLOR_THEMES.map((theme) => {
-                              const isSel = colorAccent === theme.id && !useCustomColor;
-                              return (
-                                <button
-                                  key={theme.id}
-                                  type="button"
-                                  onClick={() => { setColorAccent(theme.id); setUseCustomColor(false); }}
-                                  style={{
-                                    padding: '8px 10px',
-                                    borderRadius: '6px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                    color: isSel ? '#fff' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    fontSize: '11.5px',
-                                    fontWeight: isSel ? 700 : 500,
-                                    transition: 'all 0.12s ease'
-                                  }}
-                                >
-                                  <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: theme.preview, flexShrink: 0, boxShadow: isSel ? '0 0 8px rgba(236,72,153,0.5)' : 'none' }} />
-                                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{theme.name}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Custom Hex Color Picker */}
-                        <div style={{
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          background: 'rgba(255,255,255,0.02)',
-                          border: '1px solid var(--border-subtle)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '10px'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input
-                              type="color"
-                              value={customColor || '#ec4899'}
-                              onChange={(e) => { setCustomColor(e.target.value); setUseCustomColor(true); }}
-                              style={{ width: '30px', height: '30px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: 'transparent' }}
-                            />
-                            <div>
-                              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)' }}>Custom Hex Accent</div>
-                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Pick any custom color for your design system</div>
-                            </div>
-                          </div>
-
-                          <input
-                            type="text"
-                            value={customColor}
-                            onChange={(e) => { setCustomColor(e.target.value); setUseCustomColor(true); }}
-                            placeholder="#ec4899"
-                            style={{
-                              width: '100px',
-                              background: 'var(--bg-secondary)',
-                              border: `1px solid ${useCustomColor ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                              borderRadius: '6px',
-                              padding: '6px 10px',
-                              fontSize: '12px',
-                              fontFamily: 'monospace',
-                              color: 'var(--text-main)',
-                              outline: 'none'
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
-                            CANVAS BACKDROP TONE
-                          </label>
-                          <select
-                            value={bgTone}
-                            onChange={(e) => setBgTone(e.target.value)}
-                            style={{
-                              width: '100%',
-                              background: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              padding: '7px 10px',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              outline: 'none'
-                            }}
-                          >
-                            {BG_TONES.map(b => (
-                              <option key={b.id} value={b.id}>{b.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-PANEL 3: 10 NAVBAR ARCHITECTURES */}
-                    {activeTabSection === 'navbar' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                            NAVBAR LAYOUT PRESET ({NAVBAR_OPTIONS.length})
-                          </div>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                            gap: '8px',
-                            maxHeight: '340px',
-                            overflowY: 'auto',
-                            paddingRight: '4px'
-                          }}>
-                            {NAVBAR_OPTIONS.map((nav) => {
-                              const isSel = navbarStyle === nav.id;
-                              return (
-                                <button
-                                  key={nav.id}
-                                  type="button"
-                                  onClick={() => setNavbarStyle(nav.id)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    borderRadius: '6px',
-                                    textAlign: 'left',
-                                    background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                    color: isSel ? '#fff' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '3px',
-                                    transition: 'all 0.12s ease'
-                                  }}
-                                >
-                                  <div style={{ fontSize: '12px', fontWeight: isSel ? 800 : 600 }}>{nav.name}</div>
-                                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', lineHeight: 1.3 }}>{nav.desc}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-PANEL 4: 8 SIDEBAR ARCHITECTURES */}
-                    {activeTabSection === 'sidebar' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                            SIDEBAR LAYOUT PRESET ({SIDEBAR_OPTIONS.length})
-                          </div>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                            gap: '8px',
-                            maxHeight: '340px',
-                            overflowY: 'auto',
-                            paddingRight: '4px'
-                          }}>
-                            {SIDEBAR_OPTIONS.map((side) => {
-                              const isSel = sidebarStyle === side.id;
-                              return (
-                                <button
-                                  key={side.id}
-                                  type="button"
-                                  onClick={() => setSidebarStyle(side.id)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    borderRadius: '6px',
-                                    textAlign: 'left',
-                                    background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                    color: isSel ? '#fff' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '3px',
-                                    transition: 'all 0.12s ease'
-                                  }}
-                                >
-                                  <div style={{ fontSize: '12px', fontWeight: isSel ? 800 : 600 }}>{side.name}</div>
-                                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', lineHeight: 1.3 }}>{side.desc}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-PANEL 5: ANIMATIONS & VISUAL FX */}
-                    {activeTabSection === 'animations' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '18px' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                            BACKGROUND SHADER &amp; FX
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
-                            {BG_ANIMATIONS.map((anim) => {
-                              const isSel = animationStyle === anim.id;
-                              return (
-                                <button
-                                  key={anim.id}
-                                  type="button"
-                                  onClick={() => setAnimationStyle(anim.id)}
-                                  style={{
-                                    padding: '10px 12px',
-                                    borderRadius: '6px',
-                                    textAlign: 'left',
-                                    background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                    color: isSel ? '#fff' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '3px',
-                                    transition: 'all 0.12s ease'
-                                  }}
-                                >
-                                  <div style={{ fontSize: '12px', fontWeight: isSel ? 800 : 600 }}>{anim.name}</div>
-                                  <div style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>{anim.desc}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                            CARD &amp; BUTTON HOVER EFFECTS
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
-                            {HOVER_FX.map((h) => {
-                              const isSel = hoverFx === h.id;
-                              return (
-                                <button
-                                  key={h.id}
-                                  type="button"
-                                  onClick={() => setHoverFx(h.id)}
-                                  style={{
-                                    padding: '9px 12px',
-                                    borderRadius: '6px',
-                                    textAlign: 'left',
-                                    background: isSel ? 'rgba(236, 72, 153, 0.15)' : 'var(--bg-secondary)',
-                                    border: `1px solid ${isSel ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                    color: isSel ? '#fff' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    fontSize: '11.5px',
-                                    fontWeight: isSel ? 700 : 500,
-                                    transition: 'all 0.12s ease'
-                                  }}
-                                >
-                                  {h.name}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-PANEL 6: 12 MODULAR SECTIONS */}
-                    {activeTabSection === 'sections' && (
-                      <div style={{ marginBottom: '18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                            COMPONENT SECTIONS ({selectedSections.length}/{MODULAR_SECTIONS.length})
-                          </span>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={handleSelectAllSections}
-                              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
-                            >
-                              Select All
-                            </button>
-                            <span style={{ color: 'var(--border-subtle)' }}>|</span>
-                            <button
-                              type="button"
-                              onClick={handleResetSections}
-                              style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
-                            >
-                              Reset
-                            </button>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
-                          {MODULAR_SECTIONS.map((sec) => {
-                            const isChecked = selectedSections.includes(sec.id);
-                            return (
-                              <button
-                                key={sec.id}
-                                type="button"
-                                onClick={() => handleToggleSection(sec.id)}
-                                style={{
-                                  padding: '9px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '8px',
-                                  background: isChecked ? 'rgba(236, 72, 153, 0.12)' : 'var(--bg-secondary)',
-                                  border: `1px solid ${isChecked ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                                  color: isChecked ? '#fff' : 'var(--text-muted)',
-                                  transition: 'all 0.12s ease'
-                                }}
-                              >
-                                <span style={{
-                                  width: '15px',
-                                  height: '15px',
-                                  borderRadius: '4px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: isChecked ? 'var(--primary)' : 'transparent',
-                                  border: `1px solid ${isChecked ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
-                                  color: '#fff',
-                                  fontSize: '10px'
-                                }}>
-                                  {isChecked && '✓'}
-                                </span>
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sec.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* SUB-PANEL 7: STYLING & SHAPE */}
-                    {activeTabSection === 'styling' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '14px', marginBottom: '18px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                            Typography
-                          </label>
-                          <select
-                            value={typography}
-                            onChange={(e) => setTypography(e.target.value)}
-                            style={{
-                              width: '100%',
-                              background: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              padding: '8px 10px',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="modern-sans">Plus Jakarta Sans</option>
-                            <option value="inter">Inter (SaaS Standard)</option>
-                            <option value="tech-mono">JetBrains Mono (Hacker)</option>
-                            <option value="space-grotesk">Space Grotesk (Cyber)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                            Button Shape
-                          </label>
-                          <select
-                            value={buttonShape}
-                            onChange={(e) => setButtonShape(e.target.value)}
-                            style={{
-                              width: '100%',
-                              background: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              padding: '8px 10px',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="rounded-xl">Rounded-xl (Modern 12px)</option>
-                            <option value="pill">Pill (Full 9999px)</option>
-                            <option value="soft">Soft Minimal (6px)</option>
-                            <option value="sharp">Sharp Geometric (0px)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                            Glass Intensity
-                          </label>
-                          <select
-                            value={glassIntensity}
-                            onChange={(e) => setGlassIntensity(e.target.value)}
-                            style={{
-                              width: '100%',
-                              background: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              padding: '8px 10px',
-                              color: 'var(--text-main)',
-                              fontSize: '12px',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="deep-frosted">Deep Frosted (24px Blur)</option>
-                            <option value="subtle-tint">Subtle Tint (8px Blur)</option>
-                            <option value="solid-dark">Solid Opaque (0px Blur)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            Theme Style
-                          </label>
-                          <select
-                            value={singleFramework}
-                            onChange={(e) => setSingleFramework(e.target.value)}
-                            style={{
-                              width: '100%',
-                              background: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              padding: '7px 9px',
-                              color: 'var(--text-main)',
-                              fontSize: '11.5px',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="react">React 19 Component</option>
-                            <option value="html">Standalone HTML5</option>
-                            <option value="vue">Vue 3 SFC</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* FULL PROJECT CONFIGURATION PANEL */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                          Tech Stack
-                        </label>
-                        <select
-                          value={stack}
-                          onChange={(e) => setStack(e.target.value)}
-                          style={{
-                            width: '100%',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: '6px',
-                            padding: '7px 9px',
-                            color: 'var(--text-main)',
-                            fontSize: '12px',
-                            outline: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {STACKS.map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                          Database
-                        </label>
-                        <select
-                          value={database}
-                          onChange={(e) => setDatabase(e.target.value)}
-                          style={{
-                            width: '100%',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: '6px',
-                            padding: '7px 9px',
-                            color: 'var(--text-main)',
-                            fontSize: '12px',
-                            outline: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <option value="postgres">PostgreSQL</option>
-                          <option value="mysql">MySQL 8.0</option>
-                          <option value="sqlite">SQLite 3</option>
-                          <option value="mongodb">MongoDB</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '5px' }}>
-                        Repository / Service Name
-                      </label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Project name (e.g. auth-gateway)"
-                        style={{
-                          width: '100%',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: '6px',
-                          padding: '7px 10px',
-                          color: 'var(--text-main)',
-                          fontSize: '12px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Primary Action Bar */}
+                {/* Omnibar Action Controls */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '16px',
-                  paddingTop: '20px',
-                  borderTop: '1px solid var(--border-subtle)',
-                  flexWrap: 'wrap'
+                  paddingTop: '10px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                  flexWrap: 'wrap',
+                  gap: '12px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: 'var(--accent-pink)', fontWeight: 700 }}>
-                      <Sparkles size={14} /> Full Customizer
-                    </span>
-                    <span>&bull;</span>
-                    <span>Interactive canvas renders in full width down below 👇</span>
+                  {/* Left Parameter Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {genMode === 'single' ? (
+                      <>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          padding: '4px 10px'
+                        }}>
+                          <Code2 size={13} color="#38bdf8" />
+                          <select
+                            value={singleFramework}
+                            onChange={(e) => setSingleFramework(e.target.value)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#e2e8f0',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              outline: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {SINGLE_PAGE_FRAMEWORKS.map(f => (
+                              <option key={f.id} value={f.id} style={{ background: '#0f172a', color: '#ffffff' }}>{f.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          padding: '4px 10px'
+                        }}>
+                          <Tag size={12} color="#94a3b8" />
+                          <input
+                            type="text"
+                            value={brandName}
+                            onChange={(e) => setBrandName(e.target.value)}
+                            placeholder="Brand / Product Name (Optional)"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#e2e8f0',
+                              fontSize: '12px',
+                              outline: 'none',
+                              width: '180px'
+                            }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          padding: '4px 10px'
+                        }}>
+                          <FolderTree size={13} color="#38bdf8" />
+                          <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Service Name (e.g. auth-gateway)"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#e2e8f0',
+                              fontSize: '12px',
+                              outline: 'none',
+                              width: '180px',
+                              fontFamily: 'var(--font-mono)'
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {/* Right: Primary Generate Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {singlePageResult && genMode === 'single' && (
                       <button
                         type="button"
                         onClick={() => canvasRef.current?.scrollIntoView({ behavior: 'smooth' })}
                         style={{
-                          padding: '11px 18px',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-sm)',
-                          color: 'var(--text-main)',
-                          fontSize: '13px',
+                          padding: '9px 16px',
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          borderRadius: '8px',
+                          color: '#e2e8f0',
+                          fontSize: '12.5px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
@@ -1403,8 +911,8 @@ export default function ProjectGenerator() {
                           gap: '6px'
                         }}
                       >
-                        <Eye size={15} color="var(--primary)" />
-                        <span>Jump to Preview Canvas 👇</span>
+                        <Eye size={13} color="#38bdf8" />
+                        <span>View Canvas</span>
                       </button>
                     )}
 
@@ -1412,25 +920,42 @@ export default function ProjectGenerator() {
                       type="button"
                       onClick={genMode === 'single' ? handleGenerateSinglePage : handleGenerateFullProject}
                       disabled={generating || !prompt.trim()}
-                      className="btn-primary"
                       style={{
-                        padding: '13px 32px',
-                        fontSize: '14.5px',
+                        padding: '10px 22px',
+                        borderRadius: '8px',
+                        background: generating 
+                          ? 'rgba(99, 102, 241, 0.4)' 
+                          : 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontSize: '13px',
                         fontWeight: 800,
-                        borderRadius: 'var(--radius-sm)',
-                        boxShadow: '0 4px 20px rgba(236,72,153,0.35)'
+                        cursor: (generating || !prompt.trim()) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 18px rgba(99, 102, 241, 0.4)',
+                        transition: 'all 0.15s ease'
                       }}
                     >
                       {generating ? (
                         <>
-                          <RefreshCw size={16} className="animate-spin" />
-                          <span>{genStatusText || 'Compiling UI architecture...'}</span>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>{genStatusText || 'Compiling Architecture...'}</span>
                         </>
                       ) : (
                         <>
-                          <Sparkles size={16} />
-                          <span>{genMode === 'single' ? 'Generate Single Page UI' : 'Scaffold Full Project Repository'}</span>
-                          <ArrowRight size={16} />
+                          <Sparkles size={14} />
+                          <span>{genMode === 'single' ? 'Generate Single Page UI' : 'Scaffold Full Project'}</span>
+                          <span style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            fontSize: '10px',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            marginLeft: '2px'
+                          }}>
+                            Ctrl+↵
+                          </span>
                         </>
                       )}
                     </button>
@@ -1438,313 +963,1080 @@ export default function ProjectGenerator() {
                 </div>
               </div>
 
-              {/* BUILT PAGES & PROJECTS HORIZONTAL HISTORY BAR */}
-              {buildHistory.length > 0 && (
-                <div className="glass-card" style={{
-                  padding: '14px 20px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-light)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  overflowX: 'auto'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', flexShrink: 0 }}>
-                    <History size={14} color="var(--primary)" />
-                    <span>Recent Builds ({buildHistory.length}):</span>
-                  </div>
+              {/* Quick Inspiration Chips */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', padding: '0 2px' }}>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
+                  Suggestions:
+                </span>
+                {PROMPT_SUGGESTIONS.map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setPrompt(item.prompt);
+                      setPageArchetype(item.archetype);
+                      const arch = PAGE_ARCHETYPES.find(a => a.id === item.archetype);
+                      if (arch?.defaultSections) setSelectedSections(arch.defaultSections);
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '20px',
+                      padding: '4px 12px',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.12s ease'
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
 
-                  <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '2px 0' }}>
-                    {buildHistory.map((item) => {
-                      const isSelected = activeBuildId === item.id;
+              {/* 2. CUSTOMIZER TABS & DEEP CONTROLS */}
+              {genMode === 'single' ? (
+                <div>
+                  {/* Clean Tab Pills Navigation */}
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    background: 'rgba(15, 23, 42, 0.65)',
+                    padding: '4px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    marginBottom: '18px',
+                    gap: '4px'
+                  }}>
+                    {[
+                      { id: 'archetype', label: 'Archetype Presets', count: '8', icon: <Layout size={13} /> },
+                      { id: 'colors', label: 'Palette & Theme', count: '18+', icon: <Palette size={13} /> },
+                      { id: 'navbar', label: 'Navbar Style', count: '10', icon: <Tv size={13} /> },
+                      { id: 'sidebar', label: 'Sidebar Layout', count: '8', icon: <Layers size={13} /> },
+                      { id: 'animations', label: 'Visual FX & Motion', count: '6', icon: <Zap size={13} /> },
+                      { id: 'sections', label: 'Modular Blocks', count: `${selectedSections.length}/12`, icon: <Box size={13} /> },
+                      { id: 'styling', label: 'Typography & Shape', icon: <Sliders size={13} /> }
+                    ].map((tab) => {
+                      const isAct = activeTabSection === tab.id;
                       return (
                         <button
-                          key={item.id}
+                          key={tab.id}
                           type="button"
-                          onClick={() => handleSelectBuild(item)}
+                          onClick={() => setActiveTabSection(tab.id)}
                           style={{
-                            padding: '6px 12px',
-                            borderRadius: '8px',
-                            background: isSelected ? 'var(--primary)' : 'var(--bg-secondary)',
-                            border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-subtle)'}`,
-                            color: isSelected ? '#ffffff' : 'var(--text-muted)',
-                            cursor: 'pointer',
+                            flex: '1 1 auto',
+                            padding: '8px 12px',
+                            borderRadius: '7px',
                             fontSize: '12px',
                             fontWeight: 700,
+                            cursor: 'pointer',
+                            border: isAct ? '1px solid rgba(99, 102, 241, 0.45)' : '1px solid transparent',
+                            background: isAct ? 'rgba(99, 102, 241, 0.16)' : 'transparent',
+                            color: isAct ? '#ffffff' : '#94a3b8',
                             display: 'flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: '6px',
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            transition: 'all 0.15s ease'
+                            transition: 'all 0.12s ease'
                           }}
                         >
-                          {item.mode === 'single' ? <Layout size={12} /> : <Box size={12} />}
-                          <span>{item.title}</span>
-                          <span style={{ fontSize: '10.5px', opacity: 0.75 }}>&bull; {item.tag}</span>
+                          <span style={{ color: isAct ? '#818cf8' : '#64748b' }}>{tab.icon}</span>
+                          <span>{tab.label}</span>
+                          {tab.count && (
+                            <span style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              background: isAct ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255,255,255,0.06)',
+                              color: isAct ? '#a5b4fc' : '#64748b',
+                              padding: '1px 5px',
+                              borderRadius: '10px'
+                            }}>
+                              {tab.count}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
+                  </div>
+
+                  {/* SUB-PANEL 1: ARCHETYPES (Balanced 4x2 Responsive Grid) */}
+                  {activeTabSection === 'archetype' && (
+                    <div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                        gap: '12px'
+                      }}>
+                        {PAGE_ARCHETYPES.map((arch) => {
+                          const isSelected = pageArchetype === arch.id;
+                          return (
+                            <button
+                              key={arch.id}
+                              type="button"
+                              onClick={() => handleSelectArchetype(arch)}
+                              style={{
+                                position: 'relative',
+                                padding: '14px 16px',
+                                borderRadius: '12px',
+                                background: isSelected 
+                                  ? `linear-gradient(135deg, ${arch.accentBg} 0%, rgba(15, 23, 42, 0.6) 100%)` 
+                                  : 'rgba(15, 23, 42, 0.4)',
+                                border: `1px solid ${isSelected ? arch.accentColor : 'rgba(255, 255, 255, 0.08)'}`,
+                                boxShadow: isSelected 
+                                  ? `0 0 20px ${arch.accentBg}, inset 0 0 12px ${arch.accentBg}` 
+                                  : 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                gap: '10px',
+                                textAlign: 'left',
+                                transition: 'all 0.18s ease',
+                                backdropFilter: 'blur(12px)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <div style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '9px',
+                                  background: arch.accentBg,
+                                  border: `1px solid ${arch.accentBorder}`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: arch.accentColor
+                                }}>
+                                  {renderArchetypeIcon(arch.iconKey, 18, arch.accentColor)}
+                                </div>
+                                {isSelected ? (
+                                  <span style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 800,
+                                    color: arch.accentColor,
+                                    background: arch.accentBg,
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    border: `1px solid ${arch.accentBorder}`
+                                  }}>
+                                    <Check size={11} /> Selected
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <div>
+                                <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#ffffff', marginBottom: '3px' }}>
+                                  {arch.name}
+                                </div>
+                                <div style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>
+                                  {arch.desc}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 2: 18+ COLOR PALETTES & BACKDROP */}
+                  {activeTabSection === 'colors' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            CURATED ACCENT PALETTES ({COLOR_THEMES.length})
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>Select to apply instantly</span>
+                        </div>
+
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                          gap: '8px',
+                          maxHeight: '320px',
+                          overflowY: 'auto',
+                          paddingRight: '4px'
+                        }}>
+                          {COLOR_THEMES.map((theme) => {
+                            const isSel = colorAccent === theme.id && !useCustomColor;
+                            return (
+                              <button
+                                key={theme.id}
+                                type="button"
+                                onClick={() => { setColorAccent(theme.id); setUseCustomColor(false); }}
+                                style={{
+                                  padding: '10px 12px',
+                                  borderRadius: '8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  background: isSel ? 'rgba(99, 102, 241, 0.16)' : 'rgba(15, 23, 42, 0.5)',
+                                  border: `1px solid ${isSel ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                                  color: isSel ? '#ffffff' : '#94a3b8',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  fontWeight: isSel ? 800 : 500,
+                                  transition: 'all 0.12s ease'
+                                }}
+                              >
+                                <span style={{
+                                  width: '16px',
+                                  height: '16px',
+                                  borderRadius: '50%',
+                                  background: theme.preview,
+                                  flexShrink: 0,
+                                  boxShadow: isSel ? '0 0 10px rgba(99, 102, 241, 0.6)' : 'none'
+                                }} />
+                                <div style={{ textAlign: 'left', overflow: 'hidden' }}>
+                                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{theme.name}</div>
+                                  <div style={{ fontSize: '10px', color: '#64748b' }}>{theme.group}</div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Custom Hex Color Picker */}
+                      <div style={{
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        background: 'rgba(15, 23, 42, 0.5)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        flexWrap: 'wrap'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="color"
+                            value={customColor || '#ec4899'}
+                            onChange={(e) => { setCustomColor(e.target.value); setUseCustomColor(true); }}
+                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'transparent' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 800, color: '#ffffff' }}>Custom Hex Accent</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>Specify any brand hex code for buttons &amp; badges</div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <input
+                            type="text"
+                            value={customColor}
+                            onChange={(e) => { setCustomColor(e.target.value); setUseCustomColor(true); }}
+                            placeholder="#ec4899"
+                            style={{
+                              width: '100px',
+                              background: 'rgba(0,0,0,0.4)',
+                              border: `1px solid ${useCustomColor ? '#818cf8' : 'rgba(255, 255, 255, 0.1)'}`,
+                              borderRadius: '6px',
+                              padding: '7px 10px',
+                              fontSize: '12px',
+                              fontFamily: 'var(--font-mono)',
+                              color: '#ffffff',
+                              outline: 'none'
+                            }}
+                          />
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>Backdrop:</span>
+                            <select
+                              value={bgTone}
+                              onChange={(e) => setBgTone(e.target.value)}
+                              style={{
+                                background: 'rgba(0,0,0,0.4)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                                color: '#ffffff',
+                                fontSize: '12px',
+                                outline: 'none'
+                              }}
+                            >
+                              {BG_TONES.map(b => (
+                                <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 3: 10 NAVBAR ARCHITECTURES */}
+                  {activeTabSection === 'navbar' && (
+                    <div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                        gap: '10px'
+                      }}>
+                        {NAVBAR_OPTIONS.map((nav) => {
+                          const isSel = navbarStyle === nav.id;
+                          return (
+                            <button
+                              key={nav.id}
+                              type="button"
+                              onClick={() => setNavbarStyle(nav.id)}
+                              style={{
+                                padding: '12px 14px',
+                                borderRadius: '10px',
+                                textAlign: 'left',
+                                background: isSel ? 'rgba(99, 102, 241, 0.16)' : 'rgba(15, 23, 42, 0.5)',
+                                border: `1px solid ${isSel ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                                color: isSel ? '#ffffff' : '#94a3b8',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '4px',
+                                transition: 'all 0.12s ease'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <span style={{ fontSize: '12.5px', fontWeight: isSel ? 800 : 700, color: isSel ? '#ffffff' : '#cbd5e1' }}>
+                                  {nav.name}
+                                </span>
+                                {isSel && <Check size={13} color="#818cf8" />}
+                              </div>
+                              <span style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.35 }}>
+                                {nav.desc}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 4: 8 SIDEBAR ARCHITECTURES */}
+                  {activeTabSection === 'sidebar' && (
+                    <div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                        gap: '10px'
+                      }}>
+                        {SIDEBAR_OPTIONS.map((side) => {
+                          const isSel = sidebarStyle === side.id;
+                          return (
+                            <button
+                              key={side.id}
+                              type="button"
+                              onClick={() => setSidebarStyle(side.id)}
+                              style={{
+                                padding: '12px 14px',
+                                borderRadius: '10px',
+                                textAlign: 'left',
+                                background: isSel ? 'rgba(99, 102, 241, 0.16)' : 'rgba(15, 23, 42, 0.5)',
+                                border: `1px solid ${isSel ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                                color: isSel ? '#ffffff' : '#94a3b8',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '4px',
+                                transition: 'all 0.12s ease'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <span style={{ fontSize: '12.5px', fontWeight: isSel ? 800 : 700, color: isSel ? '#ffffff' : '#cbd5e1' }}>
+                                  {side.name}
+                                </span>
+                                {isSel && <Check size={13} color="#818cf8" />}
+                              </div>
+                              <span style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.35 }}>
+                                {side.desc}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 5: ANIMATIONS & VISUAL FX */}
+                  {activeTabSection === 'animations' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          BACKGROUND SHADER &amp; AMBIENCE
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+                          {BG_ANIMATIONS.map((anim) => {
+                            const isSel = animationStyle === anim.id;
+                            return (
+                              <button
+                                key={anim.id}
+                                type="button"
+                                onClick={() => setAnimationStyle(anim.id)}
+                                style={{
+                                  padding: '12px 14px',
+                                  borderRadius: '10px',
+                                  textAlign: 'left',
+                                  background: isSel ? 'rgba(99, 102, 241, 0.16)' : 'rgba(15, 23, 42, 0.5)',
+                                  border: `1px solid ${isSel ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                                  color: isSel ? '#ffffff' : '#94a3b8',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '4px',
+                                  transition: 'all 0.12s ease'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                  <span style={{ fontSize: '12.5px', fontWeight: isSel ? 800 : 700, color: isSel ? '#ffffff' : '#cbd5e1' }}>
+                                    {anim.name}
+                                  </span>
+                                  {isSel && <Check size={13} color="#818cf8" />}
+                                </div>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>{anim.desc}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          CARD &amp; BUTTON HOVER EFFECTS
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+                          {HOVER_FX.map((h) => {
+                            const isSel = hoverFx === h.id;
+                            return (
+                              <button
+                                key={h.id}
+                                type="button"
+                                onClick={() => setHoverFx(h.id)}
+                                style={{
+                                  padding: '10px 14px',
+                                  borderRadius: '8px',
+                                  textAlign: 'left',
+                                  background: isSel ? 'rgba(99, 102, 241, 0.16)' : 'rgba(15, 23, 42, 0.5)',
+                                  border: `1px solid ${isSel ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                                  color: isSel ? '#ffffff' : '#94a3b8',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  fontWeight: isSel ? 800 : 600,
+                                  transition: 'all 0.12s ease',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between'
+                                }}
+                              >
+                                <span>{h.name}</span>
+                                {isSel && <Check size={13} color="#818cf8" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 6: 12 MODULAR SECTIONS */}
+                  {activeTabSection === 'sections' && (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          ACTIVE COMPONENT BLOCKS ({selectedSections.length}/{MODULAR_SECTIONS.length})
+                        </span>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button
+                            type="button"
+                            onClick={handleSelectAllSections}
+                            style={{ background: 'none', border: 'none', color: '#818cf8', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Select All
+                          </button>
+                          <span style={{ color: 'rgba(255,255,255,0.15)' }}>|</span>
+                          <button
+                            type="button"
+                            onClick={handleResetSections}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Reset to Archetype Defaults
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                        {MODULAR_SECTIONS.map((sec) => {
+                          const isChecked = selectedSections.includes(sec.id);
+                          return (
+                            <button
+                              key={sec.id}
+                              type="button"
+                              onClick={() => handleToggleSection(sec.id)}
+                              style={{
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                background: isChecked ? 'rgba(99, 102, 241, 0.14)' : 'rgba(15, 23, 42, 0.5)',
+                                border: `1px solid ${isChecked ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                                color: isChecked ? '#ffffff' : '#94a3b8',
+                                transition: 'all 0.12s ease'
+                              }}
+                            >
+                              <span style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: isChecked ? '#6366f1' : 'transparent',
+                                border: `1px solid ${isChecked ? '#6366f1' : 'rgba(255,255,255,0.2)'}`,
+                                color: '#ffffff',
+                                fontSize: '10px'
+                              }}>
+                                {isChecked && '✓'}
+                              </span>
+                              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sec.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUB-PANEL 7: STYLING & SHAPE */}
+                  {activeTabSection === 'styling' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                      <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+                          TYPOGRAPHY FAMILY
+                        </label>
+                        <select
+                          value={typography}
+                          onChange={(e) => setTypography(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0,0,0,0.4)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            color: '#ffffff',
+                            fontSize: '12.5px',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="modern-sans" style={{ background: '#0f172a' }}>Plus Jakarta Sans (Modern Clean)</option>
+                          <option value="inter" style={{ background: '#0f172a' }}>Inter (SaaS Standard)</option>
+                          <option value="tech-mono" style={{ background: '#0f172a' }}>JetBrains Mono (Developer Pro)</option>
+                          <option value="space-grotesk" style={{ background: '#0f172a' }}>Space Grotesk (Cyber Futuristic)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+                          BUTTON GEOMETRY
+                        </label>
+                        <select
+                          value={buttonShape}
+                          onChange={(e) => setButtonShape(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0,0,0,0.4)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            color: '#ffffff',
+                            fontSize: '12.5px',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="rounded-xl" style={{ background: '#0f172a' }}>Rounded-xl (Modern 12px)</option>
+                          <option value="pill" style={{ background: '#0f172a' }}>Pill (Full 9999px Capsule)</option>
+                          <option value="soft" style={{ background: '#0f172a' }}>Soft Minimal (6px Rounded)</option>
+                          <option value="sharp" style={{ background: '#0f172a' }}>Sharp Geometric (0px)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
+                          GLASS INTENSITY
+                        </label>
+                        <select
+                          value={glassIntensity}
+                          onChange={(e) => setGlassIntensity(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'rgba(0,0,0,0.4)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            color: '#ffffff',
+                            fontSize: '12.5px',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="deep-frosted" style={{ background: '#0f172a' }}>Deep Frosted Blur (24px + Border Aura)</option>
+                          <option value="minimal-glass" style={{ background: '#0f172a' }}>Minimal Subtle Blur (8px Glass)</option>
+                          <option value="solid-dark" style={{ background: '#0f172a' }}>Solid Opaque Dark (Zero Transparency)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* FULL PROJECT REPOSITORY CONTROLS */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    SELECT FULL-STACK BACKBONE ({STACKS.length} Supported Stacks)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+                    {STACKS.map((s) => {
+                      const isSel = stack === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setStack(s.id)}
+                          style={{
+                            padding: '14px 16px',
+                            borderRadius: '12px',
+                            textAlign: 'left',
+                            background: isSel ? 'rgba(236, 72, 153, 0.16)' : 'rgba(15, 23, 42, 0.5)',
+                            border: `1px solid ${isSel ? '#ec4899' : 'rgba(255, 255, 255, 0.08)'}`,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#ffffff' }}>{s.name}</span>
+                            <span style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              background: isSel ? 'rgba(236, 72, 153, 0.3)' : 'rgba(255,255,255,0.06)',
+                              color: isSel ? '#f472b6' : '#94a3b8',
+                              padding: '2px 8px',
+                              borderRadius: '12px'
+                            }}>
+                              {s.badge}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.4 }}>{s.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Database & Extra Options */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                    gap: '14px',
+                    padding: '16px',
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '6px', textTransform: 'uppercase' }}>
+                        DATABASE ENGINE
+                      </label>
+                      <select
+                        value={database}
+                        onChange={(e) => setDatabase(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(0,0,0,0.4)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          color: '#ffffff',
+                          fontSize: '12.5px',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="postgres" style={{ background: '#0f172a' }}>PostgreSQL (Production Default)</option>
+                        <option value="mysql" style={{ background: '#0f172a' }}>MySQL 8.0</option>
+                        <option value="sqlite" style={{ background: '#0f172a' }}>SQLite 3 (Zero Setup Embedded)</option>
+                        <option value="mongodb" style={{ background: '#0f172a' }}>MongoDB (NoSQL Document)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
+                        DEVOPS MANIFESTS
+                      </span>
+                      <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginTop: '4px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#ffffff', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={includeDocker}
+                            onChange={(e) => setIncludeDocker(e.target.checked)}
+                          />
+                          <span>Production Dockerfile</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#ffffff', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={includeCi}
+                            onChange={(e) => setIncludeCi(e.target.checked)}
+                          />
+                          <span>GitHub Actions CI/CD</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
             </div>
 
-            {/* ======================================================== */}
-            {/* DOWN SECTION: The Built Canvas / Live View / Code Studio */}
-            {/* ======================================================== */}
+            {/* BUILT PAGES & PROJECTS HORIZONTAL HISTORY BAR */}
+            {buildHistory.length > 0 && (
+              <div style={{
+                padding: '12px 18px',
+                borderRadius: '12px',
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                overflowX: 'auto',
+                backdropFilter: 'blur(12px)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#ffffff', flexShrink: 0 }}>
+                  <History size={14} color="#818cf8" />
+                  <span>Recent Builds ({buildHistory.length}):</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '2px 0' }}>
+                  {buildHistory.map((item) => {
+                    const isSelected = activeBuildId === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectBuild(item)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          background: isSelected ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${isSelected ? '#818cf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                          color: isSelected ? '#ffffff' : '#94a3b8',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {item.mode === 'single' ? <Layout size={12} /> : <Box size={12} />}
+                        <span>{item.title}</span>
+                        <span style={{ fontSize: '10.5px', opacity: 0.75 }}>&bull; {item.tag}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* INTERACTIVE PREVIEW CANVAS & CODE VIEWER */}
             <div ref={canvasRef} style={{ width: '100%', scrollMarginTop: '80px' }}>
-              <div className="glass-card" style={{
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-light)',
+              <div style={{
+                borderRadius: '16px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 background: '#070912',
                 overflow: 'hidden',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.65)'
               }}>
 
-                {/* Canvas Top Bar */}
+                {/* Canvas Browser Chrome Bar */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 18px',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  background: 'rgba(15, 23, 42, 0.65)',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'rgba(15, 23, 42, 0.75)',
                   flexWrap: 'wrap',
-                  gap: '10px'
+                  gap: '12px'
                 }}>
-                  {/* Left: Window Chrome & Title */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* Left: Window Controls & Simulated Browser Bar */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#f43f5e' }} />
-                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#f59e0b' }} />
-                      <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#10b981' }} />
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f43f5e' }} />
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
                     </div>
 
-                    <div style={{ height: '14px', width: '1px', background: 'var(--border-subtle)', margin: '0 2px' }} />
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                      <span className="badge badge-medium" style={{ fontSize: '9.5px', padding: '2px 6px' }}>
-                        {genMode === 'single' ? pageArchetype.toUpperCase() : 'REPO'}
-                      </span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
-                        {genMode === 'single' ? (singlePageResult?.title || 'Interactive Canvas Studio') : (name || 'Project Scaffold')}
-                      </span>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'rgba(0,0,0,0.4)',
+                      padding: '4px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      fontSize: '12px',
+                      color: '#94a3b8',
+                      fontFamily: 'var(--font-mono)'
+                    }}>
+                      <Lock size={11} color="#34d399" />
+                      <span>https://studio.codelens.ai/preview/{genMode === 'single' ? pageArchetype : name}</span>
                     </div>
                   </div>
 
-                  {/* Right Actions & Viewport Controls (Shown when result is available) */}
-                  {singlePageResult && genMode === 'single' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      
-                      {/* Toggle Live Preview vs Source Code */}
-                      <div style={{
-                        display: 'flex',
-                        background: 'var(--bg-secondary)',
-                        padding: '2px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--border-subtle)'
-                      }}>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewTab('preview')}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            background: previewTab === 'preview' ? 'var(--primary)' : 'transparent',
-                            color: previewTab === 'preview' ? '#fff' : 'var(--text-muted)',
-                            border: 'none',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <Eye size={12} /> Live Preview
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewTab('code')}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            background: previewTab === 'code' ? 'var(--primary)' : 'transparent',
-                            color: previewTab === 'code' ? '#fff' : 'var(--text-muted)',
-                            border: 'none',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <Code2 size={12} /> Source Code
-                        </button>
-                      </div>
-
-                      {/* Viewport switchers in Live Preview mode */}
-                      {previewTab === 'preview' && (
-                        <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-subtle)', padding: '2px' }}>
+                  {/* Right Actions & Viewport Controls */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {singlePageResult && genMode === 'single' && (
+                      <>
+                        {/* Toggle Live Preview vs Source Code */}
+                        <div style={{
+                          display: 'flex',
+                          background: 'rgba(0,0,0,0.4)',
+                          padding: '2px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.08)'
+                        }}>
                           <button
                             type="button"
-                            onClick={() => setViewportMode('desktop')}
-                            title="Desktop (100%)"
+                            onClick={() => setPreviewTab('preview')}
                             style={{
-                              padding: '4px 7px',
-                              background: viewportMode === 'desktop' ? 'var(--bg-surface)' : 'transparent',
-                              color: viewportMode === 'desktop' ? 'var(--primary)' : 'var(--text-muted)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer'
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              background: previewTab === 'preview' ? 'rgba(99, 102, 241, 0.3)' : 'transparent',
+                              color: previewTab === 'preview' ? '#ffffff' : '#94a3b8',
+                              border: previewTab === 'preview' ? '1px solid rgba(99, 102, 241, 0.5)' : 'none',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
                             }}
                           >
-                            <Monitor size={13} />
+                            <Eye size={13} />
+                            <span>Preview</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => setViewportMode('tablet')}
-                            title="Tablet (768px)"
+                            onClick={() => setPreviewTab('code')}
                             style={{
-                              padding: '4px 7px',
-                              background: viewportMode === 'tablet' ? 'var(--bg-surface)' : 'transparent',
-                              color: viewportMode === 'tablet' ? 'var(--primary)' : 'var(--text-muted)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer'
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              background: previewTab === 'code' ? 'rgba(99, 102, 241, 0.3)' : 'transparent',
+                              color: previewTab === 'code' ? '#ffffff' : '#94a3b8',
+                              border: previewTab === 'code' ? '1px solid rgba(99, 102, 241, 0.5)' : 'none',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
                             }}
                           >
-                            <Tablet size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setViewportMode('mobile')}
-                            title="Mobile (375px)"
-                            style={{
-                              padding: '4px 7px',
-                              background: viewportMode === 'mobile' ? 'var(--bg-surface)' : 'transparent',
-                              color: viewportMode === 'mobile' ? 'var(--primary)' : 'var(--text-muted)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Smartphone size={13} />
+                            <Code2 size={13} />
+                            <span>Source</span>
                           </button>
                         </div>
-                      )}
 
-                      {/* Open In New Tab Button */}
-                      <button
-                        type="button"
-                        onClick={handleOpenInNewWindow}
-                        title="Open full page in new browser window"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          background: 'var(--bg-surface)',
-                          border: '1px solid var(--border-light)',
-                          color: 'var(--text-muted)',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <ExternalLink size={12} />
-                        <span>Pop Out</span>
-                      </button>
+                        {/* Viewport switchers in Live Preview mode */}
+                        {previewTab === 'preview' && (
+                          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.4)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '2px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setViewportMode('desktop')}
+                              title="Desktop (100%)"
+                              style={{
+                                padding: '5px 9px',
+                                background: viewportMode === 'desktop' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                                color: viewportMode === 'desktop' ? '#818cf8' : '#94a3b8',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Monitor size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setViewportMode('tablet')}
+                              title="Tablet (768px)"
+                              style={{
+                                padding: '5px 9px',
+                                background: viewportMode === 'tablet' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                                color: viewportMode === 'tablet' ? '#818cf8' : '#94a3b8',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Tablet size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setViewportMode('mobile')}
+                              title="Mobile (375px)"
+                              style={{
+                                padding: '5px 9px',
+                                background: viewportMode === 'mobile' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                                color: viewportMode === 'mobile' ? '#818cf8' : '#94a3b8',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Smartphone size={14} />
+                            </button>
+                          </div>
+                        )}
 
-                      {/* Copy Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCode(singlePageResult?.code || singlePageResult?.preview_html)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          background: 'var(--bg-surface)',
-                          border: '1px solid var(--border-light)',
-                          color: 'var(--text-main)',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {copied ? <CheckCheck size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
-                        <span>{copied ? 'Copied' : 'Copy'}</span>
-                      </button>
+                        {/* Open In New Tab Button */}
+                        <button
+                          type="button"
+                          onClick={handleOpenInNewWindow}
+                          title="Open full page in new window"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <ExternalLink size={12} />
+                          <span>Fullscreen</span>
+                        </button>
 
-                      {/* Download Button */}
-                      <button
-                        type="button"
-                        onClick={handleDownloadSinglePage}
-                        className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '11.5px', borderRadius: '6px' }}
-                      >
-                        <Download size={12} />
-                        <span>{downloadSuccess ? 'Downloaded!' : 'Download File'}</span>
-                      </button>
-                    </div>
-                  )}
+                        {/* Copy Code */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(singlePageResult.code || singlePageResult.preview_html)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {copied ? <CheckCheck size={12} color="#34d399" /> : <Copy size={12} />}
+                          <span>{copied ? 'Copied' : 'Copy'}</span>
+                        </button>
 
-                  {/* Project Mode Actions */}
-                  {genMode === 'project' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCode(projectFiles[activeFile])}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          background: 'var(--bg-surface)',
-                          border: '1px solid var(--border-light)',
-                          color: 'var(--text-main)',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {copied ? <CheckCheck size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
-                        <span>{copied ? 'Copied' : 'Copy File'}</span>
-                      </button>
+                        {/* Download File */}
+                        <button
+                          type="button"
+                          onClick={handleDownloadSinglePage}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Download size={12} />
+                          <span>{downloadSuccess ? 'Downloaded!' : 'Export File'}</span>
+                        </button>
+                      </>
+                    )}
 
-                      <button
-                        type="button"
-                        onClick={handleDownloadZip}
-                        disabled={generating}
-                        className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '11.5px', borderRadius: '6px' }}
-                      >
-                        <Download size={12} />
-                        <span>{downloadSuccess ? 'Downloaded .ZIP!' : 'Download .ZIP'}</span>
-                      </button>
-                    </div>
-                  )}
+                    {genMode === 'project' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(projectFiles[activeFile])}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {copied ? <CheckCheck size={12} color="#34d399" /> : <Copy size={12} />}
+                          <span>{copied ? 'Copied' : 'Copy File'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDownloadZip}
+                          disabled={generating}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 14px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '11.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Download size={12} />
+                          <span>{downloadSuccess ? 'Downloaded ZIP!' : 'Download .ZIP'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Canvas Main Body */}
                 {genMode === 'single' ? (
-                  /* SINGLE PAGE CANVAS */
                   singlePageResult ? (
                     previewTab === 'preview' ? (
                       <div style={{
                         display: 'flex',
                         justifyContent: 'center',
                         background: '#04060d',
-                        padding: '12px 0',
-                        minHeight: '680px',
+                        padding: '16px 0',
+                        minHeight: '700px',
                         overflowX: 'auto'
                       }}>
                         <iframe
@@ -1753,25 +2045,25 @@ export default function ProjectGenerator() {
                           style={{
                             width: viewportMode === 'mobile' ? '375px' : (viewportMode === 'tablet' ? '768px' : '100%'),
                             maxWidth: '100%',
-                            height: '680px',
-                            borderRadius: viewportMode === 'desktop' ? '0' : '8px',
+                            height: '700px',
+                            borderRadius: viewportMode === 'desktop' ? '0' : '10px',
                             border: viewportMode === 'desktop' ? 'none' : '1px solid rgba(255,255,255,0.15)',
                             boxShadow: viewportMode === 'desktop' ? 'none' : '0 20px 50px rgba(0,0,0,0.8)',
                             background: '#070913',
-                            transition: 'width 0.3s ease'
+                            transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
                           }}
                           sandbox="allow-scripts"
                         />
                       </div>
                     ) : (
                       <pre style={{
-                        background: 'var(--bg-code)',
-                        padding: '20px',
+                        background: '#060910',
+                        padding: '24px',
                         fontFamily: 'var(--font-mono)',
-                        fontSize: '12.5px',
-                        lineHeight: 1.6,
-                        color: 'var(--text-main)',
-                        height: '680px',
+                        fontSize: '13px',
+                        lineHeight: 1.65,
+                        color: '#f8fafc',
+                        height: '700px',
                         overflowY: 'auto',
                         margin: 0
                       }}>
@@ -1779,98 +2071,99 @@ export default function ProjectGenerator() {
                       </pre>
                     )
                   ) : (
-                    /* CLEAN STUDIO CANVAS PLACEHOLDER (Waiting for User to Click Generate) */
+                    /* CLEAN MODERN BLUEPRINT STUDIO PLACEHOLDER */
                     <div style={{
-                      minHeight: '420px',
+                      minHeight: '440px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '48px 24px',
-                      background: 'radial-gradient(circle at 50% 35%, rgba(236,72,153,0.06) 0%, #070913 70%)',
+                      padding: '52px 24px',
+                      background: 'radial-gradient(circle at 50% 35%, rgba(99,102,241,0.06) 0%, #070913 70%)',
                       textAlign: 'center',
                       position: 'relative',
                       overflow: 'hidden'
                     }}>
-                      {/* Decorative subtle pattern */}
                       <div style={{
                         position: 'absolute',
                         inset: 0,
-                        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px)',
+                        backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)',
                         backgroundSize: '24px 24px',
-                        opacity: 0.25,
+                        opacity: 0.3,
                         pointerEvents: 'none'
                       }} />
 
                       <div style={{
                         width: '64px',
                         height: '64px',
-                        borderRadius: '18px',
-                        background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
-                        border: '1px solid rgba(236, 72, 153, 0.35)',
+                        borderRadius: '16px',
+                        background: selectedArchObj.accentBg,
+                        border: `1px solid ${selectedArchObj.accentBorder}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '28px',
-                        marginBottom: '16px',
-                        boxShadow: '0 0 30px rgba(236, 72, 153, 0.2)'
+                        color: selectedArchObj.accentColor,
+                        marginBottom: '18px',
+                        boxShadow: `0 0 30px ${selectedArchObj.accentBg}`
                       }}>
-                        {selectedArchObj.icon}
+                        {renderArchetypeIcon(selectedArchObj.iconKey, 28, selectedArchObj.accentColor)}
                       </div>
 
-                      <div className="badge badge-medium" style={{ marginBottom: '12px', fontSize: '11px', padding: '3px 12px' }}>
-                        LIVE INTERACTIVE CANVAS &bull; DOWN BELOW
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        padding: '3px 12px',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#94a3b8',
+                        marginBottom: '10px'
+                      }}>
+                        <span>INTERACTIVE CANVAS READY</span>
                       </div>
 
-                      <h2 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
-                        Live Page Renders Down Here
+                      <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#ffffff', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+                        Ready to Synthesize {selectedArchObj.name}
                       </h2>
 
-                      <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '560px', lineHeight: 1.6, marginBottom: '24px' }}>
-                        Customize your archetype, palette, navbar, sidebar, and animations in the deck above. Then click <strong style={{ color: '#fff' }}>Generate Single Page UI</strong> to synthesize and display your responsive page down here.
+                      <p style={{ fontSize: '13.5px', color: '#94a3b8', maxWidth: '580px', lineHeight: 1.6, marginBottom: '24px' }}>
+                        Your configuration is loaded. Click <strong style={{ color: '#ffffff' }}>Generate Single Page UI</strong> to synthesize and preview your fully responsive component canvas.
                       </p>
 
-                      {/* Live Selected Architecture Matrix */}
+                      {/* Architecture Summary Matrix */}
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                        gap: '8px',
-                        maxWidth: '740px',
+                        gap: '10px',
+                        maxWidth: '780px',
                         width: '100%',
-                        marginBottom: '26px',
+                        marginBottom: '28px',
                         textAlign: 'left'
                       }}>
-                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Archetype</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedArchObj.name}</div>
+                        <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div style={{ fontSize: '10.5px', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Archetype</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedArchObj.name}</div>
                         </div>
 
-                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Palette</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: useCustomColor ? customColor : selectedThemeObj.preview }} />
+                        <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div style={{ fontSize: '10.5px', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Palette</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: useCustomColor ? customColor : selectedThemeObj.preview }} />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{useCustomColor ? customColor : selectedThemeObj.name.split(' ')[0]}</span>
                           </div>
                         </div>
 
-                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Navbar Style</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedNavbarObj.name}</div>
+                        <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div style={{ fontSize: '10.5px', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Navbar</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedNavbarObj.name}</div>
                         </div>
 
-                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Sidebar</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedSidebarObj.name}</div>
-                        </div>
-
-                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Animation FX</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{animationStyle}</div>
-                        </div>
-
-                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 700 }}>Active Blocks</div>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-emerald)' }}>{selectedSections.length} of {MODULAR_SECTIONS.length} Sections</div>
+                        <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div style={{ fontSize: '10.5px', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>Blocks Active</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#34d399' }}>{selectedSections.length} of {MODULAR_SECTIONS.length} Sections</div>
                         </div>
                       </div>
 
@@ -1879,11 +2172,24 @@ export default function ProjectGenerator() {
                         type="button"
                         onClick={handleGenerateSinglePage}
                         disabled={generating || !prompt.trim()}
-                        className="btn-primary"
-                        style={{ padding: '13px 32px', fontSize: '14px', borderRadius: '8px', boxShadow: '0 4px 25px rgba(236, 72, 153, 0.4)' }}
+                        style={{
+                          padding: '13px 32px',
+                          fontSize: '14px',
+                          fontWeight: 800,
+                          borderRadius: '10px',
+                          background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+                          border: 'none',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: '0 4px 25px rgba(99, 102, 241, 0.45)'
+                        }}
                       >
                         <Sparkles size={16} />
-                        <span>Generate Single Page UI Now &rarr;</span>
+                        <span>Generate Single Page UI Now</span>
+                        <ArrowRight size={16} />
                       </button>
                     </div>
                   )
@@ -1891,21 +2197,21 @@ export default function ProjectGenerator() {
                   /* FULL PROJECT MULTI-FILE CANVAS */
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '260px 1fr',
-                    minHeight: '680px'
+                    gridTemplateColumns: '270px 1fr',
+                    minHeight: '700px'
                   }}>
                     {/* Left: Project File Tree */}
                     <div style={{
-                      background: 'rgba(10, 15, 29, 0.7)',
-                      borderRight: '1px solid var(--border-subtle)',
-                      padding: '12px',
-                      maxHeight: '680px',
+                      background: 'rgba(10, 15, 29, 0.75)',
+                      borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+                      padding: '14px',
+                      maxHeight: '700px',
                       overflowY: 'auto',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '4px'
                     }}>
-                      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-dim)', letterSpacing: '0.05em', marginBottom: '8px', padding: '0 6px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', letterSpacing: '0.05em', marginBottom: '10px', padding: '0 6px' }}>
                         EXPLORER &bull; {fileKeys.length} FILES
                       </div>
                       {fileKeys.map((filePath) => {
@@ -1916,23 +2222,23 @@ export default function ProjectGenerator() {
                             onClick={() => setSelectedFile(filePath)}
                             style={{
                               padding: '8px 10px',
-                              borderRadius: '6px',
-                              background: isCur ? 'var(--bg-surface)' : 'transparent',
-                              color: isCur ? 'var(--text-main)' : 'var(--text-muted)',
+                              borderRadius: '7px',
+                              background: isCur ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                              color: isCur ? '#ffffff' : '#94a3b8',
                               fontWeight: isCur ? 700 : 500,
-                              border: isCur ? '1px solid var(--border-accent)' : '1px solid transparent',
+                              border: isCur ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
                               fontSize: '12px',
                               fontFamily: 'var(--font-mono)',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '7px',
+                              gap: '8px',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis'
                             }}
                           >
-                            <FileCode size={14} color={isCur ? 'var(--primary)' : 'var(--text-dim)'} />
+                            <FileCode size={14} color={isCur ? '#818cf8' : '#64748b'} />
                             <span>{filePath}</span>
                           </div>
                         );
@@ -1941,13 +2247,13 @@ export default function ProjectGenerator() {
 
                     {/* Right: Code Viewer */}
                     <pre style={{
-                      background: 'var(--bg-code)',
-                      padding: '20px',
+                      background: '#060910',
+                      padding: '24px',
                       fontFamily: 'var(--font-mono)',
-                      fontSize: '12.5px',
-                      lineHeight: 1.6,
-                      color: 'var(--text-main)',
-                      maxHeight: '680px',
+                      fontSize: '13px',
+                      lineHeight: 1.65,
+                      color: '#f8fafc',
+                      maxHeight: '700px',
                       overflowY: 'auto',
                       margin: 0
                     }}>
