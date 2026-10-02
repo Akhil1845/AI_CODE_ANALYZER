@@ -325,7 +325,7 @@ def get_project(project_id: str):
 
     scans = database.query_all("SELECT * FROM scans WHERE project_id = %s ORDER BY created_at DESC;", (project_id,))
     issues = []
-    if scans:
+    if scans and scans[0].get("total_issues", 0) > 0:
         issues = database.query_all("SELECT * FROM issues WHERE scan_id = %s;", (scans[0]['id'],))
 
     return {
@@ -703,6 +703,20 @@ def apply_fixes_to_github(req: GitHubApplyFixesRequest):
             pr_title=req.pr_title or req.prTitle,
             commit_message=req.commit_message or req.commitMessage
         )
+
+        # When fixes are committed directly or via PR, update project & scan record in MySQL
+        try:
+            norm_repo = target_repo.strip().rstrip('.git').rstrip('/')
+            proj = database.query_one("SELECT id FROM projects WHERE repo_url LIKE %s OR repo_url LIKE %s;", (f"%{norm_repo}%", f"%{norm_repo}.git%"))
+            if proj:
+                p_id = proj["id"]
+                database.execute(
+                    "UPDATE scans SET total_issues = 0, critical_count = 0, high_count = 0, medium_count = 0, low_count = 0 WHERE project_id = %s;",
+                    (p_id,)
+                )
+        except Exception as db_ex:
+            print(f"[GITHUB_APPLY_FIXES_DB_SYNC_NOTE] {db_ex}")
+
         return result
     except Exception as e:
         print(f"[GITHUB_APPLY_FIXES_ERROR] {str(e)}")

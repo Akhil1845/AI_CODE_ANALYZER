@@ -229,13 +229,22 @@ export const api = {
               recommendation: iss.recommendation
             },
             beforeCode: iss.code_snippet,
-            afterCode: iss.recommendation && (
-              iss.recommendation.startsWith('//') || 
-              iss.recommendation.startsWith('#') || 
-              iss.recommendation.startsWith('{') || 
-              iss.recommendation.startsWith('/*') ||
-              iss.recommendation.startsWith('<')
-            ) ? iss.recommendation : `// Recommended Fix Implementation\n${iss.recommendation}`,
+            afterCode: (() => {
+              const snip = iss.code_snippet || '';
+              const rec = iss.recommendation || '';
+              // Java Optional.get()
+              if (snip.includes('.get()') && !snip.includes('orElse')) {
+                return snip.replace(/\.get\(\)/g, '.orElseThrow(() -> new java.util.NoSuchElementException("Entity not found"))');
+              }
+              // Python empty pass in except
+              if (snip.includes('pass') && (snip.includes('except') || rec.includes('logging'))) {
+                return snip.replace(/\bpass\b/g, 'import logging; logging.getLogger(__name__).warning("Handled exception")');
+              }
+              if (rec && (rec.startsWith('//') || rec.startsWith('#') || rec.startsWith('{') || rec.startsWith('/*') || rec.startsWith('<'))) {
+                return rec;
+              }
+              return `// Recommended Fix Implementation\n${rec}`;
+            })(),
             validationStatus: null
           }));
         }

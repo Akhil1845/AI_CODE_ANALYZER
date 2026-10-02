@@ -344,6 +344,16 @@ class GitHubService:
                 modified = modified.replace(snippet, raw_fix_content, 1)
                 continue
 
+            # 1b. If snippet is in modified and is a Java .get() issue
+            if is_java and ".get()" in snippet and snippet in modified:
+                patched_snippet = re.sub(
+                    r"([a-zA-Z0-9_\)\]]+)\.get\(\)",
+                    r'\1.orElseThrow(() -> new java.util.NoSuchElementException("Entity not found"))',
+                    snippet
+                )
+                modified = modified.replace(snippet, patched_snippet, 1)
+                continue
+
             # 2. Python-specific AST surgical patches
             if is_python:
                 # A. Silent exception suppression (empty pass block / ellipsis)
@@ -390,9 +400,9 @@ class GitHubService:
 
             # 3. Java-specific surgical patches
             elif is_java:
-                if "optional.get()" in title or ".get()" in snippet:
-                    pattern = re.compile(r"(\.[a-zA-Z0-9_]+\([^)]*\))\.get\(\)")
-                    modified = pattern.sub(r'\1.orElseThrow(() -> new RuntimeException("Entity not found"))', modified)
+                if "optional.get()" in title or ".get()" in snippet or ".get()" in title:
+                    pattern = re.compile(r"([a-zA-Z0-9_\)\]]+)\.get\(\)")
+                    modified = pattern.sub(r'\1.orElseThrow(() -> new java.util.NoSuchElementException("Entity not found"))', modified)
 
                 if "empty catch" in title or "catch" in snippet:
                     pattern = re.compile(r"catch\s*\(([^)]+)\)\s*\{\s*\}")
@@ -421,8 +431,17 @@ class GitHubService:
             idx = line_no - 1  # 0-indexed
             target_line = lines[idx]
 
+            # If Java line with .get()
+            if ".get()" in target_line:
+                lines[idx] = re.sub(
+                    r"([a-zA-Z0-9_\)\]]+)\.get\(\)",
+                    r'\1.orElseThrow(() -> new java.util.NoSuchElementException("Entity not found"))',
+                    target_line
+                )
+                modified = True
+
             # If line is 'pass' or '...' in an except block
-            if target_line.strip() in ("pass", "..."):
+            elif target_line.strip() in ("pass", "..."):
                 indent = target_line[:len(target_line) - len(target_line.lstrip())]
                 lines[idx] = f"{indent}import logging\n{indent}logging.getLogger(__name__).warning('Handled fallback exception')"
                 modified = True
@@ -617,7 +636,17 @@ class GitHubService:
                         final_fixes.append({"path": file_path, "content": last_content})
                     else:
                         fallback_patched = self._apply_fallback_patch(file_path, existing_content, file_fixes)
-                        final_fixes.append({"path": file_path, "content": fallback_patched})
+                        if fallback_patched != existing_content:
+                            final_fixes.append({"path": file_path, "content": fallback_patched})
+                        else:
+                            # Direct snippet replacement fallback
+                            forced = existing_content
+                            for f in file_fixes:
+                                s = (f.get("snippet") or f.get("beforeCode") or "").strip()
+                                if s and s in forced and ".get()" in s:
+                                    repled = re.sub(r"([a-zA-Z0-9_\)\]]+)\.get\(\)", r'\1.orElseThrow(() -> new java.util.NoSuchElementException("Entity not found"))', s)
+                                    forced = forced.replace(s, repled, 1)
+                            final_fixes.append({"path": file_path, "content": forced})
                 else:
                     # New file being added
                     last_content = file_fixes[-1].get("content", "")
