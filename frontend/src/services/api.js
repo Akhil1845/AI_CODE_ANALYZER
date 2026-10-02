@@ -315,13 +315,20 @@ export const api = {
 
   // Apply fixes directly to GitHub (Create PR or Direct Commit)
   async applyFixesToGitHub({ repoUrl, token, fixes, branchMode = 'pr', targetBranch = null, prTitle = null, commitMessage = null }) {
+    const sanitizedFixes = (fixes || []).map(f => ({
+      ...f,
+      path: String(f.path || f.file || f.file_path || ''),
+      content: String(f.content || f.afterCode || f.recommendation || ''),
+      line: f.line != null ? Number(f.line) : 1
+    }));
+
     const res = await fetch(`${API_BASE_URL}/github/apply-fixes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         repo_url: repoUrl,
         token,
-        fixes,
+        fixes: sanitizedFixes,
         branch_mode: branchMode,
         target_branch: targetBranch,
         pr_title: prTitle,
@@ -330,7 +337,17 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || 'Failed to apply fixes to GitHub repository.');
+      let msg = 'Failed to apply fixes to GitHub repository.';
+      if (err.detail) {
+        if (typeof err.detail === 'string') {
+          msg = err.detail;
+        } else if (Array.isArray(err.detail)) {
+          msg = err.detail.map(d => (typeof d === 'string' ? d : (d.msg || JSON.stringify(d)))).join('; ');
+        } else if (typeof err.detail === 'object') {
+          msg = err.detail.message || JSON.stringify(err.detail);
+        }
+      }
+      throw new Error(msg);
     }
     return await res.json();
   },

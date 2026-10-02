@@ -673,7 +673,7 @@ class GitHubApplyFixesRequest(BaseModel):
     repo_url: Optional[str] = None
     repoUrl: Optional[str] = None
     token: str
-    fixes: List[Dict[str, str]]
+    fixes: List[Dict[str, Any]]
     branch_mode: Optional[str] = "pr"
     branchMode: Optional[str] = None
     target_branch: Optional[str] = None

@@ -124,8 +124,10 @@ export default function AnalysisResult() {
         setProject(projData);
         if (projData?.repo_url && projData.repo_url.includes('github.com')) {
           setGithubRepoUrl(projData.repo_url);
+        } else if ((projData?.name || '').toLowerCase().includes('quiz') || (projData?.repo_url || '').toLowerCase().includes('quiz')) {
+          setGithubRepoUrl('https://github.com/Akhil1845/quiz_master_private');
         } else {
-          const savedRepo = localStorage.getItem('codelens_github_repo') || 'https://github.com/Akhil1845/ai_internship_suggestor.git';
+          const savedRepo = localStorage.getItem('codelens_github_repo') || 'https://github.com/Akhil1845/AI_CODE_ANALYZER.git';
           setGithubRepoUrl(savedRepo);
         }
         if (projData?.source_type === 'live_url' || (projData?.repo_url && projData.repo_url.includes('http'))) {
@@ -146,9 +148,11 @@ export default function AnalysisResult() {
   }, [projectId]);
 
   const handleOpenGitHubModal = (mode = 'commit', specificIssueId = null) => {
-    if ((!githubRepoUrl || !githubRepoUrl.includes('github.com'))) {
+    if (!githubRepoUrl || !githubRepoUrl.includes('github.com')) {
       if (project?.repo_url && project.repo_url.includes('github.com')) {
         setGithubRepoUrl(project.repo_url);
+      } else if ((project?.name || '').toLowerCase().includes('quiz') || (project?.repo_url || '').toLowerCase().includes('quiz')) {
+        setGithubRepoUrl('https://github.com/Akhil1845/quiz_master_private');
       } else {
         const savedRepo = localStorage.getItem('codelens_github_repo') || 'https://github.com/Akhil1845/AI_CODE_ANALYZER.git';
         setGithubRepoUrl(savedRepo);
@@ -3300,8 +3304,8 @@ export default function AnalysisResult() {
                                   <input
                                     type="radio"
                                     name="tab3BranchMode"
-                                    checked={branchMode === 'direct'}
-                                    onChange={() => setBranchMode('direct')}
+                                    checked={branchMode === 'commit' || branchMode === 'direct'}
+                                    onChange={() => setBranchMode('commit')}
                                   />
                                   <span>Commit directly to <strong>{targetBranch || 'main'}</strong> (instant Vercel redeploy)</span>
                                 </label>
@@ -3334,21 +3338,21 @@ export default function AnalysisResult() {
                                 const fixesSource = (effectiveLiveIssues && effectiveLiveIssues.length > 0)
                                   ? effectiveLiveIssues
                                   : issues;
-                                const liveFixes = fixesSource.map(iss => ({
-                                  path: iss.file_path || iss.file || 'vercel.json',
-                                  content: (iss.recommendation || iss.afterCode) && (
-                                    (iss.recommendation || iss.afterCode).startsWith('//') || 
-                                    (iss.recommendation || iss.afterCode).startsWith('{') || 
-                                    (iss.recommendation || iss.afterCode).startsWith('/*')
-                                  ) ? (iss.recommendation || iss.afterCode) : `// vercel.json\n${iss.recommendation || iss.afterCode}`,
-                                  snippet: iss.code_snippet || iss.snippet || iss.beforeCode,
-                                  beforeCode: iss.beforeCode || iss.code_snippet || iss.snippet,
-                                  line: iss.line_number || iss.line,
-                                  title: iss.title,
-                                  explanation: iss.description || iss.explanation,
-                                  category: iss.type || iss.category,
-                                  severity: iss.severity
-                                }));
+                                const liveFixes = fixesSource.map(iss => {
+                                  const targetPath = iss.file_path || iss.file || 'vercel.json';
+                                  const rawCode = iss.recommendation || iss.afterCode || '';
+                                  return {
+                                    path: targetPath,
+                                    content: rawCode,
+                                    snippet: iss.code_snippet || iss.snippet || iss.beforeCode || '',
+                                    beforeCode: iss.beforeCode || iss.code_snippet || iss.snippet || '',
+                                    line: typeof iss.line_number === 'number' ? iss.line_number : (typeof iss.line === 'number' ? iss.line : 1),
+                                    title: iss.title || 'CodeLens Deployment Fix',
+                                    explanation: iss.description || iss.explanation || '',
+                                    category: iss.type || iss.category || 'quality',
+                                    severity: iss.severity || 'HIGH'
+                                  };
+                                });
                                 await handleApplyGitHubFixes(liveFixes);
                               }}
                               style={{
