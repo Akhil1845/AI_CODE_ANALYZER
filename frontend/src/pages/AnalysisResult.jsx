@@ -208,7 +208,14 @@ export default function AnalysisResult() {
           .filter(i => selectedFixIds.includes(i.id))
           .map(i => ({
             path: i.file,
-            content: i.afterCode
+            content: i.afterCode,
+            snippet: i.snippet || i.beforeCode,
+            beforeCode: i.beforeCode || i.snippet,
+            line: i.line,
+            title: i.title,
+            explanation: i.explanation,
+            category: i.category,
+            severity: i.severity
           }));
 
     if (!fixesToApply || fixesToApply.length === 0) {
@@ -874,7 +881,7 @@ export default function AnalysisResult() {
         </div>
 
           {/* Dedicated Live Deployment Direct Auto-Fix & Cloud Redeploy Card */}
-          {(project?.source_type === 'live_url' || project?.repo_url?.startsWith('http')) && (
+          {(project?.source_type === 'live_url' || (project?.repo_url && project.repo_url.startsWith('http') && !project.repo_url.includes('github.com'))) && (
             <div className="glass-card" style={{
               padding: '22px 28px',
               marginBottom: '26px',
@@ -1966,10 +1973,10 @@ export default function AnalysisResult() {
                 </div>
                 <div>
                   <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {project?.source_type === 'live_url' || project?.repo_url?.startsWith('http') ? 'Auto-Resolve Live Deployment Issues' : 'Apply Solutions Directly to GitHub'}
+                    {(project?.source_type === 'live_url' || (project?.repo_url && project.repo_url.startsWith('http') && !project.repo_url.includes('github.com'))) ? 'Auto-Resolve Live Deployment Issues' : 'Apply Solutions Directly to GitHub'}
                   </h2>
                   <p style={{ fontSize: '13px', color: '#94a3b8', margin: '4px 0 0' }}>
-                    {project?.source_type === 'live_url' || project?.repo_url?.startsWith('http') 
+                    {(project?.source_type === 'live_url' || (project?.repo_url && project.repo_url.startsWith('http') && !project.repo_url.includes('github.com')))
                       ? 'Push fixes to connected repo or command Vercel / Render API directly for zero-downtime redeploy'
                       : 'Non-destructive automated repository deployment with zero data leakage'}
                   </p>
@@ -2157,13 +2164,17 @@ export default function AnalysisResult() {
                   </div>
 
                   <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#ffffff', marginBottom: '8px' }}>
-                    {applyResult.mode === 'pr' ? 'Pull Request Created Successfully!' : 'Fixes Committed Successfully!'}
+                    {applyResult.mode === 'pr' 
+                      ? 'Pull Request Created Successfully!' 
+                      : (applyResult.committed_files && applyResult.committed_files.length > 0 ? 'Fixes Committed Successfully!' : 'Repository Already Up To Date!')}
                   </h3>
 
                   <p style={{ fontSize: '14px', color: '#cbd5e1', maxWidth: '480px', margin: '0 auto 20px', lineHeight: 1.6 }}>
-                    {applyResult.mode === 'pr'
-                      ? `Opened Pull Request to merge ${applyResult.committed_files.length} solution files into '${applyResult.base_branch}'. Live deployment will build on merge.`
-                      : `Pushed ${applyResult.committed_files.length} solution files to '${applyResult.branch}'. Live deployment is rebuilding automatically on Vercel / Render!`}
+                    {applyResult.committed_files && applyResult.committed_files.length > 0
+                      ? (applyResult.mode === 'pr'
+                          ? `Opened Pull Request to merge ${applyResult.committed_files.length} solution file${applyResult.committed_files.length > 1 ? 's' : ''} into '${applyResult.base_branch}'. Live deployment will build on merge.`
+                          : `Pushed ${applyResult.committed_files.length} solution file${applyResult.committed_files.length > 1 ? 's' : ''} directly to '${applyResult.branch}'. CI/CD build triggered!`)
+                      : `All target files in repository are already up to date with verified patches.`}
                   </p>
 
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
@@ -2202,24 +2213,40 @@ export default function AnalysisResult() {
                     </button>
                   </div>
 
-                  <div style={{
-                    background: 'rgba(9, 13, 26, 0.8)',
-                    padding: '14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-subtle)',
-                    textAlign: 'left',
-                    fontSize: '12.5px',
-                    color: '#94a3b8'
-                  }}>
-                    <div style={{ fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>Committed Files:</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {applyResult.committed_files.map(f => (
-                        <span key={f} style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '3px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>
-                          ✓ {f}
-                        </span>
-                      ))}
+                  {applyResult.committed_files && applyResult.committed_files.length > 0 ? (
+                    <div style={{
+                      background: 'rgba(9, 13, 26, 0.8)',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      textAlign: 'left',
+                      fontSize: '12.5px',
+                      color: '#94a3b8'
+                    }}>
+                      <div style={{ fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                        Committed Files ({applyResult.committed_files.length}):
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {applyResult.committed_files.map(f => (
+                          <span key={f} style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '3px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>
+                            ✓ {f}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      fontSize: '13px',
+                      color: '#38bdf8',
+                      textAlign: 'left'
+                    }}>
+                      ℹ️ All selected files are already matching target implementations in '{applyResult.branch}'.
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -3201,13 +3228,23 @@ export default function AnalysisResult() {
                               type="button"
                               disabled={applyingFixes || !githubToken}
                               onClick={async () => {
-                                const liveFixes = effectiveLiveIssues.map(iss => ({
-                                  path: iss.file_path || 'vercel.json',
-                                  content: iss.recommendation && (
-                                    iss.recommendation.startsWith('//') || 
-                                    iss.recommendation.startsWith('{') || 
-                                    iss.recommendation.startsWith('/*')
-                                  ) ? iss.recommendation : `// vercel.json\n${iss.recommendation}`
+                                const fixesSource = (effectiveLiveIssues && effectiveLiveIssues.length > 0)
+                                  ? effectiveLiveIssues
+                                  : issues;
+                                const liveFixes = fixesSource.map(iss => ({
+                                  path: iss.file_path || iss.file || 'vercel.json',
+                                  content: (iss.recommendation || iss.afterCode) && (
+                                    (iss.recommendation || iss.afterCode).startsWith('//') || 
+                                    (iss.recommendation || iss.afterCode).startsWith('{') || 
+                                    (iss.recommendation || iss.afterCode).startsWith('/*')
+                                  ) ? (iss.recommendation || iss.afterCode) : `// vercel.json\n${iss.recommendation || iss.afterCode}`,
+                                  snippet: iss.code_snippet || iss.snippet || iss.beforeCode,
+                                  beforeCode: iss.beforeCode || iss.code_snippet || iss.snippet,
+                                  line: iss.line_number || iss.line,
+                                  title: iss.title,
+                                  explanation: iss.description || iss.explanation,
+                                  category: iss.type || iss.category,
+                                  severity: iss.severity
                                 }));
                                 await handleApplyGitHubFixes(liveFixes);
                               }}

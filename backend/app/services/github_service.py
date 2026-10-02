@@ -314,13 +314,128 @@ class GitHubService:
             except Exception as ex:
                 result["message"] = f"Authenticated as @{username}. Repository check note: {str(ex)}"
 
-        return result
+    def _apply_surgical_patch_to_content(self, file_path: str, existing_content: str, fixes: List[Dict[str, Any]]) -> str:
+        """
+        Surgically patches code issues in existing files without overwriting or destroying other code.
+        Preserves original syntax, formatting, indentation, and structure.
+        """
+        modified = existing_content
+        lower_path = file_path.lower()
+        is_python = lower_path.endswith(".py")
+        is_java = lower_path.endswith(".java")
+        is_js = any(lower_path.endswith(ext) for ext in [".js", ".jsx", ".ts", ".tsx"])
+
+        for fix in fixes:
+            title = (fix.get("title") or "").lower()
+            snippet = (fix.get("snippet") or fix.get("beforeCode") or "").strip()
+            raw_fix_content = fix.get("content") or ""
+
+            # Check if user/CodeDoctor provided valid replacement code (not an English comment stub)
+            clean_lines = [l.strip() for l in raw_fix_content.splitlines() if l.strip()]
+            is_comment_stub = len(clean_lines) <= 4 and any(
+                w in raw_fix_content.lower() for w in ["recommend", "log the error", "use ", "refactor", "safeguard", "codedoctor", "fix implementation"]
+            )
+
+            # 1. Direct snippet replacement if clean valid code was provided
+            if snippet and snippet in modified and not is_comment_stub and len(raw_fix_content.strip()) > 0:
+                modified = modified.replace(snippet, raw_fix_content, 1)
+                continue
+
+            # 2. Python-specific AST surgical patches
+            if is_python:
+                # A. Silent exception suppression (empty pass block / ellipsis)
+                if "silent exception" in title or "empty pass" in title or "except" in snippet:
+                    pattern = re.compile(
+                        r"([ \t]*)except\s+(?:Exception|BaseException|StandardError)\s*:\s*\n([ \t]*)(?:pass|\.\.\.)\b",
+                        re.MULTILINE
+                    )
+                    def _repl_py_except(m):
+                        indent = m.group(1)
+                        sub_indent = m.group(2) if len(m.group(2)) > len(indent) else indent + "    "
+                        return (
+                            f"{indent}except Exception as _err:\n"
+                            f"{sub_indent}import logging\n"
+                            f"{sub_indent}logging.getLogger(__name__).warning(f\"Handled fallback exception: {{_err}}\")"
+                        )
+                    modified = pattern.sub(_repl_py_except, modified)
+
+                # B. SQL Injection via string formatting
+                elif "sql injection" in title:
+                    pattern = re.compile(
+                        r"cursor\.execute\s*\(\s*f[\"'](.*?)\{([a-zA-Z0-9_]+)\}(.*?)[\"']\s*\)",
+                        re.MULTILINE
+                    )
+                    def _repl_sql(m):
+                        query_prefix = m.group(1)
+                        param = m.group(2)
+                        query_suffix = m.group(3)
+                        return f'cursor.execute("{query_prefix}%s{query_suffix}", ({param},))'
+                    modified = pattern.sub(_repl_sql, modified)
+
+                # C. Mutable default argument
+                elif "mutable default" in title:
+                    pattern = re.compile(
+                        r"def\s+([a-zA-Z0-9_]+)\s*\((.*?)([a-zA-Z0-9_]+)\s*=\s*(?:\[\]|\{\}|set\(\))(.*?)\):"
+                    )
+                    def _repl_default(m):
+                        fn_name = m.group(1)
+                        prefix = m.group(2)
+                        param = m.group(3)
+                        suffix = m.group(4)
+                        return f"def {fn_name}({prefix}{param}=None{suffix}):\n    if {param} is None:\n        {param} = []"
+                    modified = pattern.sub(_repl_default, modified)
+
+            # 3. Java-specific surgical patches
+            elif is_java:
+                if "optional.get()" in title or ".get()" in snippet:
+                    pattern = re.compile(r"(\.[a-zA-Z0-9_]+\([^)]*\))\.get\(\)")
+                    modified = pattern.sub(r'\1.orElseThrow(() -> new RuntimeException("Entity not found"))', modified)
+
+                if "empty catch" in title or "catch" in snippet:
+                    pattern = re.compile(r"catch\s*\(([^)]+)\)\s*\{\s*\}")
+                    modified = pattern.sub(r'catch (\1) {\n    org.slf4j.LoggerFactory.getLogger(getClass()).warn("Suppressed exception: {}", e.getMessage());\n}', modified)
+
+            # 4. JS/TS surgical patches
+            elif is_js:
+                if "json.parse" in title or "json.parse" in snippet.lower():
+                    pattern = re.compile(r"JSON\.parse\s*\(([^)]+)\)")
+                    modified = pattern.sub(r'(() => { try { return JSON.parse(\1); } catch (e) { return null; } })()', modified)
+
+        return modified
+
+    def _apply_fallback_patch(self, file_path: str, existing_content: str, fixes: List[Dict[str, Any]]) -> str:
+        """
+        Line-targeted fallback patcher when regex patterns do not match due to whitespace differences.
+        """
+        lines = existing_content.splitlines()
+        modified = False
+
+        for fix in fixes:
+            line_no = fix.get("line") or fix.get("line_number")
+            if not line_no or not isinstance(line_no, int) or line_no < 1 or line_no > len(lines):
+                continue
+
+            idx = line_no - 1  # 0-indexed
+            target_line = lines[idx]
+
+            # If line is 'pass' or '...' in an except block
+            if target_line.strip() in ("pass", "..."):
+                indent = target_line[:len(target_line) - len(target_line.lstrip())]
+                lines[idx] = f"{indent}import logging\n{indent}logging.getLogger(__name__).warning('Handled fallback exception')"
+                modified = True
+            elif "except " in target_line:
+                if idx + 1 < len(lines) and lines[idx + 1].strip() in ("pass", "..."):
+                    sub_indent = lines[idx + 1][:len(lines[idx + 1]) - len(lines[idx + 1].lstrip())]
+                    lines[idx + 1] = f"{sub_indent}import logging\n{sub_indent}logging.getLogger(__name__).warning('Handled fallback exception')"
+                    modified = True
+
+        return "\n".join(lines) if modified else existing_content
 
     def apply_fixes(
         self,
         repo_url: str,
         token: str,
-        fixes: List[Dict[str, str]],
+        fixes: List[Dict[str, Any]],
         branch_mode: str = "pr",
         target_branch: Optional[str] = None,
         pr_title: Optional[str] = None,
@@ -400,19 +515,20 @@ class GitHubService:
         else:
             commit_branch = base_branch
 
-        # 2. Deduplicate and merge fixes by file path
-        grouped_fixes: Dict[str, List[str]] = {}
+        # 2. Group fixes by file path
+        grouped_fixes: Dict[str, List[Dict[str, Any]]] = {}
         for fix in fixes:
-            file_path = fix.get("path", "").strip().lstrip('/')
-            raw_content = fix.get("content", "")
+            if not isinstance(fix, dict):
+                continue
+            file_path = (fix.get("path") or fix.get("file_path") or "").strip().lstrip('/')
             if not file_path:
                 continue
             if file_path not in grouped_fixes:
                 grouped_fixes[file_path] = []
-            grouped_fixes[file_path].append(raw_content)
+            grouped_fixes[file_path].append(fix)
 
         final_fixes: List[Dict[str, str]] = []
-        for file_path, contents in grouped_fixes.items():
+        for file_path, file_fixes in grouped_fixes.items():
             # Merge vercel.json configurations
             if file_path.lower().endswith("vercel.json"):
                 combined_headers = {
@@ -423,7 +539,8 @@ class GitHubService:
                 }
                 
                 # Check for custom headers from issues
-                for c in contents:
+                for fix in file_fixes:
+                    c = fix.get("content", "")
                     for line in c.splitlines():
                         if "key" in line and "value" in line:
                             try:
@@ -472,13 +589,36 @@ class GitHubService:
                     "content": json.dumps(master_vercel, indent=2)
                 })
             else:
-                last_content = contents[-1]
-                # Safeguard: Do not overwrite large source code files if the fix content is only a short comment/snippet
-                if any(file_path.lower().endswith(ext) for ext in [".py", ".java", ".js", ".jsx", ".ts", ".tsx", ".cpp", ".c"]):
+                # Check if file exists in the repository on GitHub
+                check_res = requests.get(
+                    f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}?ref={commit_branch}&t={int(time.time()*1000)}",
+                    headers=headers,
+                    timeout=12
+                )
+                if check_res.status_code == 200:
+                    current_b64 = check_res.json().get("content", "")
+                    try:
+                        existing_content = base64.b64decode(current_b64).decode("utf-8", errors="replace")
+                    except Exception:
+                        existing_content = ""
+
+                    patched_content = self._apply_surgical_patch_to_content(file_path, existing_content, file_fixes)
+                    
+                    last_content = file_fixes[-1].get("content", "")
                     lines_count = len([l for l in last_content.splitlines() if l.strip()])
-                    if lines_count <= 4 and ("recommend" in last_content.lower() or "log the error" in last_content.lower()):
-                        continue # Skip accidental overwrite of full service files with recommendation stubs
-                final_fixes.append({"path": file_path, "content": last_content})
+                    is_stub = lines_count <= 4 and any(w in last_content.lower() for w in ["recommend", "log the error", "refactor", "codedoctor", "fix implementation"])
+                    
+                    if patched_content != existing_content:
+                        final_fixes.append({"path": file_path, "content": patched_content})
+                    elif not is_stub and lines_count > 10:
+                        final_fixes.append({"path": file_path, "content": last_content})
+                    else:
+                        fallback_patched = self._apply_fallback_patch(file_path, existing_content, file_fixes)
+                        final_fixes.append({"path": file_path, "content": fallback_patched})
+                else:
+                    # New file being added
+                    last_content = file_fixes[-1].get("content", "")
+                    final_fixes.append({"path": file_path, "content": last_content})
 
         # 3. Commit each unique file with retry backoff
         committed_files = []
