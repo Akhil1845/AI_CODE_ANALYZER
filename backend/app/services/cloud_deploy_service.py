@@ -200,10 +200,84 @@ class CloudDeployService:
                 "Authorization": f"Bearer {clean_token}",
                 "User-Agent": "CodeLens-CloudDeploy/1.0"
             }
-            # Trigger redeployment on Vercel
-            deploy_url = f"https://api.vercel.com/v13/deployments"
+            
+            # 1. Query latest deployment for this project to trigger fresh redeploy
+            latest_deploy_id = None
+            proj_name = service_or_project_id
+            try:
+                # Query deployments by projectId
+                dep_res = requests.get(
+                    f"https://api.vercel.com/v6/deployments?projectId={service_or_project_id}&limit=1",
+                    headers=headers,
+                    timeout=10
+                )
+                if dep_res.status_code == 200:
+                    depls = dep_res.json().get("deployments", [])
+                    if depls:
+                        latest_deploy_id = depls[0].get("uid") or depls[0].get("id")
+                        proj_name = depls[0].get("name") or proj_name
+                
+                # If not found by projectId, try querying by app name
+                if not latest_deploy_id:
+                    dep_res2 = requests.get(
+                        f"https://api.vercel.com/v6/deployments?app={service_or_project_id}&limit=1",
+                        headers=headers,
+                        timeout=10
+                    )
+                    if dep_res2.status_code == 200:
+                        depls2 = dep_res2.json().get("deployments", [])
+                        if depls2:
+                            latest_deploy_id = depls2[0].get("uid") or depls2[0].get("id")
+                            proj_name = depls2[0].get("name") or proj_name
+            except Exception as e:
+                logger.debug(f"Error fetching latest Vercel deployment: {e}")
+
+            # 2. If latest deployment was found, initiate redeploy of that deployment
+            if latest_deploy_id:
+                try:
+                    redeploy_payload = {
+                        "name": proj_name,
+                        "deploymentId": latest_deploy_id,
+                        "target": "production"
+                    }
+                    res = requests.post("https://api.vercel.com/v13/deployments?forceNew=1", headers=headers, json=redeploy_payload, timeout=15)
+                    if res.status_code in (200, 201):
+                        data = res.json()
+                        deploy_url = f"https://{data.get('url')}" if data.get("url") else f"https://{proj_name}.vercel.app"
+                        return {
+                            "success": True,
+                            "platform": "vercel",
+                            "status": data.get("readyState", "QUEUED"),
+                            "deployment_url": deploy_url,
+                            "message": f"Fresh Vercel production redeployment initiated successfully for '{proj_name}'."
+                        }
+                except Exception as e:
+                    logger.debug(f"Error in v13 redeployment: {e}")
+
+            # 3. Check if project has a deploy hook
+            try:
+                p_info = requests.get(f"https://api.vercel.com/v9/projects/{service_or_project_id}", headers=headers, timeout=10)
+                if p_info.status_code == 200:
+                    p_data = p_info.json()
+                    hooks = p_data.get("deployHooks", [])
+                    if hooks and hooks[0].get("url"):
+                        hook_url = hooks[0].get("url")
+                        hook_res = requests.post(hook_url, timeout=10)
+                        if hook_res.status_code in (200, 201):
+                            return {
+                                "success": True,
+                                "platform": "vercel",
+                                "status": "QUEUED",
+                                "deployment_url": f"https://{p_data.get('name', 'project')}.vercel.app",
+                                "message": f"Triggered Vercel production redeploy hook successfully."
+                            }
+            except Exception as e:
+                logger.debug(f"Error checking Vercel deploy hook: {e}")
+
+            # 4. Standard Vercel deployment creation fallback
+            deploy_url = "https://api.vercel.com/v13/deployments"
             payload = {
-                "name": service_or_project_id,
+                "name": proj_name,
                 "project": service_or_project_id,
                 "target": "production"
             }
@@ -211,7 +285,7 @@ class CloudDeployService:
             if res.status_code not in (200, 201):
                 err = res.json().get("error", {}).get("message", f"HTTP {res.status_code}")
                 # If creating deployment directly requires repo files, trigger via project redeploy
-                redeploy_res = requests.post(f"https://api.vercel.com/v2/deployments", headers=headers, json={"name": service_or_project_id}, timeout=12)
+                redeploy_res = requests.post("https://api.vercel.com/v2/deployments", headers=headers, json={"name": service_or_project_id}, timeout=12)
                 if redeploy_res.status_code in (200, 201):
                     d_data = redeploy_res.json()
                     return {

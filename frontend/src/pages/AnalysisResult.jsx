@@ -316,17 +316,49 @@ export default function AnalysisResult() {
 
   const handleTriggerCloudRedeploy = async () => {
     if (!cloudToken || !cloudToken.trim()) {
-      setRedeployError('Cloud API token is required.');
-      return;
-    }
-    const targetId = selectedServiceId || cloudVerifyData?.matched_project?.id || cloudVerifyData?.matched_service?.id;
-    if (!targetId) {
-      setRedeployError('Please select or specify the target Project / Service ID.');
+      setRedeployError(`Please enter your ${cloudPlatform === 'vercel' ? 'Vercel API Token' : 'Render API Key'}.`);
       return;
     }
 
     setRedeployingCloud(true);
     setRedeployError('');
+    setRedeployResult(null);
+
+    let targetId = selectedServiceId || cloudVerifyData?.matched_project?.id || cloudVerifyData?.matched_service?.id;
+    if (!targetId) {
+      // Auto-verify token and discover target project on-the-fly
+      try {
+        const verifyRes = await api.verifyCloudToken({
+          platform: cloudPlatform,
+          token: cloudToken.trim(),
+          liveUrl: project?.repo_url || project?.name || null
+        });
+        if (verifyRes.valid) {
+          setCloudVerifyData(verifyRes);
+          localStorage.setItem('codelens_cloud_token', cloudToken.trim());
+          targetId = verifyRes.matched_project?.id ||
+                     verifyRes.matched_service?.id ||
+                     verifyRes.available_projects?.[0]?.id ||
+                     verifyRes.available_services?.[0]?.id;
+          if (targetId) {
+            setSelectedServiceId(targetId);
+          } else {
+            setRedeployError(`Token verified as @${verifyRes.username}, but no projects/services were found in your ${cloudPlatform === 'vercel' ? 'Vercel' : 'Render'} account.`);
+            setRedeployingCloud(false);
+            return;
+          }
+        } else {
+          setRedeployError(verifyRes.message || `Token verification failed. Please check your ${cloudPlatform === 'vercel' ? 'Vercel' : 'Render'} token.`);
+          setRedeployingCloud(false);
+          return;
+        }
+      } catch (err) {
+        setRedeployError(err.message || 'Failed to auto-verify cloud platform token.');
+        setRedeployingCloud(false);
+        return;
+      }
+    }
+
     try {
       const res = await api.triggerCloudRedeploy({
         platform: cloudPlatform,
@@ -3481,42 +3513,145 @@ export default function AnalysisResult() {
                                 </a>
                               </div>
 
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                background: 'rgba(0,0,0,0.4)',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: '6px',
-                                padding: '0 10px'
-                              }}>
-                                <Key size={13} color="#64748b" style={{ marginRight: '8px' }} />
-                                <input
-                                  type={showCloudTokenInput ? 'text' : 'password'}
-                                  value={cloudToken}
-                                  onChange={(e) => {
-                                    setCloudToken(e.target.value);
-                                    localStorage.setItem('codelens_cloud_token', e.target.value);
-                                  }}
-                                  placeholder={cloudPlatform === 'vercel' ? 'vercel_tok_••••••••••••••••' : 'rnd_••••••••••••••••'}
-                                  style={{
-                                    flex: 1,
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#ffffff',
-                                    fontSize: '12px',
-                                    outline: 'none',
-                                    padding: '9px 0',
-                                    fontFamily: 'var(--font-mono)'
-                                  }}
-                                />
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  background: 'rgba(0,0,0,0.4)',
+                                  border: '1px solid var(--border-subtle)',
+                                  borderRadius: '6px',
+                                  padding: '0 10px',
+                                  flex: 1
+                                }}>
+                                  <Key size={13} color="#64748b" style={{ marginRight: '8px' }} />
+                                  <input
+                                    type={showCloudTokenInput ? 'text' : 'password'}
+                                    value={cloudToken}
+                                    onChange={(e) => {
+                                      setCloudToken(e.target.value);
+                                      localStorage.setItem('codelens_cloud_token', e.target.value);
+                                    }}
+                                    placeholder={cloudPlatform === 'vercel' ? 'vercel_tok_••••••••••••••••' : 'rnd_••••••••••••••••'}
+                                    style={{
+                                      flex: 1,
+                                      background: 'transparent',
+                                      border: 'none',
+                                      color: '#ffffff',
+                                      fontSize: '12px',
+                                      outline: 'none',
+                                      padding: '9px 0',
+                                      fontFamily: 'var(--font-mono)'
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowCloudTokenInput(!showCloudTokenInput)}
+                                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', fontSize: '11px' }}
+                                  >
+                                    {showCloudTokenInput ? 'Hide' : 'Show'}
+                                  </button>
+                                </div>
+
                                 <button
                                   type="button"
-                                  onClick={() => setShowCloudTokenInput(!showCloudTokenInput)}
-                                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', fontSize: '11px' }}
+                                  disabled={!cloudToken || verifyingCloudToken}
+                                  onClick={handleVerifyCloudToken}
+                                  style={{
+                                    padding: '0 14px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(56, 189, 248, 0.15)',
+                                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                                    color: '#38bdf8',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: (!cloudToken || verifyingCloudToken) ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    whiteSpace: 'nowrap'
+                                  }}
                                 >
-                                  {showCloudTokenInput ? 'Hide' : 'Show'}
+                                  {verifyingCloudToken ? (
+                                    <>
+                                      <Loader2 size={13} className="spin" />
+                                      <span>Verifying...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check size={13} />
+                                      <span>Verify Access</span>
+                                    </>
+                                  )}
                                 </button>
                               </div>
+
+                              {cloudVerifyData && (
+                                <div style={{
+                                  marginTop: '8px',
+                                  padding: '8px 12px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(16, 185, 129, 0.12)',
+                                  border: '1px solid rgba(52, 211, 153, 0.4)',
+                                  fontSize: '12px',
+                                  color: '#34d399',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: '6px'
+                                }}>
+                                  <div>
+                                    ✓ {cloudVerifyData.message}
+                                  </div>
+                                  {(cloudVerifyData.matched_project || cloudVerifyData.matched_service) && (
+                                    <span style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', color: '#f8fafc', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                                      ID: {cloudVerifyData.matched_project?.id || cloudVerifyData.matched_service?.id}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {cloudVerifyError && (
+                                <div style={{
+                                  marginTop: '8px',
+                                  padding: '8px 12px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(244, 63, 94, 0.12)',
+                                  border: '1px solid rgba(244, 63, 94, 0.4)',
+                                  fontSize: '12px',
+                                  color: '#fb7185'
+                                }}>
+                                  {cloudVerifyError}
+                                </div>
+                              )}
+
+                              {cloudVerifyData && (cloudVerifyData.available_projects?.length > 1 || cloudVerifyData.available_services?.length > 1) && (
+                                <div style={{ marginTop: '8px' }}>
+                                  <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                                    Target Project / Service:
+                                  </label>
+                                  <select
+                                    value={selectedServiceId}
+                                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 12px',
+                                      borderRadius: '6px',
+                                      background: 'rgba(9, 13, 26, 0.85)',
+                                      border: '1px solid var(--border-subtle)',
+                                      color: '#ffffff',
+                                      fontSize: '12px',
+                                      outline: 'none'
+                                    }}
+                                  >
+                                    {(cloudVerifyData.available_projects || cloudVerifyData.available_services || []).map(item => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.name} ({item.id})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
                             </div>
 
                             <button
