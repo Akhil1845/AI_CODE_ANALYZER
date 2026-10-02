@@ -145,16 +145,22 @@ export default function AnalysisResult() {
     return () => { mounted = false; };
   }, [projectId]);
 
-  const handleOpenGitHubModal = () => {
-    if ((!githubRepoUrl || !githubRepoUrl.includes('github.com')) && project?.repo_url) {
-      if (project.repo_url.includes('github.com')) {
+  const handleOpenGitHubModal = (mode = 'commit', specificIssueId = null) => {
+    if ((!githubRepoUrl || !githubRepoUrl.includes('github.com'))) {
+      if (project?.repo_url && project.repo_url.includes('github.com')) {
         setGithubRepoUrl(project.repo_url);
       } else {
-        const savedRepo = localStorage.getItem('codelens_github_repo') || 'https://github.com/Akhil1845/ai_internship_suggestor.git';
+        const savedRepo = localStorage.getItem('codelens_github_repo') || 'https://github.com/Akhil1845/AI_CODE_ANALYZER.git';
         setGithubRepoUrl(savedRepo);
       }
     }
-    setSelectedFixIds(issues.map(i => i.id));
+    setModalTab('github');
+    setBranchMode(mode === 'commit' || mode === 'direct' ? 'commit' : 'pr');
+    if (specificIssueId) {
+      setSelectedFixIds([specificIssueId]);
+    } else {
+      setSelectedFixIds(issues.map(i => i.id));
+    }
     setApplyError('');
     setApplyResult(null);
     setShowGitHubModal(true);
@@ -855,7 +861,7 @@ export default function AnalysisResult() {
                 {issues.length > 0 && (
                   <button
                     type="button"
-                    onClick={handleOpenGitHubModal}
+                    onClick={() => handleOpenGitHubModal('commit')}
                     style={{
                       padding: '8px 16px',
                       fontSize: '13px',
@@ -864,16 +870,40 @@ export default function AnalysisResult() {
                       alignItems: 'center',
                       gap: '7px',
                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      boxShadow: '0 0 20px rgba(16, 185, 129, 0.35)',
+                      boxShadow: '0 0 20px rgba(16, 185, 129, 0.45)',
                       border: 'none',
                       color: '#ffffff',
                       fontWeight: 800,
                       cursor: 'pointer'
                     }}
-                    title="Directly commit solutions or create a Pull Request on GitHub"
+                    title="Directly commit AI solutions to your GitHub repository (Direct Solve & Deploy)"
                   >
-                    <GitPullRequest size={15} />
-                    <span>🚀 Apply to GitHub (PR)</span>
+                    <Zap size={15} />
+                    <span>⚡ Direct AI Solve into GitHub</span>
+                  </button>
+                )}
+
+                {issues.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGitHubModal('pr')}
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                      color: '#38bdf8',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                    title="Create a Pull Request on a separate branch for peer review"
+                  >
+                    <GitPullRequest size={14} />
+                    <span>Create PR</span>
                   </button>
                 )}
             </div>
@@ -1228,9 +1258,33 @@ export default function AnalysisResult() {
                     Verified Solutions & Configurations ({filteredIssues.length})
                   </span>
                 </div>
-                <span style={{ fontSize: '12.5px', color: '#94a3b8' }}>
-                  Inspect fixes below or use the top action bar to solve all and sync with GitHub
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenGitHubModal('commit')}
+                    style={{
+                      padding: '7px 16px',
+                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)'
+                    }}
+                    title="Directly commit all AI solutions into your GitHub repository"
+                  >
+                    <Zap size={14} />
+                    <span>⚡ Direct AI Solve All into GitHub</span>
+                  </button>
+                  <span style={{ fontSize: '12.5px', color: '#94a3b8' }}>
+                    Inspect fixes below or commit directly to GitHub
+                  </span>
+                </div>
               </div>
 
               {/* Solutions Cards List */}
@@ -1296,6 +1350,29 @@ export default function AnalysisResult() {
 
                           {/* Quick action buttons on each card */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenGitHubModal('commit', issue.id)}
+                              style={{
+                                padding: '6px 14px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                borderRadius: 'var(--radius-sm)',
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                border: '1px solid rgba(52, 211, 153, 0.5)',
+                                color: '#ffffff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 0 12px rgba(16, 185, 129, 0.3)'
+                              }}
+                              title={`Directly commit AI fix for ${issue.file || issue.title} into GitHub`}
+                            >
+                              <Zap size={13} />
+                              <span>Direct AI Solve</span>
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => handleCopySolution(issue.afterCode, issue.id)}
@@ -1835,6 +1912,29 @@ export default function AnalysisResult() {
                           <span>Apply Patch to Project</span>
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenGitHubModal('commit', selectedIssue?.id)}
+                        style={{
+                          padding: '10px 18px',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          border: 'none',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '7px',
+                          boxShadow: '0 0 15px rgba(16, 185, 129, 0.4)'
+                        }}
+                        title={`Directly commit AI solution for ${selectedIssue?.file || selectedIssue?.title} to GitHub`}
+                      >
+                        <Zap size={15} />
+                        <span>⚡ Direct AI Solve into GitHub</span>
+                      </button>
 
                       {(fixApplied || selectedIssue?.validationStatus === 'RESOLVED') && (
                         <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.25)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.5)', padding: '9px 18px', fontSize: '13px', fontWeight: 800 }}>
@@ -2430,49 +2530,52 @@ export default function AnalysisResult() {
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div
-                        onClick={() => setBranchMode('pr')}
-                        style={{
-                          padding: '14px',
-                          borderRadius: '10px',
-                          background: branchMode === 'pr' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(9, 13, 26, 0.7)',
-                          border: branchMode === 'pr' ? '1.5px solid #10b981' : '1px solid var(--border-subtle)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <GitPullRequest size={16} color={branchMode === 'pr' ? '#34d399' : '#94a3b8'} />
-                          <span style={{ fontSize: '13px', fontWeight: 800, color: branchMode === 'pr' ? '#ffffff' : '#cbd5e1' }}>
-                            Create Pull Request
-                          </span>
-                          <span style={{ fontSize: '10px', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '2px 6px', borderRadius: '4px' }}>
-                            SAFE
-                          </span>
-                        </div>
-                        <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-                          Commits into a feature branch and opens a PR. Live deployment rebuilds upon merge.
-                        </p>
-                      </div>
-
-                      <div
                         onClick={() => setBranchMode('commit')}
                         style={{
                           padding: '14px',
                           borderRadius: '10px',
-                          background: branchMode === 'commit' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(9, 13, 26, 0.7)',
-                          border: branchMode === 'commit' ? '1.5px solid #38bdf8' : '1px solid var(--border-subtle)',
+                          background: (branchMode === 'commit' || branchMode === 'direct') ? 'rgba(16, 185, 129, 0.18)' : 'rgba(9, 13, 26, 0.7)',
+                          border: (branchMode === 'commit' || branchMode === 'direct') ? '1.5px solid #10b981' : '1px solid var(--border-subtle)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                          <GitCommit size={16} color={branchMode === 'commit' ? '#38bdf8' : '#94a3b8'} />
-                          <span style={{ fontSize: '13px', fontWeight: 800, color: branchMode === 'commit' ? '#ffffff' : '#cbd5e1' }}>
-                            Direct Branch Commit
+                          <Zap size={16} color={(branchMode === 'commit' || branchMode === 'direct') ? '#34d399' : '#94a3b8'} />
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: (branchMode === 'commit' || branchMode === 'direct') ? '#ffffff' : '#cbd5e1' }}>
+                            Direct AI Solve (Commit)
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 800, background: '#10b981', color: '#ffffff', padding: '2px 6px', borderRadius: '4px' }}>
+                            ⚡ DIRECT & FAST
                           </span>
                         </div>
                         <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-                          Directly commits files to `{targetBranch || 'main'}`. Triggers instant Vercel / Render redeploy!
+                          Directly commits surgical AI fixes into <strong>{targetBranch || 'main'}</strong>. Triggers instant live cloud redeployment!
+                        </p>
+                      </div>
+
+                      <div
+                        onClick={() => setBranchMode('pr')}
+                        style={{
+                          padding: '14px',
+                          borderRadius: '10px',
+                          background: branchMode === 'pr' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(9, 13, 26, 0.7)',
+                          border: branchMode === 'pr' ? '1.5px solid #38bdf8' : '1px solid var(--border-subtle)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <GitPullRequest size={16} color={branchMode === 'pr' ? '#38bdf8' : '#94a3b8'} />
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: branchMode === 'pr' ? '#ffffff' : '#cbd5e1' }}>
+                            Create Pull Request
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 800, background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px' }}>
+                            REVIEW (SAFE)
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                          Pushes fixes to a new review branch and opens a GitHub PR. Live deployment rebuilds upon merge.
                         </p>
                       </div>
                     </div>
@@ -2600,8 +2703,8 @@ export default function AnalysisResult() {
                         </>
                       ) : (
                         <>
-                          <GitPullRequest size={16} />
-                          <span>{branchMode === 'pr' ? `Create PR with ${selectedFixIds.length} Fixes` : `Commit ${selectedFixIds.length} Fixes (Auto-Redeploy)`}</span>
+                          {(branchMode === 'commit' || branchMode === 'direct') ? <Zap size={16} /> : <GitPullRequest size={16} />}
+                          <span>{(branchMode === 'commit' || branchMode === 'direct') ? `⚡ Direct AI Solve & Commit ${selectedFixIds.length} Fixes` : `Create PR with ${selectedFixIds.length} Fixes`}</span>
                         </>
                       )}
                     </button>
