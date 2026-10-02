@@ -27,6 +27,8 @@ class GitHubService:
             parts = clean.split('/')
             if len(parts) == 2:
                 owner, repo = parts[0], parts[1].replace('.git', '')
+            elif len(parts) == 1 and clean:
+                owner, repo = "auto", parts[0].replace('.git', '')
             else:
                 raise ValueError(f"Invalid GitHub repository URL: {url}. Expected format: https://github.com/owner/repo")
         
@@ -341,8 +343,31 @@ class GitHubService:
             "User-Agent": "CodeLens-AI-AutoFix"
         }
 
-        # 1. Fetch repo info to get default branch
+        # Auto-resolve owner if "auto"
+        if owner == "auto":
+            user_res = requests.get("https://api.github.com/user", headers=headers, timeout=10)
+            if user_res.status_code == 200:
+                owner = user_res.json().get("login", "auto")
+
+        # 1. Fetch repo info to get default branch (or auto-create if not found)
         repo_res = requests.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers, timeout=12)
+        if repo_res.status_code == 404:
+            user_res = requests.get("https://api.github.com/user", headers=headers, timeout=10)
+            if user_res.status_code == 200:
+                user_login = user_res.json().get("login")
+                if user_login and (owner.lower() == user_login.lower() or owner == "auto"):
+                    owner = user_login
+                    create_payload = {
+                        "name": repo,
+                        "description": "Full-stack project scaffolded via CodeLens AI Studio",
+                        "private": False,
+                        "auto_init": True
+                    }
+                    create_res = requests.post("https://api.github.com/user/repos", headers=headers, json=create_payload, timeout=15)
+                    if create_res.status_code in (200, 201):
+                        time.sleep(2.0)
+                        repo_res = requests.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers, timeout=12)
+
         if repo_res.status_code != 200:
             err_msg = repo_res.json().get("message", f"HTTP {repo_res.status_code}")
             raise Exception(f"Unable to access {owner}/{repo} via GitHub API: {err_msg}. Verify your token has 'repo' scope.")
