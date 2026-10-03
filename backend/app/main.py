@@ -3,6 +3,7 @@ import zipfile
 import io
 import time
 import secrets
+from urllib.parse import urlparse
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
