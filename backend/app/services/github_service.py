@@ -332,6 +332,8 @@ class GitHubService:
             except Exception as ex:
                 result["message"] = f"Authenticated as @{username}. Repository check note: {str(ex)}"
 
+        return result
+
     def _apply_surgical_patch_to_content(self, file_path: str, existing_content: str, fixes: List[Dict[str, Any]]) -> str:
         """
         Surgically patches code issues in existing files without overwriting or destroying other code.
