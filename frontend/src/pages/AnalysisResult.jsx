@@ -191,12 +191,12 @@ export default function AnalysisResult() {
     setTokenVerifyError('');
     try {
       const res = await api.verifyGitHubToken(t.trim(), githubRepoUrl.trim() || null);
-      if (res?.valid) {
+      if (res && res.valid) {
         setTokenVerifyData(res);
         if (res.default_branch) setTargetBranch(res.default_branch);
         if (rememberToken) localStorage.setItem('codelens_github_pat', t.trim());
       } else {
-        setTokenVerifyError(res?.message || 'Token verification failed.');
+        setTokenVerifyError(res?.message || 'Token verification failed. Please check token permissions.');
         setTokenVerifyData(null);
       }
     } catch (err) {
@@ -295,7 +295,7 @@ export default function AnalysisResult() {
         token: cloudToken.trim(),
         liveUrl: project?.repo_url || null
       });
-      if (res?.valid) {
+      if (res && res.valid) {
         setCloudVerifyData(res);
         localStorage.setItem('codelens_cloud_token', cloudToken.trim());
         if (res.matched_project) {
@@ -338,7 +338,7 @@ export default function AnalysisResult() {
           token: cloudToken.trim(),
           liveUrl: project?.repo_url || project?.name || null
         });
-        if (verifyRes?.valid) {
+        if (verifyRes && verifyRes.valid) {
           setCloudVerifyData(verifyRes);
           localStorage.setItem('codelens_cloud_token', cloudToken.trim());
           targetId = verifyRes.matched_project?.id ||
