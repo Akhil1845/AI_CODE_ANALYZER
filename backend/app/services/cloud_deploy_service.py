@@ -66,16 +66,31 @@ class CloudDeployService:
         except Exception as e:
             return {"valid": False, "message": f"Network error connecting to Vercel API: {str(e)}"}
 
-        if user_res.status_code == 401 or user_res.status_code == 403:
-            return {"valid": False, "message": "Invalid or expired Vercel API Token."}
-        elif user_res.status_code == 404:
-            return {"valid": False, "message": "Vercel API user endpoint returned HTTP 404. Verify your personal access token on vercel.com/account/tokens."}
-        elif user_res.status_code != 200:
-            return {"valid": False, "message": f"Vercel API returned HTTP {user_res.status_code}"}
+        user_data = {}
+        username = "Vercel User"
+        avatar_url = "https://avatar.vercel.sh/vercel"
 
-        user_data = user_res.json().get("user", {})
-        username = user_data.get("username") or user_data.get("name") or "Vercel User"
-        avatar_url = user_data.get("avatar") or f"https://avatar.vercel.sh/{username}"
+        if user_res.status_code == 200:
+            user_data = user_res.json().get("user", {})
+            username = user_data.get("username") or user_data.get("name") or "Vercel User"
+            avatar_url = user_data.get("avatar") or f"https://avatar.vercel.sh/{username}"
+        elif user_res.status_code in (401, 403):
+            return {"valid": False, "message": "Invalid or expired Vercel API Token. Please generate a new token on vercel.com/account/tokens."}
+        else:
+            # 404 on /v2/user commonly occurs when the token was created with Project-Scoped or Team-Scoped permissions.
+            # Fallback to checking /v9/projects to verify token validity.
+            try:
+                test_proj = requests.get("https://api.vercel.com/v9/projects?limit=5", headers=headers, timeout=10)
+                if test_proj.status_code == 200:
+                    username = "Vercel Token (Scoped)"
+                    avatar_url = "https://avatar.vercel.sh/scoped"
+                else:
+                    return {
+                        "valid": False,
+                        "message": "Vercel Token could not be authenticated. Ensure your token is created with Full Account scope on vercel.com/account/tokens."
+                    }
+            except Exception as e:
+                return {"valid": False, "message": f"Network error validating Vercel token: {str(e)}"}
 
         # Fetch projects to match target domain
         matched_project = None
