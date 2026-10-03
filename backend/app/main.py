@@ -961,11 +961,11 @@ def link_backend_to_frontend(req: LinkBackendRequest):
         ],
         "rewrites": [
             {
-                "source": "/api/(.*)",
-                "destination": f"{backend_url}/api/$1"
+                "source": "/api/:path*",
+                "destination": f"{backend_url}/api/:path*"
             },
             {
-                "source": "/(.*)",
+                "source": "/((?!api/).*)",
                 "destination": "/index.html"
             }
         ]
