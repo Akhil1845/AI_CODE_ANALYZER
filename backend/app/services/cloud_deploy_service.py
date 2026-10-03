@@ -404,8 +404,9 @@ class CloudDeployService:
             for conn in psutil.net_connections(kind='inet'):
                 if conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
                     return conn.pid
-        except Exception:
-            pass
+        except Exception as _err:
+            import logging
+            logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
         return None
 
     def auto_find_candidate_backend(self) -> Optional[str]:
@@ -456,8 +457,9 @@ class CloudDeployService:
                         if m_port:
                             detected_port = int(m_port.group(1))
                             break
-                    except Exception:
-                        pass
+                    except Exception as _err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Handled fallback exception: {_err}")
 
             # Check for pre-built JAR in target/
             target_dir = os.path.join(clean_path, "target")
