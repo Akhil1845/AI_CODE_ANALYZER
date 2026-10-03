@@ -68,6 +68,8 @@ class CloudDeployService:
 
         if user_res.status_code == 401 or user_res.status_code == 403:
             return {"valid": False, "message": "Invalid or expired Vercel API Token."}
+        elif user_res.status_code == 404:
+            return {"valid": False, "message": "Vercel API user endpoint returned HTTP 404. Verify your personal access token on vercel.com/account/tokens."}
         elif user_res.status_code != 200:
             return {"valid": False, "message": f"Vercel API returned HTTP {user_res.status_code}"}
 
@@ -300,6 +302,8 @@ class CloudDeployService:
                         "deployment_url": f"https://{d_data.get('url')}" if d_data.get('url') else "https://vercel.com",
                         "message": "Fresh deployment initiated on Vercel Edge Network."
                     }
+                if res.status_code == 404 or redeploy_res.status_code == 404:
+                    raise Exception(f"Project '{service_or_project_id}' was not found in your Vercel account (HTTP 404). If this project is not yet hosted on Vercel, please use '1. Via GitHub' to commit fixes directly.")
                 raise Exception(f"Vercel Deployment notice: {err}")
 
             data = res.json()

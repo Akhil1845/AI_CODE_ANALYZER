@@ -241,6 +241,7 @@ export default function AnalysisResult() {
     setApplyingFixes(true);
     setApplyProgress('Connecting to GitHub REST API securely...');
     setApplyError('');
+    setRedeployError('');
 
     try {
       if (rememberToken) {
@@ -327,6 +328,7 @@ export default function AnalysisResult() {
 
     setRedeployingCloud(true);
     setRedeployError('');
+    setApplyError('');
     setRedeployResult(null);
 
     let targetId = selectedServiceId || cloudVerifyData?.matched_project?.id || cloudVerifyData?.matched_service?.id;
@@ -2248,7 +2250,11 @@ export default function AnalysisResult() {
             }}>
               <button
                 type="button"
-                onClick={() => setModalTab('github')}
+                onClick={() => {
+                  setModalTab('github');
+                  setApplyError('');
+                  setRedeployError('');
+                }}
                 style={{
                   flex: '1 1 180px',
                   padding: '9px 12px',
@@ -2272,7 +2278,11 @@ export default function AnalysisResult() {
 
               <button
                 type="button"
-                onClick={() => setModalTab('cloud_api')}
+                onClick={() => {
+                  setModalTab('cloud_api');
+                  setApplyError('');
+                  setRedeployError('');
+                }}
                 style={{
                   flex: '1 1 180px',
                   padding: '9px 12px',
@@ -2298,6 +2308,8 @@ export default function AnalysisResult() {
                 type="button"
                 onClick={() => {
                   setModalTab('reprobe');
+                  setApplyError('');
+                  setRedeployError('');
                   if (!reprobeResult) handleReprobeLiveUrl(project?.repo_url);
                 }}
                 style={{
@@ -3756,7 +3768,7 @@ export default function AnalysisResult() {
                         )}
 
                         {/* ERROR BANNER */}
-                        {(applyError || redeployError) && (
+                        {((modalTab === 'github' && applyError) || (modalTab === 'cloud_api' && redeployError) || (modalTab !== 'github' && modalTab !== 'cloud_api' && (applyError || redeployError))) && (
                           <div style={{
                             padding: '12px 14px',
                             borderRadius: '8px',
@@ -3771,9 +3783,10 @@ export default function AnalysisResult() {
                             <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
                             <div>
                               <strong>Deployment Error:</strong> {
-                                typeof (applyError || redeployError) === 'object'
-                                  ? JSON.stringify(applyError || redeployError)
-                                  : String(applyError || redeployError)
+                                (() => {
+                                  const err = modalTab === 'github' ? applyError : (modalTab === 'cloud_api' ? redeployError : (applyError || redeployError));
+                                  return typeof err === 'object' ? JSON.stringify(err) : String(err);
+                                })()
                               }
                             </div>
                           </div>
